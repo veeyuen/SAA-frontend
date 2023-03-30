@@ -4,10 +4,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import datetime
-import logging
 #import seaborn as sns
 
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 
 from pandas.api.types import (
     is_categorical_dtype,
