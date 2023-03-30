@@ -142,6 +142,7 @@ st.dataframe(filter)
 metrics = filter['Metric']
 
 fig, ax = plt.subplots()
+plt.style.use("dark_background")
 
 plt.title("Distribution of Times/Distances")
 ax = sns.histplot(data=filter, x='Metric', kde=True, color = "#b80606")
