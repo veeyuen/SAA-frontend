@@ -177,25 +177,6 @@ col4.metric("Max", value=summary[7])
 
 ## Upload CSV
 
-with st.sidebar:
-    uploaded_file = st.file_uploader("Upload new records via CSV file", accept_multiple_files=False)
-
-if uploaded_file is not None:
-
-    try:
-
-        df_new=pd.read_csv(uploaded_file)
-
-        df_processed=clean(df_new)
-        st.dataframe(df_processed)
-
-    except:
-
-        st.warning("Error encountered loading data file. Please check column positions and data formats.")
-
-
-# Upload dataframe into GCS as csv
-
 def upload_csv(df):
 
     credentials = service_account.Credentials.from_service_account_info(
@@ -210,15 +191,33 @@ def upload_csv(df):
 
     return
 
-# Merge newly created df with previous df
 
-frames=[df_processed, data]
+with st.sidebar:
+    uploaded_file = st.file_uploader("Upload new records via CSV file", accept_multiple_files=False)
 
-upload_df = pd.concat(frames)
-upload_df = upload_df.reset_index(drop=True)
+if uploaded_file is not None:
 
-# Upload new df into GCS
 
-upload_csv(upload_df)
+    try:
 
-st.write("Data uploaded into Google Cloud Storage Bucket")
+        df_new=pd.read_csv(uploaded_file)
+
+        df_processed=clean(df_new)
+        st.dataframe(df_processed)
+
+        # Merge newly created df with previous df
+
+        frames=[df_processed, data]
+
+        upload_df = pd.concat(frames)
+        upload_df = upload_df.reset_index(drop=True)
+
+
+        upload_csv(upload_df)
+
+        st.write("Data uploaded into Google Cloud Storage Bucket")
+
+
+    except:
+
+        st.warning("Error encountered loading data file. Please check column positions and data formats.")
