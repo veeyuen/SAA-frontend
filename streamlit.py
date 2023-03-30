@@ -177,7 +177,8 @@ col4.metric("Max", value=summary[7])
 
 ## Upload CSV
 
-uploaded_file = st.file_uploader("Upload new records via CSV file", accept_multiple_files=False)
+with st.sidebar:
+    uploaded_file = st.file_uploader("Upload new records via CSV file", accept_multiple_files=False)
 
 if uploaded_file is not None:
 
