@@ -133,12 +133,6 @@ def load_data():
 data = load_data()
 
 
-# Parse year and month
-
-data['Year'] = data['Date'].dt.strftime('%Y')
-data['Month'] = data['Date'].dt.strftime('%M')
-
-
 # Filter dataframe
 
 events = data['Event'].drop_duplicates()
