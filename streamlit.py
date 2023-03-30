@@ -158,7 +158,7 @@ st.pyplot(fig)
 # Print stats summary
 
 summary = metrics.describe()
-st.write(summary)
+st.write(summary[0])
 
 
 ## Upload CSV
