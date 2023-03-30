@@ -156,10 +156,10 @@ metrics = filter['Metric']
 
 fig, ax = plt.subplots()
 
-plt.title("Distribution of Times/Distances")
-ax = sns.histplot(data=filter, x='Metric', kde=True, color = "#b80606")
+#plt.title("Distribution of Times/Distances")
+#ax = sns.histplot(data=filter, x='Metric', kde=True, color = "#b80606")
 
-st.pyplot(fig)
+#st.pyplot(fig)
 
 
 
