@@ -162,8 +162,8 @@ summary = metrics.describe()
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Count", value=summary[0])
-col2.metric("Mean", value=summary[1])
-col3.metric("St.dev", value=summary[2])
+col2.metric("Mean", value=summary[1].round(2))
+col3.metric("St.dev", value=summary[2].round(2))
 col4.metric("Min", value=summary[3])
 
 
