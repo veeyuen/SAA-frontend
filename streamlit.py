@@ -158,12 +158,14 @@ st.pyplot(fig)
 # Print stats summary
 
 summary = metrics.describe()
-st.write(summary)
+#st.write(summary)
 
-#col1, col2, col3 = st.columns(3)
-#col1.metric("Temperature", "70 °F", "1.2 °F")
-#col2.metric("Wind", "9 mph", "-8%")
-#col3.metric("Humidity", "86%", "4%")
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Count", value=summary[0])
+col2.metric("Mean", value=summary[1])
+col3.metric("St.dev", value=summary[2])
+col4.metric("Min", value=summary[3])
+
 
 
 ## Upload CSV
