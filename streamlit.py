@@ -169,8 +169,8 @@ col4.metric("Min", value=summary[3])
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("25%", value=summary[4].round(2))
 col2.metric("50%", value=summary[5].round(2))
-col3.metric("75%", value=summary[26].round(2))
-col4.metric("Max", value=summary[3])
+col3.metric("75%", value=summary[6].round(2))
+col4.metric("Max", value=summary[7])
 
 
 
