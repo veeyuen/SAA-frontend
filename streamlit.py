@@ -137,7 +137,7 @@ filter=data.loc[mask]
 st.dataframe(filter)
 
 
-# Plot using SNS
+# Plot using Seaborn
 
 metrics = filter['Metric']
 
@@ -158,7 +158,7 @@ st.pyplot(fig)
 # Print stats summary
 
 summary = metrics.describe()
-st.write(summary.count)
+st.write(summary)
 
 
 ## Upload CSV
