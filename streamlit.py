@@ -1,7 +1,6 @@
 # streamlit_app.py
 
 import streamlit as st
-import csv
 import pandas as pd
 import numpy as np
 import datetime
@@ -19,17 +18,6 @@ from pandas.api.types import (
 
 from google.oauth2 import service_account
 from google.cloud import storage
-
-# Logging
-
-
-logging.basicConfig(level = logging.DEBUG,
-                    format = '%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-
-#logging.basicConfig(filename = 'SAA_logging.log',
-#                    filemode='w',
-#                    level = logging.DEBUG,
-#                    format = '%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 
 
 #bucket_name = "singapore_athletics_association"
