@@ -166,13 +166,13 @@ summary = metrics.describe()
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("No. Records", value=int(summary[0]))
 col2.metric("Mean", value=summary[1].round(2))
-col3.metric("St.dev", value=summary[2].round(2))
+col3.metric("Standard Dev.", value=summary[2].round(2))
 col4.metric("Min", value=summary[3])
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("25%", value=summary[4].round(2))
-col2.metric("50%", value=summary[5].round(2))
-col3.metric("75%", value=summary[6].round(2))
+col1.metric("25 percentile", value=summary[4].round(2))
+col2.metric("50 percentile", value=summary[5].round(2))
+col3.metric("75 percentile", value=summary[6].round(2))
 col4.metric("Max", value=summary[7])
 
 
