@@ -108,7 +108,7 @@ client = storage.Client(credentials=credentials)
 
 URL = ("https://storage.googleapis.com/singapore_athletics_association/consolidated.csv")
 
-@st.cache(persist=True)
+#@st.cache(persist=True)
 
 def load_data():
 
