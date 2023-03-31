@@ -122,6 +122,9 @@ data = load_data()
 
 # Filter dataframe
 
+
+data['year'] = data['Date'].dt.year
+
 events = data['Event'].drop_duplicates()
 event_choice = st.sidebar.selectbox('Select the event:', events)
 dates = data["Date"].loc[data["Event"] == event_choice]
@@ -174,7 +177,6 @@ col4.metric("Max", value=summary[7])
 
 
 
-
 ## Upload CSV
 
 def upload_csv(df):
@@ -211,7 +213,6 @@ if uploaded_file is not None:
 
         upload_df = pd.concat(frames)
         upload_df = upload_df.reset_index(drop=True)
-
 
         upload_csv(upload_df)
 
