@@ -164,7 +164,7 @@ summary = metrics.describe()
 #st.write(summary)
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Count", value=int(summary[0]))
+col1.metric("# Records", value=int(summary[0]))
 col2.metric("Mean", value=summary[1].round(2))
 col3.metric("St.dev", value=summary[2].round(2))
 col4.metric("Min", value=summary[3])
