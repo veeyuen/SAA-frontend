@@ -130,7 +130,7 @@ data['month'] = pd.DatetimeIndex(data['Date']).month
 
 events = data['Event'].drop_duplicates()
 event_choice = st.sidebar.selectbox('Select the event:', events)
-dates = data['Date'].loc[data["Event"] == event_choice].drop_duplicates()
+dates = data['year'].loc[data["Event"] == event_choice].drop_duplicates()
 
 
 start_year = st.sidebar.selectbox('Start Year', dates)
