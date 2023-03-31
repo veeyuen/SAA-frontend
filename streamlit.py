@@ -136,7 +136,7 @@ dates = data['year'].loc[data["Event"] == event_choice].drop_duplicates()
 start_year = st.sidebar.selectbox('Start Year', dates)
 end_year = st.sidebar.selectbox('End Year', dates)
 
-mask = ((data['year'] > start_year) & (data['year'] <= end_year) & (data['Event']==event_choice))
+mask = ((data['year'] >= start_year) & (data['year'] <= end_year) & (data['Event']==event_choice))
 
 filter=data.loc[mask]
 
@@ -156,9 +156,6 @@ ax = sns.histplot(data=filter, x='Metric', kde=True, color = "#b80606")
 #ax = plt.hist(metrics, bins=7)
 
 st.pyplot(fig)
-
-
-
 
 
 # Print stats summary
