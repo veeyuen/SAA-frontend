@@ -120,20 +120,23 @@ def load_data():
 data = load_data()
 
 
+# Extract year and month
+
+data['year'] = pd.DatetimeIndex(data['Date']).year
+data['month'] = pd.DatetimeIndex(data['Date']).month
+
 # Filter dataframe
 
 
-data['year'] = pd.DatetimeIndex(data['Date']).year
-
 events = data['Event'].drop_duplicates()
 event_choice = st.sidebar.selectbox('Select the event:', events)
-dates = data["Date"].loc[data["Event"] == event_choice]
+dates = data['year'].loc[data["Event"] == event_choice]
 
 
-start_date = st.sidebar.selectbox('Start Date', dates)
-end_date = st.sidebar.selectbox('End Date', dates)
+start_year = st.sidebar.selectbox('Start Year', dates)
+end_year = st.sidebar.selectbox('End Year', dates)
 
-mask = ((data['Date'] > start_date) & (data['Date'] <= end_date) & (data['Event']==event_choice))
+mask = ((data['year'] > start_year) & (data['year'] <= end_year) & (data['Event']==event_choice))
 
 filter=data.loc[mask]
 
