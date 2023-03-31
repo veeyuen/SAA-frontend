@@ -123,7 +123,7 @@ data = load_data()
 # Filter dataframe
 
 
-data['year'] = data['Date'].dt.strftime('%Y')
+data['year'] = pd.DatetimeIndex(data['Date']).year
 
 events = data['Event'].drop_duplicates()
 event_choice = st.sidebar.selectbox('Select the event:', events)
