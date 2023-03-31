@@ -127,6 +127,8 @@ data['month'] = pd.DatetimeIndex(data['Date']).month
 
 # Filter dataframe
 
+st.dataframe(data)
+
 
 events = data['Event'].drop_duplicates()
 event_choice = st.sidebar.selectbox('Select the event:', events)
