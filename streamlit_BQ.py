@@ -38,12 +38,17 @@ def run_query(query):
     rows = [dict(row) for row in rows_raw]
     return rows
 
-rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
+#rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
+
+rows = run_query("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10")
+
 
 # Print results.
-st.write("Some wise words from Shakespeare:")
+st.write("Writing rows from table:")
 for row in rows:
-    st.write("✍️ " + row['word'])
+#    st.write("✍️ " + row['word'])
+    st.write(row)
+
 
 
 
