@@ -40,16 +40,18 @@ def run_query(query):
 
 #rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
 
-rows = run_query("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10")
+#rows = run_query("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10")
 
 
 # Print results.
-st.write("Writing rows from table:")
-for row in rows:
+#st.write("Writing rows from table:")
+#for row in rows:
 #    st.write("✍️ " + row['word'])
-    st.write(row)
+#    st.write(row)
 
+df = client.query_and_wait("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10").to_dataframe()
 
+st.write(df)
 
 
 
