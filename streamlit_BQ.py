@@ -6,6 +6,8 @@ import numpy as np
 import datetime
 import seaborn as sns
 import db_dtypes
+import plotly.express as px
+
 
 from matplotlib import pyplot as plt
 
