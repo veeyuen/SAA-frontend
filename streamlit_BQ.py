@@ -8,6 +8,8 @@ import seaborn as sns
 import db_dtypes
 import plotly.express as px
 from mitosheet.streamlit.v1 import spreadsheet
+import analytics
+
 
 
 from matplotlib import pyplot as plt
