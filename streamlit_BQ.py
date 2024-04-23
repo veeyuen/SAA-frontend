@@ -7,7 +7,7 @@ import datetime
 import seaborn as sns
 import db_dtypes
 import plotly.express as px
-import mitosheet streamlit
+from mitosheet.streamlit.v1 import spreadsheet
 
 
 from matplotlib import pyplot as plt
