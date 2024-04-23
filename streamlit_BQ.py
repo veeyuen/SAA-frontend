@@ -52,7 +52,7 @@ def run_query(query):
 
 df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10""").to_dataframe()
 
-print(df)
+st.write(df)
 
 
 
