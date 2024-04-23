@@ -6,3 +6,4 @@ requests
 seaborn
 google-cloud-bigquery
 db_dtypes
+plotly
