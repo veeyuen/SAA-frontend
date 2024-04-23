@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import seaborn as sns
-import db-types
+import db-dtypes
 
 from matplotlib import pyplot as plt
 
