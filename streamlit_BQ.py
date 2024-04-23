@@ -57,7 +57,7 @@ def run_query(query):
 
 df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10""").to_dataframe()
 
-final_dfs, code = spreadsheet(dataframe)
+final_dfs, code = spreadsheet(df)
 
 st.write(final_dfs)
 
