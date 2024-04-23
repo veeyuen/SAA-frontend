@@ -55,7 +55,7 @@ def run_query(query):
 #    st.write("✍️ " + row['word'])
 #    st.write(row)
 
-df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10""").to_dataframe()
+df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
 final_dfs, code = spreadsheet(df)
 
