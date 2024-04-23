@@ -61,7 +61,7 @@ final_dfs, code = spreadsheet(df)
 
 st.write(final_dfs)
 
-#st.code(code)
+st.code(code)
 
 #st.write(df)
 
