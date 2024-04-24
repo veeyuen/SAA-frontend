@@ -57,9 +57,9 @@ def run_query(query):
 
 df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
-df_filtered=df.dropna(how= "all", axis=1, inplace=True)
+df.dropna(how= "all", axis=1, inplace=True)
 
-final_dfs, code = spreadsheet(df_filtered)
+final_dfs, code = spreadsheet(df)
 
 st.write(final_dfs)
 
