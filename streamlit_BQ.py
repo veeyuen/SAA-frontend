@@ -123,12 +123,10 @@ SELECT NAME, RESULT, AGE, RANK AS COMPETITION_RANK, EVENT, DOB, COUNTRY, CATEGOR
 FROM `saa-analytics.results.saa_full` 
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
 
-all_sql="""
-SELECT * FROM `saa-analytics.results.saa_full`
-"""
+all_sql="""SELECT * FROM `saa-analytics.results.saa_full`"""
 
 
-"""
+
 #
 #df = client.query_and_wait(all_sql).to_dataframe()
 
