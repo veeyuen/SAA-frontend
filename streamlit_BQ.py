@@ -111,8 +111,7 @@ def convert_time(i, string, metric):
             
             h,m,s = metric.split(':')
             output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
-            
-                
+                       
     return output
 
 #rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
@@ -138,7 +137,7 @@ df.dropna(how= "all", axis=1, inplace=True)
 
 year_list = df['DATE'].unique().tolist() # get unique list of source events
 region_list = df['REGION'].unique().tolist()
-competition_list = df['COMPEITION'].unique().tolist()
+competition_list = df['COMPETITION'].unique().tolist()
 
 year_selection = st.multiselect(
     "Please select the desired year(s):",
