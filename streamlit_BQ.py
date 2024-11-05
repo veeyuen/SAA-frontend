@@ -157,8 +157,6 @@ competition_selection = st.multiselect(
 
 df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
-st.write(df_filtered)
-
 ### PROCESS BENCHMARKS ###
 
 benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
@@ -263,7 +261,10 @@ rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliv
 
 rslt_df['PERF_SCALAR']=rslt_df['Delta5']/rslt_df['Metric']*100
 
-st.write(benchmarks)
+# Show resulting dataframe
+
+st.write(rslt_df)
+
 
 
 # Extract year and month
