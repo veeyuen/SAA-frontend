@@ -55,9 +55,18 @@ def run_query(query):
 #    st.write("✍️ " + row['word'])
 #    st.write(row)
 
-df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` WHERE DATE='2024'""").to_dataframe()
+df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
+
+source_list=df['SOURCE'].unique().tolist() # get unique list of source events
+
+event_options = st.multiselect(
+    "Please select the desired event(s):",
+    source_list,
+)
+
+st.write("You selected:", event_options)
 
 #final_dfs, code = spreadsheet(df)
 
