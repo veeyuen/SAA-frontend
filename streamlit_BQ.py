@@ -39,13 +39,6 @@ client = bigquery.Client(credentials=credentials)
 
 ## DEFINE FUNCTONS ##
 
-def run_query(query):
-    query_job = client.query(query)
-    rows_raw = query_job.result()
-    # Convert to list of dicts. Required for st.cache_data to hash the return value.
-    rows = [dict(row) for row in rows_raw]
-    return rows
-
 # Converts any time format into seconds
 
 def convert_time(i, string, metric):
@@ -117,18 +110,6 @@ def convert_time(i, string, metric):
     return output
 
 
-
-#rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
-
-#rows = run_query("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10")
-
-
-# Print results.
-#st.write("Writing rows from table:")
-#for row in rows:
-#    st.write("✍️ " + row['word'])
-#    st.write(row)
-
 ### DEFINE SQL QUERIES ###
 
 benchmark_sql = """
@@ -141,10 +122,9 @@ athletes_sql="""
 SELECT NAME, RESULT, AGE, RANK AS COMPETITION_RANK, EVENT, DOB, COUNTRY, CATEGORY_EVENT, GENDER, COMPETITION, DATE
 FROM `saa-analytics.results.saa_full` 
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
-"""
 
-"""
-df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
+
+#df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
 #df.dropna(how= "all", axis=1, inplace=True)
 
@@ -160,17 +140,16 @@ df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""")
 #region_selection = st.multiselect(
 #    "Please select the desired region(S):",
 #    region_list,
-)
+#)
 
-competition_selection = st.multiselect(
-    "Please select the desired competition(s):",
-    competition_list,
-)
+#competition_selection = st.multiselect(
+#    "Please select the desired competition(s):",
+#    competition_list,
+#)
 
 
-df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
+#df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
-"""
 
 ### EXTRACT LIST OF ATHLETES ###
 
@@ -560,7 +539,7 @@ st.write(spexed_list)
 
 
 
-
+####### OLD CODE BELOW ###
 
 # Extract year and month
 
