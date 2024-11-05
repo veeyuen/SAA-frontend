@@ -145,12 +145,12 @@ year_selection = st.multiselect(
 )
 
 region_selection = st.multiselect(
-    "Please select the desired region:",
+    "Please select the desired region(S):",
     region_list,
 )
 
 competition_selection = st.multiselect(
-    "Please select the desired region:",
+    "Please select the desired competition(s):",
     competition_list,
 )
 
@@ -165,6 +165,9 @@ benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
 
 benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
 benchmarks.drop(['NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
+
+st.write(benchmarks)
+
 
 # Extract year and month
 
