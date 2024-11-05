@@ -7,10 +7,7 @@ import datetime
 import seaborn as sns
 import db_dtypes
 import plotly.express as px
-#from mitosheet.streamlit.v1 import spreadsheet
 import analytics
-
-
 
 from matplotlib import pyplot as plt
 
@@ -26,6 +23,7 @@ from google.cloud import bigquery
 
 
 # Create API client.
+
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
@@ -37,6 +35,9 @@ client = bigquery.Client(credentials=credentials)
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
 @st.cache_data(ttl=600)
+
+## DEFINE FUNCTONS ##
+
 def run_query(query):
     query_job = client.query(query)
     rows_raw = query_job.result()
@@ -114,6 +115,8 @@ def convert_time(i, string, metric):
                        
     return output
 
+
+
 #rows = run_query("SELECT word FROM `bigquery-public-data.samples.shakespeare` LIMIT 10")
 
 #rows = run_query("SELECT * FROM `saa-analytics.results.saa_full` LIMIT 10")
@@ -125,28 +128,37 @@ def convert_time(i, string, metric):
 #    st.write("✍️ " + row['word'])
 #    st.write(row)
 
+### DEFINE SQL QUERIES ###
+
 benchmark_sql = """
 SELECT NAME, RESULT, RANK, EVENT, CATEGORY_EVENT, GENDER, COMPETITION, STAGE
 FROM `saa-analytics.results.saa_full`
 WHERE STAGE='Final' AND COMPETITION='SEA Games' AND RANK='3'
 """
 
+athletes_sql="""
+SELECT NAME, RESULT, AGE, RANK AS COMPETITION_RANK, EVENT, DOB, COUNTRY, CATEGORY_EVENT, GENDER, COMPETITION, DATE
+FROM `saa-analytics.results.saa_full` 
+WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
+"""
+
+'''
 df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
-df.dropna(how= "all", axis=1, inplace=True)
+#df.dropna(how= "all", axis=1, inplace=True)
 
-year_list = df['DATE'].unique().tolist() # get unique list of source events
-region_list = df['REGION'].unique().tolist()
-competition_list = df['COMPETITION'].unique().tolist()
+#year_list = df['DATE'].unique().tolist() # get unique list of source events
+#region_list = df['REGION'].unique().tolist()
+#competition_list = df['COMPETITION'].unique().tolist()
 
-year_selection = st.multiselect(
-    "Please select the desired year(s):",
-    year_list,
-)
+#year_selection = st.multiselect(
+#    "Please select the desired year(s):",
+#    year_list,
+#)
 
-region_selection = st.multiselect(
-    "Please select the desired region(S):",
-    region_list,
+#region_selection = st.multiselect(
+#    "Please select the desired region(S):",
+#    region_list,
 )
 
 competition_selection = st.multiselect(
@@ -156,6 +168,174 @@ competition_selection = st.multiselect(
 
 
 df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
+
+'''
+### EXTRACT LIST OF ATHLETES ###
+
+athletes = client.query_and_wait(athletes_sql).to_dataframe()
+
+# Create temporary mapped event column
+
+athletes['MAPPED_EVENT']=''
+
+# Correct javelin category
+
+mask = athletes['EVENT'].str.contains(r'Javelin', na=True)
+athletes.loc[mask, 'CATEGORY_EVENT'] = 'Throw'
+
+# Correct running categories
+
+mask = athletes['EVENT'].str.contains(r'50 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '50m'
+mask = athletes['EVENT'].str.contains(r'60 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '60m'
+mask = athletes['EVENT'].str.contains(r'80 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '80m'
+mask = athletes['EVENT'].str.contains(r'100 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
+mask = athletes['EVENT'].str.contains(r'100 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
+mask = athletes['EVENT'].str.contains(r'100m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
+mask = athletes['EVENT'].str.contains(r'200 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
+mask = athletes['EVENT'].str.contains(r'200m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
+mask = athletes['EVENT'].str.contains(r'300 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '300m'
+mask = athletes['EVENT'].str.contains(r'400 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
+mask = athletes['EVENT'].str.contains(r'400m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
+mask = athletes['EVENT'].str.contains(r'600 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '600m'
+mask = athletes['EVENT'].str.contains(r'800 Meter Dash', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
+mask = athletes['EVENT'].str.contains(r'800 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
+mask = athletes['EVENT'].str.contains(r'800m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
+mask = athletes['EVENT'].str.contains(r'1500 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '1500m'
+mask = athletes['EVENT'].str.contains(r'1500m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '1500m'
+mask = athletes['EVENT'].str.contains(r'3000 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m'
+mask = athletes['EVENT'].str.contains(r'3000m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m'
+mask = athletes['EVENT'].str.contains(r'5000 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '5000m'
+mask = athletes['EVENT'].str.contains(r'5000m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '5000m'
+mask = athletes['EVENT'].str.contains(r'10000 Meter Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '10000m'
+mask = athletes['EVENT'].str.contains(r'10000m', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '10000m'
+mask = athletes['EVENT'].str.contains(r'1 Mile Run', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '1 mile'
+
+
+# Correct hurdles
+
+mask = athletes['EVENT'].str.contains(r'80m Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '80m hurdles'
+mask = athletes['EVENT'].str.contains(r'80m hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '80m hurdles'
+mask = athletes['EVENT'].str.contains(r'80 Meter Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '80m hurdles'
+mask = athletes['EVENT'].str.contains(r'100m Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '100m hurdles'
+mask = athletes['EVENT'].str.contains(r'100 Meter Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '100m hurdles'
+mask = athletes['EVENT'].str.contains(r'110m Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '110m hurdles'
+mask = athletes['EVENT'].str.contains(r'110 Meter Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '110m hurdles'
+mask = athletes['EVENT'].str.contains(r'200m Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '200m hurdles'
+mask = athletes['EVENT'].str.contains(r'200 Meter Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '200m hurdles'
+mask = athletes['EVENT'].str.contains(r'400m Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '400m hurdles'
+mask = athletes['EVENT'].str.contains(r'400 Meter Hurdles', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '400m hurdles'
+
+
+# Throws
+
+mask = athletes['EVENT'].str.contains(r'Javelin', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin throw'
+mask = athletes['EVENT'].str.contains(r'Shot', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot put'
+mask = athletes['EVENT'].str.contains(r'Hammer', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer throw'
+mask = athletes['EVENT'].str.contains(r'Discus', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus throw'
+
+# Jumps
+
+mask = athletes['EVENT'].str.contains(r'High Jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'High jump'
+mask = athletes['EVENT'].str.contains(r'Long Jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Long jump'
+mask = athletes['EVENT'].str.contains(r'Triple Jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Triple jump'
+mask = athletes['EVENT'].str.contains(r'Pole Vault', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Pole vault'
+mask = athletes['EVENT'].str.contains(r'High jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'High jump'
+mask = athletes['EVENT'].str.contains(r'Long jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Long jump'
+mask = athletes['EVENT'].str.contains(r'Triple jump', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Triple jump'
+mask = athletes['EVENT'].str.contains(r'Pole vault', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = 'Pole vault'
+
+# Steeplechase
+
+mask = athletes['EVENT'].str.contains(r'2000m S/C', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '2000m steeplechase'
+mask = athletes['EVENT'].str.contains(r'2000m steeplechase', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '2000m steeplechase'
+mask = athletes['EVENT'].str.contains(r'2000 Meter Steeplechase', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '2000m steeplechase'
+mask = athletes['EVENT'].str.contains(r'3000m S/C', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m steeplechase'
+mask = athletes['EVENT'].str.contains(r'3000 Meter Steeplechase', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m steeplechase'
+
+
+# Walk
+
+mask = athletes['EVENT'].str.contains(r'1500 Meter Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '1500m race walk'
+mask = athletes['EVENT'].str.contains(r'3000m Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m race walk'
+mask = athletes['EVENT'].str.contains(r'3000 Meter Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '3000m race walk'
+mask = athletes['EVENT'].str.contains(r'5000 Meter Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '5000m race walk'
+mask = athletes['EVENT'].str.contains(r'5000m Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '5000m race walk'
+mask = athletes['EVENT'].str.contains(r'10000 Meter Race Walk', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '10000m race walk'
+
+# Relay
+
+mask = athletes['EVENT'].str.contains(r'4x100m Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 100m relay'
+mask = athletes['EVENT'].str.contains(r'4 X 100m Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 100m relay'
+mask = athletes['EVENT'].str.contains(r'4x400m Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m relay'
+mask = athletes['EVENT'].str.contains(r'4 X 400m Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m relay'
+mask = athletes['EVENT'].str.contains(r'4x100 Meter Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 100m relay'
+mask = athletes['EVENT'].str.contains(r'4x400 Meter Relay', na=True)
+athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m relay'
+
+
 
 ### PROCESS BENCHMARKS ###
 
