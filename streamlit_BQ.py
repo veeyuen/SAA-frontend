@@ -362,6 +362,8 @@ for i in range(len(benchmarks)):
      
     benchmarks.loc[rowIndex, 'Metric'] = out
 
+# Calculate benchmarks
+
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
 
 benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
@@ -377,7 +379,7 @@ benchmarks['MAPPED_EVENT']=benchmarks['EVENT']
 # Merge benchmarks with df
 
 df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.NaN)
+df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
 
 # Convert df results into seconds format
 
