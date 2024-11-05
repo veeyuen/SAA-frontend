@@ -541,9 +541,11 @@ spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MA
 
 # Show resulting dataframe
 
+st.write("LIST OF OCTC SELECTION ATHLETES:")
+
 st.write(spexed_list)
 
-user_input = st.text_input("Input desired benchmark threshold (%):", default_value_goes_here)
+input = st.text_input("Input desired benchmark threshold (%):")
 
 
 
