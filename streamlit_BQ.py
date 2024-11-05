@@ -7,7 +7,7 @@ import datetime
 import seaborn as sns
 import db_dtypes
 import plotly.express as px
-from mitosheet.streamlit.v1 import spreadsheet
+#from mitosheet.streamlit.v1 import spreadsheet
 import analytics
 
 
@@ -55,17 +55,17 @@ def run_query(query):
 #    st.write("✍️ " + row['word'])
 #    st.write(row)
 
-df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
+df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` WHERE 'DATE'='2024'""").to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-final_dfs, code = spreadsheet(df)
+#final_dfs, code = spreadsheet(df)
 
-st.write(final_dfs)
+#st.write(final_dfs)
 
-st.code(code)
+#st.code(code)
 
-#st.write(df)
+st.write(df)
 
 
 
