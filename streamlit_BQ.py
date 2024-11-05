@@ -1,4 +1,5 @@
 # streamlit_app.py
+# OCTC Selection for jumps and throws only
 
 import streamlit as st
 import pandas as pd
@@ -393,9 +394,11 @@ df['AGE'] = df['AGE'].astype('float')
 
 rslt_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
-# Measure against 2%, 3.5% and 5% of SEAG 3rd place
+# Measure against 2%, 3.5% and 5% of SEAG 3rd place for jumps and throws only
 
-mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True)
+mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) # choose only jumps/throws
+
+
 rslt_df.loc[mask, 'Delta2'] = rslt_df['RESULT_CONV']-rslt_df['2pc']
 rslt_df.loc[mask, 'Delta35'] = rslt_df['RESULT_CONV']-rslt_df['35pc']
 rslt_df.loc[mask, 'Delta5'] = rslt_df['RESULT_CONV']-rslt_df['5pc']
