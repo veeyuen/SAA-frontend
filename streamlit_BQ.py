@@ -183,6 +183,86 @@ for i in range(len(benchmarks)):
      
     benchmarks.loc[rowIndex, 'Metric'] = out
 
+mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
+
+benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
+benchmarks.loc[mask, '35pc']=benchmarks['Metric']*0.965
+benchmarks.loc[mask, '5pc']=benchmarks['Metric']*0.95
+
+benchmarks.loc[~mask, '2pc']=benchmarks['Metric']*1.02
+benchmarks.loc[~mask, '35pc']=benchmarks['Metric']*1.035
+benchmarks.loc[~mask, '5pc']=benchmarks['Metric']*1.05
+
+benchmarks['MAPPED_EVENT']=benchmarks['EVENT']
+
+# Merge benchmarks with df
+
+df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
+df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.NaN)
+
+# Convert df results into seconds format
+
+for i in range(len(df)):
+    
+        
+    rowIndex = df.index[i]
+
+    input_string=df.iloc[rowIndex,5]    
+    
+    metric=df.iloc[rowIndex,2]
+    
+    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
+        continue
+    
+        
+    out = convert_time(i, input_string, metric)
+         
+    df.loc[rowIndex, 'RESULT_CONV'] = out
+
+df["AGE"].fillna(0, inplace=True)
+df['AGE'] = df['AGE'].astype('float')
+
+# Apply OCTC criteria
+
+rslt_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
+
+# Measure against 2%, 3.5% and 5% of SEAG 3rd place
+
+mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True)
+rslt_df.loc[mask, 'Delta2'] = rslt_df['RESULT_CONV']-rslt_df['2pc']
+rslt_df.loc[mask, 'Delta35'] = rslt_df['RESULT_CONV']-rslt_df['35pc']
+rslt_df.loc[mask, 'Delta5'] = rslt_df['RESULT_CONV']-rslt_df['5pc']
+
+rslt_df.loc[~mask, 'Delta2'] =  rslt_df['2pc'] - rslt_df['RESULT_CONV']
+rslt_df.loc[~mask, 'Delta35'] = rslt_df['35pc'] - rslt_df['RESULT_CONV']
+rslt_df.loc[~mask, 'Delta5'] = rslt_df['5pc'] - rslt_df['RESULT_CONV']
+
+rslt_df=rslt_df.loc[rslt_df['COMPETITION']!='SEA Games']
+
+# Name corrections
+
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'PRAHARSH, RYAN', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Ryan, Praharsh', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'TAN, ELIZABETH ANN SHEE R', value='TAN, ELIZABETH-ANN')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Tan, Elizabeth Ann', value='TAN, ELIZABETH-ANN')
+
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LOUIS, MARC BRIAN', value='Louis, Marc Brian')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Louis, Marc', value='Louis, Marc Brian')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'TAN JUN JIE', value='Tan Jun Jie')
+
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'SNG, MICHELLE', value='Sng, Michelle')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'SNG, SUAT LI, MICHELLE', value='Sng, Michelle')
+
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'MUN, IVAN', value='Mun, Ivan')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LOW, JUN YU', value='Low, Jun Yu')
+
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'ANG, CHEN XIANG', value='Ang, Chen Xiang')
+rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliver')
+
+# Create scalar to measure relative performance
+
+rslt_df['PERF_SCALAR']=rslt_df['Delta5']/rslt_df['Metric']*100
+
 st.write(benchmarks)
 
 
