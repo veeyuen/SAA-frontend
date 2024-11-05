@@ -156,7 +156,7 @@ SELECT * FROM `saa-analytics.results.saa_full`
 
 #df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
-"""
+
 ### EXTRACT LIST OF ATHLETES ###
 
 athletes = client.query_and_wait(athletes_sql).to_dataframe()
