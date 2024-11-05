@@ -155,7 +155,7 @@ competition_selection = st.multiselect(
 )
 
 
-df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(region_selection)]
+df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
 st.write(df_filtered)
 
