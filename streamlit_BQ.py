@@ -166,6 +166,23 @@ benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
 benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
 benchmarks.drop(['NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
+# convert times in benchmarks to standard format
+
+for i in range(len(benchmarks)):
+        
+    rowIndex = benchmarks.index[i]
+
+    input_string=benchmarks.iloc[rowIndex,1]
+    
+    metric=benchmarks.iloc[rowIndex,0]
+    
+    if metric==None:
+        continue
+        
+    out = convert_time(i, input_string, metric)
+     
+    benchmarks.loc[rowIndex, 'Metric'] = out
+
 st.write(benchmarks)
 
 
