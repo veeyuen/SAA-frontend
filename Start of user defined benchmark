@@ -1,5 +1,5 @@
 # streamlit_app.py
-# OCTC Selection for jumps and throws only
+# OCTC Selection for SAA Athletes
 
 import streamlit as st
 import pandas as pd
@@ -349,13 +349,17 @@ for i in range(len(benchmarks)):
      
     benchmarks.loc[rowIndex, 'Metric'] = out
 
-# Calculate benchmarks
+# Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
+
+# For distance events
 
 benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
 benchmarks.loc[mask, '35pc']=benchmarks['Metric']*0.965
 benchmarks.loc[mask, '5pc']=benchmarks['Metric']*0.95
+
+# For timed events
 
 benchmarks.loc[~mask, '2pc']=benchmarks['Metric']*1.02
 benchmarks.loc[~mask, '35pc']=benchmarks['Metric']*1.035
@@ -394,14 +398,17 @@ df['AGE'] = df['AGE'].astype('float')
 
 rslt_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
-# Measure against 2%, 3.5% and 5% of SEAG 3rd place for jumps and throws only
+# Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
-mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) # choose only jumps/throws
+mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
 
+# For distance events
 
 rslt_df.loc[mask, 'Delta2'] = rslt_df['RESULT_CONV']-rslt_df['2pc']
 rslt_df.loc[mask, 'Delta35'] = rslt_df['RESULT_CONV']-rslt_df['35pc']
 rslt_df.loc[mask, 'Delta5'] = rslt_df['RESULT_CONV']-rslt_df['5pc']
+
+# For timed events
 
 rslt_df.loc[~mask, 'Delta2'] =  rslt_df['2pc'] - rslt_df['RESULT_CONV']
 rslt_df.loc[~mask, 'Delta35'] = rslt_df['35pc'] - rslt_df['RESULT_CONV']
