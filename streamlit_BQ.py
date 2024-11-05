@@ -55,7 +55,7 @@ def run_query(query):
 #    st.write("✍️ " + row['word'])
 #    st.write(row)
 
-df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` WHERE 'DATE'='2024'""").to_dataframe()
+df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full` WHERE DATE='2024'""").to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
 
