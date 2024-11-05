@@ -59,22 +59,23 @@ df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""")
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-source_list=df['SOURCE'].unique().tolist() # get unique list of source events
+year_list=df['DATE'].unique().tolist() # get unique list of source events
 
 event_options = st.multiselect(
-    "Please select the desired event(s):",
-    source_list,
+    "Please select the desired year(s):",
+    year_list,
 )
 
 st.write("You selected:", event_options)
 
+df_filtered = df[df['DATE'].isin(event_options)]
 #final_dfs, code = spreadsheet(df)
 
 #st.write(final_dfs)
 
 #st.code(code)
 
-st.write(df)
+st.write(df_filtered)
 
 
 
