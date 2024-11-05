@@ -375,8 +375,7 @@ df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
 # Convert df results into seconds format
 
 for i in range(len(df)):
-    
-        
+     
     rowIndex = df.index[i]
 
     input_string=df.iloc[rowIndex,5]    
@@ -384,8 +383,7 @@ for i in range(len(df)):
     metric=df.iloc[rowIndex,2]
     
     if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
-        continue
-    
+        continue 
         
     out = convert_time(i, input_string, metric)
          
@@ -549,14 +547,27 @@ spexed_list['overall_rank'] = spexed_list.groupby(['MAPPED_EVENT', 'GENDER'])['o
 spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<7))|(~((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<4))]
 
 
-# Show resulting dataframe
+# Show resulting OCTC dataframe
 
 st.write("LIST OF OCTC SELECTION ATHLETES:")
 
 st.write(spexed_list)
 
+# Process custom threshold benchmark
+
 input = st.text_input("Input desired benchmark threshold (%):")
 
+benchmarks['custom'] = input
+
+mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
+
+# For distance events
+
+benchmarks.loc[mask, 'custom']=benchmarks['Metric']*0.98
+
+# For timed events
+
+benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*1.02
 
 
 ####### OLD CODE BELOW ###
