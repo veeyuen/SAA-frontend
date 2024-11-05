@@ -72,7 +72,7 @@ region_selection = st.multiselect(
     region_list,
 )
 
-st.write("You selected:", year_options, region_options)
+#st.write("You selected:", year_optio, region_options)
 
 df_filtered = df[df['DATE'].isin(zip(year_selection)) & df['REGION'].isin(zip(region_selection))]
 #final_dfs, code = spreadsheet(df)
