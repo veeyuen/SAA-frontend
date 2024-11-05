@@ -62,19 +62,19 @@ df.dropna(how= "all", axis=1, inplace=True)
 year_list=df['DATE'].unique().tolist() # get unique list of source events
 region_list=df['REGION'].unique().tolist() 
 
-year_options = st.multiselect(
+year_selection = st.multiselect(
     "Please select the desired year(s):",
     year_list,
 )
 
-region_options = st.multiselect(
+region_selection = st.multiselect(
     "Please select the desired region:",
     region_list,
 )
 
 st.write("You selected:", year_options, region_options)
 
-df_filtered = df[df['DATE'].isin(zip(year_options, region_options))]
+df_filtered = df[df['DATE'].isin(zip(year_selection)) & df['REGION'].isin(zip(region_selection))]
 #final_dfs, code = spreadsheet(df)
 
 #st.write(final_dfs)
