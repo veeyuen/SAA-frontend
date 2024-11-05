@@ -123,8 +123,14 @@ SELECT NAME, RESULT, AGE, RANK AS COMPETITION_RANK, EVENT, DOB, COUNTRY, CATEGOR
 FROM `saa-analytics.results.saa_full` 
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
 
+all_sql="""
+SELECT * FROM `saa-analytics.results.saa_full`
+"""
 
-#df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
+
+"""
+#
+#df = client.query_and_wait(all_sql).to_dataframe()
 
 #df.dropna(how= "all", axis=1, inplace=True)
 
@@ -150,7 +156,7 @@ WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT
 
 #df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
-
+"""
 ### EXTRACT LIST OF ATHLETES ###
 
 athletes = client.query_and_wait(athletes_sql).to_dataframe()
