@@ -143,7 +143,7 @@ FROM `saa-analytics.results.saa_full`
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='FOUL' AND RANK!='DNS' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
 """
 
-'''
+"""
 df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""").to_dataframe()
 
 #df.dropna(how= "all", axis=1, inplace=True)
@@ -170,7 +170,8 @@ competition_selection = st.multiselect(
 
 df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
 
-'''
+"""
+
 ### EXTRACT LIST OF ATHLETES ###
 
 athletes = client.query_and_wait(athletes_sql).to_dataframe()
@@ -444,9 +445,120 @@ rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliv
 
 rslt_df['PERF_SCALAR']=rslt_df['Delta5']/rslt_df['Metric']*100
 
+# Define SPEX carded athletes
+
+spex_athletes_casefold = ['goh chui ling',
+ 'michelle sng',
+ 'quek jun jie calvin',
+ 'soh rui yong, guillaume',
+ 'aaron justin tan wen jie',
+ 'daniel leow soon yee',
+ 'joshua chua',
+ 'ng zhi rong ryan raphael',
+ 'wenli rachel',
+ 'wong yaohan melvin',
+ 'xander ho ann heng',
+ 'veronica shanti pereira',
+ 'ang chen xiang',
+ 'kampton kam',
+ 'marc brian louis',
+ 'mark lee ren',
+ 'reuben rainer lee siong en',
+ 'elizabeth-ann tan shee ru',
+ 'thiruben thana rajan',
+ 'bhavna gopikrishna',
+ 'chloe chee en-ya',
+ 'conrad kangli emery',
+ 'harry irfan curran',
+ 'huang weijun',
+ 'jayden tan',
+ 'koh shun yi audrey',
+ 'laavinia d/o jaiganth',
+ 'lim yee chern clara',
+ 'loh ding rong anson',
+ 'ong ying tat',
+ 'song en xu reagan',
+ 'subaraghav hari',
+ 'teh ying shan',
+ 'yan teo',
+ 'zhong chuhan',
+ 'esther tay shee wei',
+ 'faith ford',
+ 'garrett chua je-an',
+ 'lucas fun',
+ 'goh, chui ling',
+ 'sng, michelle',
+ 'quek, jun jie calvin',
+ 'soh rui yong, guillaume',
+ 'tan wen jie, aaron justin',
+ 'yee, daniel leow soon',
+ 'chua, joshua',
+ 'ng zhi rong, ryan raphael',
+ 'wenli, rachel',
+ 'wong yaohan, melvin',
+ 'ho ann heng,  xander',
+ 'pereira, veronica shanti',
+ 'ang, chen xiang',
+ 'kam, kampton',
+ 'marc brian louis',
+ 'mark lee ren',
+ 'lee siong en, reuben rainer',
+ ' tan shee ru, elizabeth-ann',
+ 'thiruben thana rajan',
+ 'bhavna gopikrishna',
+ 'chee en-ya, chloe',
+ 'conrad kangli emery',
+ 'harry irfan curran',
+ 'huang, weijun',
+ 'tan, jayden',
+ 'koh shun yi, audrey',
+ 'laavinia d/o jaiganth',
+ 'lim yee chern, clara',
+ 'loh ding rong, anson',
+ 'ong, ying tat',
+ 'song en xu, reagan',
+ 'subaraghav hari',
+ 'teh, ying shan',
+ 'teo, yan',
+ 'zhong, chuhan',
+ 'tay shee wei, esther',
+ 'ford, faith',
+ 'chua je-an, garrett',
+ 'fun, lucas',
+ 'raphael, ryan',
+ 'ho, xander, ann heng',
+ 'louis, marc brian',
+ 'lee, mark ren',
+ 'lee, reuben rainer',
+ 'tan, elizabeth-ann',
+ 'irfan curran, harry',
+ 'huang, wei jun',
+ 'clara lim yee chern',
+ 'song, reagan en xu',
+ 'zhong chu han',
+ 'louis, marc',
+ 'tan, elizabeth ann shee r',
+ 'huang wei jun',
+ 'zhong, chu han']
+
+top_performers=rslt_df.sort_values(['NAME','PERF_SCALAR'],ascending=False).groupby('NAME').head(1) # Choose top performing event per NAME
+
+spexed_list = top_performers.loc[~rslt_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
+
+spexed_list.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[True, True, False], inplace=True)
+spexed_list['overall_rank'] = 1
+spexed_list['overall_rank'] = spexed_list.groupby(['MAPPED_EVENT', 'GENDER'])['overall_rank'].cumsum()
+
+#Apply OCTC selection rule: max 6 for 100m/400m and max 3 for all other events
+
+spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<7))|(~((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<4))]
+
+
 # Show resulting dataframe
 
-st.write(rslt_df)
+st.write(spexed_list)
+
+
 
 
 
