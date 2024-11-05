@@ -136,8 +136,9 @@ df = client.query_and_wait("""SELECT * FROM `saa-analytics.results.saa_full`""")
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-year_list=df['DATE'].unique().tolist() # get unique list of source events
-region_list=df['REGION'].unique().tolist() 
+year_list = df['DATE'].unique().tolist() # get unique list of source events
+region_list = df['REGION'].unique().tolist()
+competition_list = df['COMPEITION'].unique().tolist()
 
 year_selection = st.multiselect(
     "Please select the desired year(s):",
@@ -149,14 +150,13 @@ region_selection = st.multiselect(
     region_list,
 )
 
-#st.write("You selected:", year_optio, region_options)
+competition_selection = st.multiselect(
+    "Please select the desired region:",
+    competition_list,
+)
 
-df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection)]
-#final_dfs, code = spreadsheet(df)
 
-#st.write(final_dfs)
-
-#st.code(code)
+df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(region_selection)]
 
 st.write(df_filtered)
 
