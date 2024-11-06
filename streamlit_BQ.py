@@ -394,49 +394,49 @@ df['AGE'] = df['AGE'].astype('float')
 
 # Apply OCTC criteria
 
-rslt_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
+octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
-mask = rslt_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
+mask = octc_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
 
 # For distance events
 
-rslt_df.loc[mask, 'Delta2'] = rslt_df['RESULT_CONV']-rslt_df['2pc']
-rslt_df.loc[mask, 'Delta35'] = rslt_df['RESULT_CONV']-rslt_df['35pc']
-rslt_df.loc[mask, 'Delta5'] = rslt_df['RESULT_CONV']-rslt_df['5pc']
+octc_df.loc[mask, 'Delta2'] = octc_df['RESULT_CONV']-octc_df['2pc']
+octc_df.loc[mask, 'Delta35'] = octc_df['RESULT_CONV']-octc_df['35pc']
+octc_df.loc[mask, 'Delta5'] = octc_df['RESULT_CONV']-octc_df['5pc']
 
 # For timed events
 
-rslt_df.loc[~mask, 'Delta2'] =  rslt_df['2pc'] - rslt_df['RESULT_CONV']
-rslt_df.loc[~mask, 'Delta35'] = rslt_df['35pc'] - rslt_df['RESULT_CONV']
-rslt_df.loc[~mask, 'Delta5'] = rslt_df['5pc'] - rslt_df['RESULT_CONV']
+octc_df.loc[~mask, 'Delta2'] =  octc_df['2pc'] - octc_df['RESULT_CONV']
+octc_df.loc[~mask, 'Delta35'] = octc_df['35pc'] - octc_df['RESULT_CONV']
+octc_df.loc[~mask, 'Delta5'] = octc_df['5pc'] - octc_df['RESULT_CONV']
 
 rslt_df=rslt_df.loc[rslt_df['COMPETITION']!='SEA Games']
 
 # Name corrections
 
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'PRAHARSH, RYAN', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Ryan, Praharsh', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'TAN, ELIZABETH ANN SHEE R', value='TAN, ELIZABETH-ANN')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Tan, Elizabeth Ann', value='TAN, ELIZABETH-ANN')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'PRAHARSH, RYAN', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Ryan, Praharsh', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'TAN, ELIZABETH ANN SHEE R', value='TAN, ELIZABETH-ANN')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Tan, Elizabeth Ann', value='TAN, ELIZABETH-ANN')
 
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LOUIS, MARC BRIAN', value='Louis, Marc Brian')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'Louis, Marc', value='Louis, Marc Brian')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'TAN JUN JIE', value='Tan Jun Jie')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LOUIS, MARC BRIAN', value='Louis, Marc Brian')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Louis, Marc', value='Louis, Marc Brian')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'TAN JUN JIE', value='Tan Jun Jie')
 
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'SNG, MICHELLE', value='Sng, Michelle')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'SNG, SUAT LI, MICHELLE', value='Sng, Michelle')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'SNG, MICHELLE', value='Sng, Michelle')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'SNG, SUAT LI, MICHELLE', value='Sng, Michelle')
 
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'MUN, IVAN', value='Mun, Ivan')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LOW, JUN YU', value='Low, Jun Yu')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'MUN, IVAN', value='Mun, Ivan')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LOW, JUN YU', value='Low, Jun Yu')
 
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'ANG, CHEN XIANG', value='Ang, Chen Xiang')
-rslt_df['NAME'] = rslt_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliver')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'ANG, CHEN XIANG', value='Ang, Chen Xiang')
+octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliver')
 
 # Create scalar to measure relative performance
 
-rslt_df['PERF_SCALAR']=rslt_df['Delta5']/rslt_df['Metric']*100
+octc_df['PERF_SCALAR']=octc_df['Delta5']/octc_df['Metric']*100
 
 # Define SPEX carded athletes
 
@@ -534,9 +534,9 @@ spex_athletes_casefold = ['goh chui ling',
  'huang wei jun',
  'zhong, chu han']
 
-top_performers=rslt_df.sort_values(['NAME','PERF_SCALAR'],ascending=False).groupby('NAME').head(1) # Choose top performing event per NAME
+top_performers=octc_df.sort_values(['NAME','PERF_SCALAR'],ascending=False).groupby('NAME').head(1) # Choose top performing event per NAME
 
-spexed_list = top_performers.loc[~rslt_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
+spexed_list = top_performers.loc[~octc_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
 
 spexed_list.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[True, True, False], inplace=True)
 spexed_list['overall_rank'] = 1
@@ -568,6 +568,8 @@ benchmarks.loc[mask, 'custom']=benchmarks['Metric']*(100-input)/100
 # For timed events
 
 benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*(100+input)/100
+
+st.write(benchmarks)
 
 
 ####### OLD CODE BELOW ###
