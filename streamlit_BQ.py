@@ -412,7 +412,7 @@ octc_df.loc[~mask, 'Delta2'] =  octc_df['2pc'] - octc_df['RESULT_CONV']
 octc_df.loc[~mask, 'Delta35'] = octc_df['35pc'] - octc_df['RESULT_CONV']
 octc_df.loc[~mask, 'Delta5'] = octc_df['5pc'] - octc_df['RESULT_CONV']
 
-rslt_df=rslt_df.loc[rslt_df['COMPETITION']!='SEA Games']
+octc_df=rslt_df.loc[octc_df['COMPETITION']!='SEA Games']
 
 # Name corrections
 
