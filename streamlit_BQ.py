@@ -557,8 +557,6 @@ st.write(spexed_list)
 
 input = st.text_input("Input desired benchmark threshold (%):")
 
-benchmarks['custom'] = input
-
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
 
 # For distance events
