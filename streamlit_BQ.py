@@ -563,11 +563,11 @@ mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
 
 # For distance events
 
-benchmarks.loc[mask, 'custom']=benchmarks['Metric']*0.98
+benchmarks.loc[mask, 'custom']=benchmarks['Metric']*(100-input)/100
 
 # For timed events
 
-benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*1.02
+benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*(100+input)/100
 
 
 ####### OLD CODE BELOW ###
