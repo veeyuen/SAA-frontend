@@ -571,9 +571,13 @@ benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*((100+input)/100)
 
 st.write(benchmarks)
 
+temp_df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
+temp_df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
+
+
 # Create new df for custom benchmarks
 
-custom_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
+custom_df = temp_df.loc[(((temp_df['CATEGORY_EVENT']=='Mid')|(temp_df['CATEGORY_EVENT']=='Sprint')|(temp_df['CATEGORY_EVENT']=='Long')|(temp_df['CATEGORY_EVENT']=='Hurdles')|(temp_df['CATEGORY_EVENT']=='Walk')|(temp_df['CATEGORY_EVENT']=='Relay')|(temp_df['CATEGORY_EVENT']=='Marathon')|(temp_df['CATEGORY_EVENT']=='Steeple')|(temp_df['CATEGORY_EVENT']=='Pentathlon')|(temp_df['CATEGORY_EVENT']=='Heptathlon')|(temp_df['CATEGORY_EVENT']=='Triathlon'))&(temp_df['RESULT_CONV'] <= temp_df['custom]) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))|(((temp_df['CATEGORY_EVENT']=='Jump')|(temp_df['CATEGORY_EVENT']=='Throw'))&(temp_df['RESULT_CONV'] >= temp_df['custom']) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))]
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
