@@ -571,8 +571,30 @@ benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*((100+input)/100)
 
 st.write(benchmarks)
 
+
+
+
 temp_df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
 temp_df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
+
+for i in range(len(temp_df)):
+     
+    rowIndex = temp_df.index[i]
+
+    input_string=temp_df.iloc[rowIndex,5]    
+    
+    metric=temp_df.iloc[rowIndex,2]
+    
+    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
+        continue 
+        
+    out = convert_time(i, input_string, metric)
+         
+    temp_df.loc[rowIndex, 'RESULT_CONV'] = out
+
+temp_df["AGE"].fillna(0, inplace=True)
+temp_df['AGE'] = temp_df['AGE'].astype('float')
+
 
 
 # Create new df for custom benchmarks
