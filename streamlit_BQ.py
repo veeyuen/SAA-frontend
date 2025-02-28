@@ -442,10 +442,29 @@ athletes.loc[mask, 'MAPPED_EVENT'] = 'Decathlon'
 
 ### PROCESS BENCHMARKS ###
 
-benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
+comparisons = client.query_and_wait(benchmark_sql).to_dataframe()
+
+competition_list = comparisons['COMPETITION'].unique().tolist()
+competition_year_list = comparisons['YEAR'].unique().tolist()
+
+benchmark_selection = st.multiselect(
+    "Please select the desired benchmark competition:",
+    competition_list,
+)
+
+benchmark_year_selection = st.multiselect(
+    "Please select the desired benchmark year:",
+    competition_year_list,
+)
+
+
+benchmark = comparisons[comparisons['YEAR'].isin(benchmark_year_selection) & comparisons['COMPETITION'].isin(benchmark_selection)]
+
+
+benchmarks=comparisions[comparisons['HEAT'].isnull() & SEAG['SUB_EVENT'].isnull()]  # r
 
 benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
-benchmarks.drop(['NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
+benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
 # convert times in benchmarks to standard format
 
