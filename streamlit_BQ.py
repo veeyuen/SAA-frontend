@@ -575,8 +575,7 @@ df['NAME'] = df['NAME'].str.strip()
 
 file_path = "gs://name_variations/name_variations.csv"
 names = pd.read_csv(file_path,
-                 sep=",",
-                 storage_options={"token": '/Users/veesheenyuen/Desktop/DataScience/Keys/saa-analytics-7c8937b70609.json'})
+                 sep=",")
 
 # Iterate over dataframe and replace names
 
