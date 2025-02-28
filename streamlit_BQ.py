@@ -48,69 +48,91 @@ def convert_time(i, string, metric):
     
     l=['discus', 'throw', 'jump', 'vault', 'shot']
         
-    string=string.lower()    
+    string=string.lower()
     
-    if any(s in string for s in l)==True:
+   # print('metric', metric)
+    
+    try:
         
-        if 'm' in metric:
+        if 'w' in metric:  # skip marks with illegal wind speeds
             
-            metric=metric.replace('m', '')
-            output=float(str(metric))
+            print('W', metric)
             
-        elif 'GR' in metric:
+            output=''
             
-            metric=metric.replace('GR', '')
-            output=float(str(metric))
-
-
         else:
+            
     
-            output=float(str(metric))
+            if any(s in string for s in l)==True:
+            
+                if 'm' in metric:
+            
+                    metric=metric.replace('m', '')
+                    output=float(str(metric))
+            
+                elif 'GR' in metric:
+            
+                    metric=metric.replace('GR', '')
+                    output=float(str(metric))
+                
+                
+                else:
+    
+                    output=float(str(metric))
         
-    else:
-        
-        searchstring = ":"
-        searchstring2 = "."
-        substring=str(metric)
-        count = substring.count(searchstring)
-        count2 = substring.count(searchstring2)
-            
-        if count==0:
-            output=float(substring)
-                        
-             
-        elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
-                                                
-            time=str(metric)
-            h, m ,s = time.split(':')
-            output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
-            
-                                
-        elif (count==1 and count2==1):
-            
-            m,s = metric.split(':')
-            output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
-            
-            if output==229.90:
-                print(metric, m, s, output, 'here')
-
-                     
-        elif (count==1 and count2==2):
-            
-            metric = metric.replace(".", ":", 1)
-            
-            h,m,s = metric.split(':')            
-            output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+                
                 
         
-        elif (count==2 and count2==0):
+            else:
+        
+                searchstring = ":"
+                searchstring2 = "."
+                substring=str(metric)
+                count = substring.count(searchstring)
+                count2 = substring.count(searchstring2)
             
-            h,m,s = metric.split(':')
-            output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
-                       
+                if count==0:
+                
+                    output=float(substring)
+            
+            
+               
+             
+                elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
+                
+                                                
+                    time=str(metric)
+                    h, m ,s = time.split(':')
+                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+            
+                                
+                elif (count==1 and count2==1):
+            
+                    m,s = metric.split(':')
+                    output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
+                     
+                elif (count==1 and count2==2):
+                
+            
+                    metric = metric.replace(".", ":", 1)
+            
+                    h,m,s = metric.split(':')            
+                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+                
+        
+                elif (count==2 and count2==0):
+                
+            
+                    h,m,s = metric.split(':')
+                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+  
+            
+
+    except:
+        
+        pass
+                
     return output
-
-
 ### DEFINE SQL QUERIES ###
 
 benchmark_sql = """
