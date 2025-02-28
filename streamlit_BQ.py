@@ -458,10 +458,10 @@ benchmark_year_selection = st.multiselect(
 )
 
 
-benchmark = comparisons[comparisons['YEAR'].isin(benchmark_year_selection) & comparisons['COMPETITION'].isin(benchmark_selection)]
+benchmarks = comparisons[comparisons['YEAR'].isin(benchmark_year_selection) & comparisons['COMPETITION'].isin(benchmark_selection)]
 
 
-benchmarks=comparisions[comparisons['HEAT'].isnull() & SEAG['SUB_EVENT'].isnull()]  # r
+benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
 
 benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
 benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
@@ -472,20 +472,22 @@ for i in range(len(benchmarks)):
         
     rowIndex = benchmarks.index[i]
 
-    input_string=benchmarks.iloc[rowIndex,1]
+    input_string=benchmarks.iloc[rowIndex,0]
     
-    metric=benchmarks.iloc[rowIndex,0]
+    metric=benchmarks.iloc[rowIndex,3]
     
     if metric==None:
         continue
         
     out = convert_time(i, input_string, metric)
+    
+    print(rowIndex, input_string, out)
      
     benchmarks.loc[rowIndex, 'Metric'] = out
-
+    
 # Calculate benchmarks for timed and distance events separately
 
-mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
+mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
 
 # For distance events
 
@@ -499,36 +501,42 @@ benchmarks.loc[~mask, '2pc']=benchmarks['Metric']*1.02
 benchmarks.loc[~mask, '35pc']=benchmarks['Metric']*1.035
 benchmarks.loc[~mask, '5pc']=benchmarks['Metric']*1.05
 
-benchmarks['MAPPED_EVENT']=benchmarks['EVENT']
-
 # Merge benchmarks with df
 
+benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
+
 df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
+df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.NaN)
 
 # Convert df results into seconds format
 
+# Convert results and seed into seconds format
+
 for i in range(len(df)):
-     
+    
+    result_out=''
+    
+        
     rowIndex = df.index[i]
 
-    input_string=df.iloc[rowIndex,5]    
+    input_string=df.iloc[rowIndex,6]    # event description
     
-    metric=df.iloc[rowIndex,2]
+    metric=df.iloc[rowIndex,1] # result
     
-    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
-        continue 
-        
-    out = convert_time(i, input_string, metric)
+    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
+        continue
+    
+    result_out = convert_time(i, input_string, metric)
+    print('line', i, input_string, metric, result_out)
          
-    df.loc[rowIndex, 'RESULT_CONV'] = out
+    df.loc[rowIndex, 'RESULT_CONV'] = result_out
 
 df["AGE"].fillna(0, inplace=True)
 df['AGE'] = df['AGE'].astype('float')
 
 # Apply OCTC criteria
 
-octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
+#octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
@@ -550,123 +558,10 @@ octc_df=octc_df.loc[octc_df['COMPETITION']!='SEA Games']
 
 # Name corrections
 
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'PRAHARSH, RYAN', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Ryan, Praharsh', value='S/O SUBASH SOMAN, PRAHARSH RYAN')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'TAN, ELIZABETH ANN SHEE R', value='TAN, ELIZABETH-ANN')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Tan, Elizabeth Ann', value='TAN, ELIZABETH-ANN')
-
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LOUIS, MARC BRIAN', value='Louis, Marc Brian')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'Louis, Marc', value='Louis, Marc Brian')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'TAN JUN JIE', value='Tan Jun Jie')
-
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'SNG, MICHELLE', value='Sng, Michelle')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'SNG, SUAT LI, MICHELLE', value='Sng, Michelle')
-
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'MUN, IVAN', value='Mun, Ivan')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LOW, JUN YU', value='Low, Jun Yu')
-
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'ANG, CHEN XIANG', value='Ang, Chen Xiang')
-octc_df['NAME'] = octc_df['NAME'].replace(regex=r'LIM, OLIVER', value='Lim, Oliver')
 
 # Create scalar to measure relative performance
 
 octc_df['PERF_SCALAR']=octc_df['Delta5']/octc_df['Metric']*100
-
-# Define SPEX carded athletes
-
-spex_athletes_casefold = ['goh chui ling',
- 'michelle sng',
- 'quek jun jie calvin',
- 'soh rui yong, guillaume',
- 'aaron justin tan wen jie',
- 'daniel leow soon yee',
- 'joshua chua',
- 'ng zhi rong ryan raphael',
- 'wenli rachel',
- 'wong yaohan melvin',
- 'xander ho ann heng',
- 'veronica shanti pereira',
- 'ang chen xiang',
- 'kampton kam',
- 'marc brian louis',
- 'mark lee ren',
- 'reuben rainer lee siong en',
- 'elizabeth-ann tan shee ru',
- 'thiruben thana rajan',
- 'bhavna gopikrishna',
- 'chloe chee en-ya',
- 'conrad kangli emery',
- 'harry irfan curran',
- 'huang weijun',
- 'jayden tan',
- 'koh shun yi audrey',
- 'laavinia d/o jaiganth',
- 'lim yee chern clara',
- 'loh ding rong anson',
- 'ong ying tat',
- 'song en xu reagan',
- 'subaraghav hari',
- 'teh ying shan',
- 'yan teo',
- 'zhong chuhan',
- 'esther tay shee wei',
- 'faith ford',
- 'garrett chua je-an',
- 'lucas fun',
- 'goh, chui ling',
- 'sng, michelle',
- 'quek, jun jie calvin',
- 'soh rui yong, guillaume',
- 'tan wen jie, aaron justin',
- 'yee, daniel leow soon',
- 'chua, joshua',
- 'ng zhi rong, ryan raphael',
- 'wenli, rachel',
- 'wong yaohan, melvin',
- 'ho ann heng,  xander',
- 'pereira, veronica shanti',
- 'ang, chen xiang',
- 'kam, kampton',
- 'marc brian louis',
- 'mark lee ren',
- 'lee siong en, reuben rainer',
- ' tan shee ru, elizabeth-ann',
- 'thiruben thana rajan',
- 'bhavna gopikrishna',
- 'chee en-ya, chloe',
- 'conrad kangli emery',
- 'harry irfan curran',
- 'huang, weijun',
- 'tan, jayden',
- 'koh shun yi, audrey',
- 'laavinia d/o jaiganth',
- 'lim yee chern, clara',
- 'loh ding rong, anson',
- 'ong, ying tat',
- 'song en xu, reagan',
- 'subaraghav hari',
- 'teh, ying shan',
- 'teo, yan',
- 'zhong, chuhan',
- 'tay shee wei, esther',
- 'ford, faith',
- 'chua je-an, garrett',
- 'fun, lucas',
- 'raphael, ryan',
- 'ho, xander, ann heng',
- 'louis, marc brian',
- 'lee, mark ren',
- 'lee, reuben rainer',
- 'tan, elizabeth-ann',
- 'irfan curran, harry',
- 'huang, wei jun',
- 'clara lim yee chern',
- 'song, reagan en xu',
- 'zhong chu han',
- 'louis, marc',
- 'tan, elizabeth ann shee r',
- 'huang wei jun',
- 'zhong, chu han']
 
 top_performers=octc_df.sort_values(['NAME','PERF_SCALAR'],ascending=False).groupby('NAME').head(1) # Choose top performing event per NAME
 
