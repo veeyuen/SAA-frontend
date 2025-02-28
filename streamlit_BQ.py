@@ -153,18 +153,18 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 
 #
-#df = client.query_and_wait(all_sql).to_dataframe()
+df = client.query_and_wait(all_sql).to_dataframe()
 
-#df.dropna(how= "all", axis=1, inplace=True)
+df.dropna(how= "all", axis=1, inplace=True)
 
-#year_list = df['DATE'].unique().tolist() # get unique list of source events
+year_list = df['YEAR'].unique().tolist() # get unique list of years
 #region_list = df['REGION'].unique().tolist()
 #competition_list = df['COMPETITION'].unique().tolist()
 
-#year_selection = st.multiselect(
-#    "Please select the desired year(s):",
-#    year_list,
-#)
+year_selection = st.multiselect(
+    "Please select the desired year(s):",
+    year_list,
+)
 
 #region_selection = st.multiselect(
 #    "Please select the desired region(S):",
@@ -182,7 +182,25 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 ### EXTRACT LIST OF ATHLETES ###
 
-athletes = client.query_and_wait(athletes_sql).to_dataframe()
+#athletes = client.query_and_wait(athletes_sql).to_dataframe()
+
+# SELECT YEARS
+
+selection = client.query_and_wait(all_sql).to_dataframe()
+
+selection.dropna(how= "all", axis=1, inplace=True)
+
+year_list = selection['YEAR'].unique().tolist() # get unique list of years
+#region_list = df['REGION'].unique().tolist()
+#competition_list = df['COMPETITION'].unique().tolist()
+
+year_selection = st.multiselect(
+    "Please select the desired year(s):",
+    year_list,
+)
+
+athletes = selection[athletes['YEAR'].isin(year_selection)]
+
 
 # Create temporary mapped event column
 
