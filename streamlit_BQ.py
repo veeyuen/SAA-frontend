@@ -649,6 +649,11 @@ top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']
                                 np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
                                 np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
 
+
+# Drop rows without a corresponding benchmark
+
+final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
+
 # Show resulting OCTC dataframe
 
 st.write("LIST OF OCTC SELECTION ATHLETES:")
