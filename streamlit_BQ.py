@@ -560,6 +560,11 @@ df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_BEST']
 
 df=df.loc[df['COMPETITION']!='Southeast Asian Games']
 
+# Create scalar to measure relative performance
+
+df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+
+
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
@@ -571,7 +576,7 @@ df['NAME'] = df['NAME'].str.replace('\n', '', regex=True)
 df['NAME'] = df['NAME'].str.strip()
 
 
-# Read csv from GCS bucket
+# Read csv of name variations from GCS bucket
 
 file_path = "gs://name_variations/name_variations.csv"
 names = pd.read_csv(file_path,
@@ -583,34 +588,73 @@ for index, row in names.iterrows():
         
     df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
+# Read list of foreigners from GCS bucket
 
+file_path = "gs://name_lists/List of Foreigners.csv"
+foreigners = pd.read_csv(file_path,
+                 sep=",",
+                 encoding="unicode escape")
 
+# Process list of foreign names and their variations
 
-# Create scalar to measure relative performance
+df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
+                       &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
+                       &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
+                       &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
+                       &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
+                       &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
+                       &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
+                       &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
+                       &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
+                       &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
 
-df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
 
+for1 = foreigners['V1'].dropna().tolist()
+for2 = foreigners['V2'].dropna().tolist()
+for3 = foreigners['V3'].dropna().tolist()
+for4 = foreigners['V4'].dropna().tolist()
 
+foreign_list = for1+for2+for3+for4 
 
+foreign_list_casefold=[s.casefold() for s in foreign_list]
 
-top_performers=octc_df.sort_values(['NAME','PERF_SCALAR'],ascending=False).groupby('NAME').head(1) # Choose top performing event per NAME
+exclusions = foreign_list_casefold
 
-spexed_list = top_performers.loc[~octc_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
+ex_foreigners = df_local_teams.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
-spexed_list.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[True, True, False], inplace=True)
-spexed_list['overall_rank'] = 1
-spexed_list['overall_rank'] = spexed_list.groupby(['MAPPED_EVENT', 'GENDER'])['overall_rank'].cumsum()
+top_performers_clean = ex_foreigners.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+
+top_performers_clean.reset_index(inplace=True)
+
+tiered_performers = top_performers_clean.sort_values(['GENDER', 'MAPPED_EVENT', 'PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+
+#spexed_list = top_performers.loc[~octc_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
+
+#spexed_list.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[True, True, False], inplace=True)
+#spexed_list['overall_rank'] = 1
+#spexed_list['overall_rank'] = spexed_list.groupby(['MAPPED_EVENT', 'GENDER'])['overall_rank'].cumsum()
 
 #Apply OCTC selection rule: max 6 for 100m/400m and max 3 for all other events
 
-spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<7))|(~((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<4))]
+#spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<7))|(~((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<4))]
 
+# Create performance tier column
+
+top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
+                                np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
+                                np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
+                                np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
 
 # Show resulting OCTC dataframe
 
 st.write("LIST OF OCTC SELECTION ATHLETES:")
 
-st.write(spexed_list)
+st.write(top_performers_clean)
+
 
 # Process custom threshold benchmark
 
