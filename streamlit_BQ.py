@@ -475,9 +475,9 @@ for i in range(len(benchmarks)):
         
     rowIndex = benchmarks.index[i]
 
-    input_string=benchmarks.iloc[rowIndex,0]
+    input_string=benchmarks.iloc[rowIndex,1]
     
-    metric=benchmarks.iloc[rowIndex,3]
+    metric=benchmarks.iloc[rowIndex,4]
     
     if metric==None:
         continue
