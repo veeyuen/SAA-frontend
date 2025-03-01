@@ -489,7 +489,12 @@ for i in range(len(benchmarks)):
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
 
+
+
 # For distance events
+
+st.write(benchmarks)
+
 
 benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
 benchmarks.loc[mask, '35pc']=benchmarks['Metric']*0.965
