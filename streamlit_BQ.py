@@ -630,7 +630,6 @@ top_performers_clean = ex_foreigners.sort_values(['MAPPED_EVENT', 'NAME','PERF_S
 
 top_performers_clean.reset_index(inplace=True)
 
-tiered_performers = top_performers_clean.sort_values(['GENDER', 'MAPPED_EVENT', 'PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 #spexed_list = top_performers.loc[~octc_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
 
@@ -658,11 +657,11 @@ final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
 
 st.write("LIST OF OCTC SELECTION ATHLETES:")
 
-st.write(top_performers_clean)
+st.write(final_df)
 
 
 # Process custom threshold benchmark
-
+'''
 benchmarks['custom']=''
 
 input = st.number_input("Input desired benchmark threshold (%):")
@@ -717,6 +716,7 @@ mask = custom_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True)
 
 # For distance events
 
+'''
 ####### OLD CODE BELOW ###
 
 # Extract year and month
