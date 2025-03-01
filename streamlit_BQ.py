@@ -468,6 +468,9 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 # convert times in benchmarks to standard format
 
+st.write(benchmarks)
+
+
 for i in range(len(benchmarks)):
         
     rowIndex = benchmarks.index[i]
