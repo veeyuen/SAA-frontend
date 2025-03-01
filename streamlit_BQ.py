@@ -199,7 +199,7 @@ year_selection = st.multiselect(
     year_list,
 )
 
-athletes = selection[athletes['YEAR'].isin(year_selection)] # filter results based on selected year
+athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
 
 
 # Create temporary mapped event column
