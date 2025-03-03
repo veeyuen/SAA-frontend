@@ -517,7 +517,7 @@ benchmarks.loc[~mask, '5pc']=benchmarks['Metric']*1.05
 benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 
 df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.NaN)
+df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
 # Convert df results into seconds format
 
