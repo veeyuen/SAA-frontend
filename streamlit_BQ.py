@@ -603,8 +603,7 @@ df['NAME'] = df['NAME'].str.strip()
 # Read csv of name variations from GCS bucket
 
 file_path = "gs://name_variations/name_variations.csv"
-names = pd.read_csv(file_path,
-                 sep=",")
+names = pd.read_csv(file_path, sep=",")
 
 st.write(benchmarks.columns.tolist()) 
 
