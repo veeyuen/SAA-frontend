@@ -542,7 +542,7 @@ for i in range(len(df)):
         continue
     
     result_out = convert_time(i, input_string, metric)
-    print('line', i, input_string, metric, result_out)
+#    print('line', i, input_string, metric, result_out)
          
     df.loc[rowIndex, 'RESULT_CONV'] = result_out
 
