@@ -49,6 +49,8 @@ def convert_time(i, string, metric):
     l=['discus', 'throw', 'jump', 'vault', 'shot']
         
     string=string.lower()
+
+    output=''
     
    # print('metric', metric)
     
