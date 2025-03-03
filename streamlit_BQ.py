@@ -523,7 +523,6 @@ df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
-st.write(benchmarks.columns.tolist()) 
 
 # Convert df results into seconds format
 
@@ -547,6 +546,9 @@ for i in range(len(df)):
 #    print('line', i, input_string, metric, result_out)
          
     df.loc[rowIndex, 'RESULT_CONV'] = result_out
+
+st.write(benchmarks.columns.tolist()) 
+
 
 # Fill empty age values
 
