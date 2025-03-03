@@ -132,7 +132,7 @@ def convert_time(i, string, metric):
         
         pass
                 
-    return output
+return output
 ### DEFINE SQL QUERIES ###
 
 benchmark_sql = """
@@ -491,7 +491,6 @@ for i in range(len(benchmarks)):
     benchmarks.loc[rowIndex, 'Metric'] = out
 
 
-st.write(benchmarks)
 
 # Calculate benchmarks for timed and distance events separately
 
