@@ -471,7 +471,6 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 benchmarks = benchmarks.reset_index(drop=True)
 
 
-st.write(benchmarks)
 
 
 for i in range(len(benchmarks)):
@@ -490,7 +489,10 @@ for i in range(len(benchmarks)):
     print(rowIndex, input_string, out)
      
     benchmarks.loc[rowIndex, 'Metric'] = out
-    
+
+
+st.write(benchmarks)
+
 # Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
