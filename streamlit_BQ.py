@@ -503,6 +503,8 @@ mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Pu
 
 st.write(benchmarks)
 
+st.write(benchmarks.columns.tolist()) 
+
 
 benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
 benchmarks.loc[mask, '35pc']=benchmarks['Metric']*0.965
