@@ -503,7 +503,6 @@ mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Pu
 
 st.write(benchmarks)
 
-st.write(benchmarks.columns.tolist()) 
 
 
 benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
@@ -524,6 +523,7 @@ df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
+st.write(benchmarks.columns.tolist()) 
 
 # Convert df results into seconds format
 
