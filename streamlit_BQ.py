@@ -10,6 +10,7 @@ import db_dtypes
 import plotly.express as px
 import analytics
 import re
+import gcsfs
 
 from matplotlib import pyplot as plt
 
