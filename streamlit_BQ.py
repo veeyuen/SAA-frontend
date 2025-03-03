@@ -548,14 +548,14 @@ for i in range(len(df)):
 
 # Fill empty age values
 
-df["AGE"].fillna(0, inplace=True)
-df['AGE'] = df['AGE'].astype('float')
+#df["AGE"].fillna(0, inplace=True)
+#df['AGE'] = df['AGE'].astype('float')
 
 # Apply OCTC criteria
 
 #octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
-df[['2%', '3.5%', '5%', 'RESULT_CONV']] = df[['2%', '3.5%', '5%', 'RESULT_BEST']].apply(pd.to_numeric)
+df[['2%', '3.5%', '5%', 'RESULT_CONV']] = df[['2%', '3.5%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
@@ -563,17 +563,17 @@ mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
 
 # For distance events
 
-df.loc[mask, 'Delta2'] = df['RESULT_BEST']-df['2%']
-df.loc[mask, 'Delta3.5'] = df['RESULT_BEST']-df['3.5%']
-df.loc[mask, 'Delta5'] = df['RESULT_BEST']-df['5%']
-df.loc[mask, 'Delta_Benchmark'] = df['RESULT_BEST']-df['Metric']
+df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
+df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
+df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
+df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
 
 # For timed events
 
-df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_BEST']
-df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_BEST']
-df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_BEST']
-df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_BEST']
+df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
+df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
+df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
+df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
 
 df=df.loc[df['COMPETITION']!='Southeast Asian Games']
 
