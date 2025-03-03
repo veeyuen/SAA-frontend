@@ -507,15 +507,15 @@ st.write(benchmarks)
 
 
 
-benchmarks.loc[mask, '2pc']=benchmarks['Metric']*0.98
-benchmarks.loc[mask, '35pc']=benchmarks['Metric']*0.965
-benchmarks.loc[mask, '5pc']=benchmarks['Metric']*0.95
+benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
+benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
+benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
 
 # For timed events
 
-benchmarks.loc[~mask, '2pc']=benchmarks['Metric']*1.02
-benchmarks.loc[~mask, '35pc']=benchmarks['Metric']*1.035
-benchmarks.loc[~mask, '5pc']=benchmarks['Metric']*1.05
+benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
+benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
+benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
 # Merge benchmarks with df
 
