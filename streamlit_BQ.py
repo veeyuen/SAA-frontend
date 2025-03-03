@@ -549,7 +549,6 @@ for i in range(len(df)):
          
     df.loc[rowIndex, 'RESULT_CONV'] = result_out
 
-st.write(benchmarks.columns.tolist()) 
 
 
 # Fill empty age values
@@ -586,6 +585,9 @@ df=df.loc[df['COMPETITION']!='Southeast Asian Games']
 # Create scalar to measure relative performance
 
 df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+
+st.write(benchmarks.columns.tolist()) 
+
 
 
 # Name corrections
