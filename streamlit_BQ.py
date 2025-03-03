@@ -10,7 +10,6 @@ import db_dtypes
 import plotly.express as px
 import analytics
 import re
-import fsspec
 
 from matplotlib import pyplot as plt
 
