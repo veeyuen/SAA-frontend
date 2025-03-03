@@ -9,4 +9,3 @@ db_dtypes
 plotly
 mitosheet
 analytics-python
-fsspec
