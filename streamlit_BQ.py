@@ -468,7 +468,7 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 # convert times in benchmarks to standard format
 
-benchmarks.reset_index(drop=True)
+benchmarks = benchmarks.reset_index(drop=True)
 
 
 st.write(benchmarks)
