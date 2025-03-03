@@ -586,7 +586,6 @@ df=df.loc[df['COMPETITION']!='Southeast Asian Games']
 
 df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
-st.write(benchmarks.columns.tolist()) 
 
 
 
@@ -606,6 +605,9 @@ df['NAME'] = df['NAME'].str.strip()
 file_path = "gs://name_variations/name_variations.csv"
 names = pd.read_csv(file_path,
                  sep=",")
+
+st.write(benchmarks.columns.tolist()) 
+
 
 # Iterate over dataframe and replace names
 
