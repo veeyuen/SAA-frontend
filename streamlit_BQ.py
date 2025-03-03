@@ -132,7 +132,8 @@ def convert_time(i, string, metric):
         
         pass
                 
-return output
+    return output
+    
 ### DEFINE SQL QUERIES ###
 
 benchmark_sql = """
