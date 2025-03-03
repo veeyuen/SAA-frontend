@@ -520,6 +520,8 @@ benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 
 df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
+
 
 # Convert df results into seconds format
 
@@ -543,6 +545,8 @@ for i in range(len(df)):
     print('line', i, input_string, metric, result_out)
          
     df.loc[rowIndex, 'RESULT_CONV'] = result_out
+
+# Fill empty age values
 
 df["AGE"].fillna(0, inplace=True)
 df['AGE'] = df['AGE'].astype('float')
