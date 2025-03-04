@@ -606,7 +606,7 @@ df['NAME'] = df['NAME'].str.strip()
 file_path = "gs://name_variations/name_variations.csv"
 names = pd.read_csv(file_path, sep=",")
 
-st.write(benchmarks.columns.tolist()) 
+st.write(names) 
 
 
 # Iterate over dataframe and replace names
