@@ -10,3 +10,4 @@ plotly
 mitosheet
 analytics-python
 gcsfs
+st-files-connection
