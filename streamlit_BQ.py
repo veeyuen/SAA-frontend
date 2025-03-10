@@ -11,6 +11,8 @@ import plotly.express as px
 import analytics
 import re
 import gcsfs
+from st_files_connection import FilesConnection
+
 
 from matplotlib import pyplot as plt
 
@@ -39,9 +41,12 @@ client = bigquery.Client(credentials=credentials)
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
 @st.cache_data(ttl=600)
 
-
+conn = st.connection('gcs', type=FilesConnection)
 file_path = "gs://name_variations/name_variations.csv"
-names = pd.read_csv(file_path, sep=",")
+
+names = conn.read(file_path, input_format="csv", ttl=600)
+
+#names = pd.read_csv(file_path, sep=",")
 
 st.write(names) 
 
