@@ -39,6 +39,13 @@ client = bigquery.Client(credentials=credentials)
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
 @st.cache_data(ttl=600)
 
+
+file_path = "gs://name_variations/name_variations.csv"
+names = pd.read_csv(file_path, sep=",")
+
+st.write(names) 
+
+
 ## DEFINE FUNCTONS ##
 
 # Converts any time format into seconds
@@ -603,10 +610,6 @@ df['NAME'] = df['NAME'].str.strip()
 
 # Read csv of name variations from GCS bucket
 
-file_path = "gs://name_variations/name_variations.csv"
-names = pd.read_csv(file_path, sep=",")
-
-st.write(names) 
 
 
 # Iterate over dataframe and replace names
