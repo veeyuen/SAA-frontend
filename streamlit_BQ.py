@@ -39,7 +39,7 @@ client = bigquery.Client(credentials=credentials)
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
-@st.cache_data(ttl=600)
+#@st.cache_data(ttl=600)
 
 conn = st.connection('gcs', type=FilesConnection)
 file_path = "gs://name_variations/name_variations.csv"
