@@ -44,7 +44,7 @@ client = bigquery.Client(credentials=credentials)
 conn = st.connection('gcs', type=FilesConnection)
 file_path = "gs://name_variations/name_variations.csv"
 
-names = conn.read(file_path, input_format="csv", ttl=600)
+names = conn.read("name_variations/name_variations.csv", input_format="csv", ttl=600)
 
 #names = pd.read_csv(file_path, sep=",")
 
