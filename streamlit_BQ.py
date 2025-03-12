@@ -57,7 +57,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 names = conn.read()
 
 
-st.write(names) 
+#st.write(names) 
 
 
 ## DEFINE FUNCTONS ##
@@ -511,7 +511,7 @@ for i in range(len(benchmarks)):
         
     out = convert_time(i, input_string, metric)
     
-    print(rowIndex, input_string, out)
+    #print(rowIndex, input_string, out)
      
     benchmarks.loc[rowIndex, 'Metric'] = out
 
