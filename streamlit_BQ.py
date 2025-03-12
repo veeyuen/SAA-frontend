@@ -552,8 +552,10 @@ df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
 # Convert results and seed into seconds format
 
-#for i in range(len(df)):
-for i in range(5):
+st.write(df.columns)
+
+for i in range(len(df)):
+#for i in range(5):
 
     
     result_out=''
@@ -569,7 +571,7 @@ for i in range(5):
         continue
     
     result_out = convert_time(i, input_string, metric)
-    print('line', i, input_string, metric, result_out)
+ #   print('line', i, input_string, metric, result_out)
          
     df.loc[rowIndex, 'RESULT_CONV'] = result_out
 
