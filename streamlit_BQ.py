@@ -12,6 +12,8 @@ import analytics
 import re
 import gcsfs
 from st_files_connection import FilesConnection
+from streamlit_gsheets import GSheetsConnection
+
 
 
 from matplotlib import pyplot as plt
@@ -41,12 +43,18 @@ client = bigquery.Client(credentials=credentials)
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
 #@st.cache_data(ttl=600)
 
-conn = st.connection('gcs', type=FilesConnection)
-file_path = "gs://name_variations/name_variations.csv"
+# Get name variations from GCS bucket
 
-names = conn.read("name_variations/name_variations.csv", input_format="csv")
+#conn = st.connection('gcs', type=FilesConnection)
+#file_path = "gs://name_variations/name_variations.csv"
+
+#names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 #names = pd.read_csv(file_path, sep=",")
+
+conn = st.connection("gsheets", type=GSheetsConnection)
+names = conn.read()
+
 
 st.write(names) 
 
