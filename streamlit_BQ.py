@@ -635,9 +635,9 @@ for index, row in names.iterrows():
 # Read list of foreigners from GCS bucket
 
 file_path = "gs://name_lists/List of Foreigners.csv"
-foreigners = pd.read_csv(file_path,
-                 sep=",",
-                 encoding="unicode escape")
+#foreigners = pd.read_csv(file_path,
+#                 sep=",",
+#                 encoding="unicode escape")
 
 # Process list of foreign names and their variations
 
@@ -652,25 +652,28 @@ df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM'
                        &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
                        &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
 
-foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+#foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+#foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+#foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+#foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
 
-for1 = foreigners['V1'].dropna().tolist()
-for2 = foreigners['V2'].dropna().tolist()
-for3 = foreigners['V3'].dropna().tolist()
-for4 = foreigners['V4'].dropna().tolist()
+#for1 = foreigners['V1'].dropna().tolist()
+#for2 = foreigners['V2'].dropna().tolist()
+#for3 = foreigners['V3'].dropna().tolist()
+#for4 = foreigners['V4'].dropna().tolist()
 
-foreign_list = for1+for2+for3+for4 
+#foreign_list = for1+for2+for3+for4 
 
-foreign_list_casefold=[s.casefold() for s in foreign_list]
+#foreign_list_casefold=[s.casefold() for s in foreign_list]
 
-exclusions = foreign_list_casefold
+#exclusions = foreign_list_casefold
 
-ex_foreigners = df_local_teams.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+#ex_foreigners = df_local_teams.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
-top_performers_clean = ex_foreigners.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+#top_performers_clean = ex_foreigners.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+
+top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+
 
 top_performers_clean.reset_index(inplace=True)
 
