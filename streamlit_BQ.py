@@ -552,7 +552,14 @@ df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
 # Convert results and seed into seconds format
 
+st.write(" ")
+st.write(" ")
+st.write(" ")
+
 st.write(list(df.columns))
+
+st.write(" ")
+
 
 for i in range(len(df)):
 #for i in range(5):
