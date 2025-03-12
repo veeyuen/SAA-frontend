@@ -525,7 +525,7 @@ mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Pu
 
 # For distance events
 
-st.write(benchmarks)
+#st.write(benchmarks)
 
 
 
