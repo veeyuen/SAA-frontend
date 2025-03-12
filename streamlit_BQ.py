@@ -554,11 +554,11 @@ df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
 st.write(" ")
 st.write(" ")
-st.write(" ")
+#st.write(" ")
 
-st.write(list(df.columns))
+#st.write(list(df.columns))
 
-st.write(" ")
+#st.write(" ")
 
 
 for i in range(len(df)):
@@ -570,9 +570,9 @@ for i in range(len(df)):
         
     rowIndex = df.index[i]
 
-    input_string=df.iloc[rowIndex,6]    # event description
+    input_string=df.iloc[rowIndex,14]    # event description
     
-    metric=df.iloc[rowIndex,1] # result
+    metric=df.iloc[rowIndex,9] # result
     
     if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
         continue
