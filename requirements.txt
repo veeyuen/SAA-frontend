@@ -11,3 +11,4 @@ mitosheet
 analytics-python
 gcsfs
 st-files-connection
+st-gsheets-connection
