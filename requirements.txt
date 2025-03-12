@@ -11,4 +11,3 @@ mitosheet
 analytics-python
 gcsfs
 st-files-connection
-streamlit_gsheets
