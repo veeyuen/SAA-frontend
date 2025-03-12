@@ -45,17 +45,16 @@ client = bigquery.Client(credentials=credentials)
 
 # Get name variations from GCS bucket
 
-conn = st.connection('gcs', type=FilesConnection)
-#file_path = "gs://name_variations/name_variations.csv"
+#conn = st.connection('gcs', type=FilesConnection)
 
-names = conn.read("name_variations/name_variations.csv", input_format="csv")
+#names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 #names = pd.read_csv(file_path, sep=",")
 
 # Using gsheets
 
-#conn = st.connection("gsheets", type=GSheetsConnection)
-#names = conn.read()
+conn = st.connection("gsheets", type=GSheetsConnection)
+names = conn.read()
 
 
 st.write(names) 
