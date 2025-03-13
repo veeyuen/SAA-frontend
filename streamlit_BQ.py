@@ -51,10 +51,15 @@ client = bigquery.Client(credentials=credentials)
 
 #names = pd.read_csv(file_path, sep=",")
 
-# Using gsheets
+## Access list of name variations and foreigners from gsheets (sheet1 and sheet2, respectively)
 
 conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet1")
 names = conn.read()
+
+conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
+foreigners = conn.read()
+
+st.write(foreigners)
 
 
 #st.write(names) 
