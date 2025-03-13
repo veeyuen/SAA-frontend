@@ -401,6 +401,7 @@ benchmarks = benchmarks.reset_index(drop=True)
 
 process_benchmarks(benchmarks)
 
+st.write(" ")
 st.write(benchmarks)
 
 ## Calculate benchmarks for timed and distance events separately
