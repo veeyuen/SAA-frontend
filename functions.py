@@ -3,8 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-## Helpers
-@st.cache_data
+## Helper functions
 
 # Convert results into standard format
 
@@ -49,9 +48,6 @@ def convert_time(i, string, metric):
     
                     output=float(str(metric))
         
-                
-                
-        
             else:
         
                 searchstring = ":"
@@ -63,10 +59,7 @@ def convert_time(i, string, metric):
                 if count==0:
                 
                     output=float(substring)
-            
-            
-               
-             
+                       
                 elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
                 
                                                 
@@ -95,8 +88,6 @@ def convert_time(i, string, metric):
                     h,m,s = metric.split(':')
                     output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
   
-            
-
     except:
         
         pass
@@ -144,3 +135,5 @@ def process_benchmarks(df):
         df.loc[rowIndex, 'Metric'] = out
     
     return df
+
+
