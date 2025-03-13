@@ -441,28 +441,26 @@ st.write(" ")
 #st.write(" ")
 
 
-for i in range(len(df)):
-#for i in range(5):
-
+#for i in range(len(df)):
     
-    result_out=''
+#    result_out=''
     
         
-    rowIndex = df.index[i]
+#    rowIndex = df.index[i]
 
-    input_string=df.iloc[rowIndex,14]    # event description
+#    input_string=df.iloc[rowIndex,14]    # event description
     
-    metric=df.iloc[rowIndex,9] # result
+#    metric=df.iloc[rowIndex,9] # result
     
-    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
-        continue
+#    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
+#        continue
     
-    result_out = convert_time(i, input_string, metric)
+#    result_out = convert_time(i, input_string, metric)
  #   print('line', i, input_string, metric, result_out)
          
-    df.loc[rowIndex, 'RESULT_CONV'] = result_out
+#    df.loc[rowIndex, 'RESULT_CONV'] = result_out
 
-
+process_results(df)
 
 # Fill empty age values
 
