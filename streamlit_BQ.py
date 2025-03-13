@@ -56,10 +56,6 @@ client = bigquery.Client(credentials=credentials)
 conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet1")
 names = conn.read()
 
-conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
-foreigners = conn.read()
-
-st.write(foreigners)
 
 
 #st.write(names) 
@@ -505,6 +501,12 @@ file_path = "gs://name_lists/List of Foreigners.csv"
 #foreigners = pd.read_csv(file_path,
 #                 sep=",",
 #                 encoding="unicode escape")
+
+conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
+foreigners = conn.read()
+
+st.write(foreigners)
+
 
 # Process list of foreign names and their variations
 
