@@ -64,99 +64,99 @@ names = conn.read()
 
 # Converts any time format into seconds
 
-def convert_time(i, string, metric):
+#def convert_time(i, string, metric):
 
-    global output
+#    global output
     
-    l=['discus', 'throw', 'jump', 'vault', 'shot']
+#    l=['discus', 'throw', 'jump', 'vault', 'shot']
         
-    string=string.lower()
+#    string=string.lower()
 
-    output=''
+#    output=''
     
    # print('metric', metric)
     
-    try:
+#    try:
         
-        if 'w' in metric:  # skip marks with illegal wind speeds
+#        if 'w' in metric:  # skip marks with illegal wind speeds
             
-            print('W', metric)
+#            print('W', metric)
             
-            output=''
+#            output=''
             
-        else:
+#        else:
             
     
-            if any(s in string for s in l)==True:
+#            if any(s in string for s in l)==True:
             
-                if 'm' in metric:
+#                if 'm' in metric:
             
-                    metric=metric.replace('m', '')
-                    output=float(str(metric))
+#                    metric=metric.replace('m', '')
+#                    output=float(str(metric))
             
-                elif 'GR' in metric:
+#                elif 'GR' in metric:
             
-                    metric=metric.replace('GR', '')
-                    output=float(str(metric))
+#                    metric=metric.replace('GR', '')
+#                    output=float(str(metric))
                 
                 
-                else:
+#                else:
     
-                    output=float(str(metric))
+#                    output=float(str(metric))
         
                 
                 
         
-            else:
+#            else:
         
-                searchstring = ":"
-                searchstring2 = "."
-                substring=str(metric)
-                count = substring.count(searchstring)
-                count2 = substring.count(searchstring2)
+#                searchstring = ":"
+#                searchstring2 = "."
+#                substring=str(metric)
+#                count = substring.count(searchstring)
+#                count2 = substring.count(searchstring2)
             
-                if count==0:
+#                if count==0:
                 
-                    output=float(substring)
+#                    output=float(substring)
             
             
                
              
-                elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
+#                elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
                 
                                                 
-                    time=str(metric)
-                    h, m ,s = time.split(':')
-                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+#                    time=str(metric)
+#                    h, m ,s = time.split(':')
+#                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
             
                                 
-                elif (count==1 and count2==1):
+#                elif (count==1 and count2==1):
             
-                    m,s = metric.split(':')
-                    output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
+#                    m,s = metric.split(':')
+#                    output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
                      
-                elif (count==1 and count2==2):
+#                elif (count==1 and count2==2):
                 
             
-                    metric = metric.replace(".", ":", 1)
+#                    metric = metric.replace(".", ":", 1)
             
-                    h,m,s = metric.split(':')            
-                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+#                    h,m,s = metric.split(':')            
+#                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
                 
         
-                elif (count==2 and count2==0):
+#                elif (count==2 and count2==0):
                 
             
-                    h,m,s = metric.split(':')
-                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
+#                    h,m,s = metric.split(':')
+#                    output = float(datetime.timedelta(hours=int(h),minutes=int(m),seconds=float(s)).total_seconds())
   
             
 
-    except:
+#    except:
         
-        pass
+#        pass
                 
-    return output
+#    return output
     
 ### DEFINE SQL QUERIES ###
 
