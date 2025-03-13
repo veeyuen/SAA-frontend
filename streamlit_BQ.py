@@ -134,7 +134,7 @@ athletes = selection[selection['YEAR'].isin(year_selection)] # filter results ba
 
 athletes['MAPPED_EVENT']=''
 
-# Clear columns of special characters and spaces
+## Clear columns of special characters and spaces
 
 for col in athletes.columns:
     athletes[col] = athletes[col].astype(str)
@@ -394,13 +394,13 @@ benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnu
 benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
 benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
-# convert times in benchmarks to standard format
+## Convert times in benchmarks to standard format
 
 benchmarks = benchmarks.reset_index(drop=True)
 
 process_benchmarks(benchmarks)
 
-# Calculate benchmarks for timed and distance events separately
+## Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
 
