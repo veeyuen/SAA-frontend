@@ -136,6 +136,8 @@ athletes['MAPPED_EVENT']=''
 
 map_events(athletes)
 
+st.write('HERE')
+
 ### PROCESS BENCHMARKS ###
 
 comparisons = client.query_and_wait(benchmark_sql).to_dataframe()
