@@ -13,7 +13,7 @@ import re
 import gcsfs
 #from st_files_connection import FilesConnection
 from streamlit_gsheets import GSheetsConnection
-from functions import convert_time, process_benchmarks, process_results
+from functions import convert_time, process_benchmarks, process_results, map_events
 
 
 from matplotlib import pyplot as plt
