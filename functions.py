@@ -95,22 +95,7 @@ def convert_time(i, string, metric):
     return output
 
 
-# Clean each row of input file
-@st.cache_data
-def clean(data):
-
-    for i in range(len(data)):
-
-        rowIndex = data.index[i]
-
-        input_string=data.iloc[rowIndex,1]
-        metric=data.iloc[rowIndex,5]
-
-        processed_output = preprocess(i, input_string, metric)
-
-        data.loc[rowIndex, 'Metric'] = processed_output
-
-    return data
+## Convert time into seconds and distances into float
 
 @st.cache_data
 def process_benchmarks(df):
