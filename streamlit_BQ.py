@@ -131,6 +131,8 @@ year_selection = st.multiselect(
 athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
 
 
+map_events(athletes)
+'''
 # Create temporary mapped event column
 
 athletes['MAPPED_EVENT']=''
@@ -367,7 +369,7 @@ mask = athletes['EVENT'].str.contains(r'Heptathlon', na=True)
 athletes.loc[mask, 'MAPPED_EVENT'] = 'Heptathlon'
 mask = athletes['EVENT'].str.contains(r'Decathlon', na=True)
 athletes.loc[mask, 'MAPPED_EVENT'] = 'Decathlon'
-
+'''
 
 ### PROCESS BENCHMARKS ###
 
