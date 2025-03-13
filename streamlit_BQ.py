@@ -398,28 +398,6 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 benchmarks = benchmarks.reset_index(drop=True)
 
-
-
-
-#for i in range(len(benchmarks)):
-        
-#    rowIndex = benchmarks.index[i]
-
-#    input_string=benchmarks.iloc[rowIndex,0]
-    
-#    metric=benchmarks.iloc[rowIndex,3]
-    
-#    if metric==None:
-#        continue
-        
-#    out = convert_time(i, input_string, metric)
-    
-    #print(rowIndex, input_string, out)
-     
-#    benchmarks.loc[rowIndex, 'Metric'] = out
-
-# Convert benchmarks times and distances
-
 process_benchmarks(benchmarks)
 
 # Calculate benchmarks for timed and distance events separately
@@ -427,12 +405,9 @@ process_benchmarks(benchmarks)
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
 
 
-
 # For distance events
 
 #st.write(benchmarks)
-
-
 
 benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
 benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
