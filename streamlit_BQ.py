@@ -502,10 +502,10 @@ file_path = "gs://name_lists/List of Foreigners.csv"
 #                 sep=",",
 #                 encoding="unicode escape")
 
-conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
-foreigners = conn.read()
+#conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
+#foreigners = conn.read()
 
-st.write(foreigners)
+#st.write(foreigners)
 
 
 # Process list of foreign names and their variations
