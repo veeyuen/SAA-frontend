@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 ## Helpers
-@st.cache
+@st.cache_data
 def preprocess(i, string, metric):
 
     global OP
@@ -63,7 +63,7 @@ def preprocess(i, string, metric):
 
 
 # Clean each row of input file
-@st.cache
+@st.cache_data
 def clean(data):
 
     for i in range(len(data)):
