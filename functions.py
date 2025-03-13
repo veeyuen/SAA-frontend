@@ -114,7 +114,7 @@ def process_benchmarks(df):
         
         out = convert_time(i, input_string, metric)
         
-      #  print(rowIndex, input_string, out)
+        print(rowIndex, input_string, out)
 
     
         df.loc[rowIndex, 'Metric'] = out
