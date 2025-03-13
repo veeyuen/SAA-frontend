@@ -152,7 +152,7 @@ def map_events(athletes):
 
     # Create temporary mapped event column
 
-    athletes['MAPPED_EVENT']=''
+   # athletes['MAPPED_EVENT']=''
 
 ## Clear columns of special characters and spaces
 
