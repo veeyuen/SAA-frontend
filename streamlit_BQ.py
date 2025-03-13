@@ -53,7 +53,7 @@ client = bigquery.Client(credentials=credentials)
 
 # Using gsheets
 
-conn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet1")
 names = conn.read()
 
 
