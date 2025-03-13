@@ -120,3 +120,27 @@ def clean(data):
         data.loc[rowIndex, 'Metric'] = processed_output
 
     return data
+
+@st.cache_data
+def process_benchmarks(df):
+    
+    for i in range(len(df)):
+
+        rowIndex = df.index[i]
+
+        input_string=df.iloc[rowIndex,0]
+    
+        metric=df.iloc[rowIndex,3]
+    
+        if metric==None:
+        
+            continue
+        
+        out = convert_time(i, input_string, metric)
+        
+        print(rowIndex, input_string, out)
+
+    
+        df.loc[rowIndex, 'Metric'] = out
+    
+    return df
