@@ -401,6 +401,8 @@ benchmarks = benchmarks.reset_index(drop=True)
 
 process_benchmarks(benchmarks)
 
+st.write(benchmarks)
+
 ## Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
