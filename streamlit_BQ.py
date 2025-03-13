@@ -13,7 +13,7 @@ import re
 import gcsfs
 #from st_files_connection import FilesConnection
 from streamlit_gsheets import GSheetsConnection
-from functions import preprocess, convert_time
+from functions import convert_time
 
 
 from matplotlib import pyplot as plt
