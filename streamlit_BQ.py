@@ -53,8 +53,8 @@ client = bigquery.Client(credentials=credentials)
 
 ## Access list of name variations and foreigners from gsheets (sheet1 and sheet2, respectively)
 
-conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet1")
-names = conn.read()
+conn = st.connection("gsheets", type=GSheetsConnection)
+names = conn.read(worksheet="Sheet1")
 
 
 
