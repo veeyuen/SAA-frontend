@@ -130,6 +130,7 @@ year_selection = st.multiselect(
 
 athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
 
+athletes['MAPPED_EVENT']=''
 
 map_events(athletes)
 '''
