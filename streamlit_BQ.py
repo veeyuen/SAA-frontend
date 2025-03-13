@@ -13,7 +13,7 @@ import re
 import gcsfs
 #from st_files_connection import FilesConnection
 from streamlit_gsheets import GSheetsConnection
-from functions import convert_time
+from functions import convert_time, process_benchmarks
 
 
 from matplotlib import pyplot as plt
@@ -401,24 +401,26 @@ benchmarks = benchmarks.reset_index(drop=True)
 
 
 
-for i in range(len(benchmarks)):
+#for i in range(len(benchmarks)):
         
-    rowIndex = benchmarks.index[i]
+#    rowIndex = benchmarks.index[i]
 
-    input_string=benchmarks.iloc[rowIndex,0]
+#    input_string=benchmarks.iloc[rowIndex,0]
     
-    metric=benchmarks.iloc[rowIndex,3]
+#    metric=benchmarks.iloc[rowIndex,3]
     
-    if metric==None:
-        continue
+#    if metric==None:
+#        continue
         
-    out = convert_time(i, input_string, metric)
+#    out = convert_time(i, input_string, metric)
     
     #print(rowIndex, input_string, out)
      
-    benchmarks.loc[rowIndex, 'Metric'] = out
+#    benchmarks.loc[rowIndex, 'Metric'] = out
 
+# Convert benchmarks times and distances
 
+process_benchmarks(benchmarks)
 
 # Calculate benchmarks for timed and distance events separately
 
