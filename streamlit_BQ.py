@@ -53,14 +53,14 @@ client = bigquery.Client(credentials=credentials)
 
 ## Access list of name variations and foreigners from gsheets (sheet1 and sheet2, respectively)
 
-conn = st.connection("gsheets", type=GSheetsConnection)
-names = conn.read()
+#conn = st.connection("gsheets", type=GSheetsConnection)
+#names = conn.read()
 
 
 
 #st.write(names) 
 
-
+'''
     
 ### DEFINE SQL QUERIES ###
 
@@ -293,41 +293,12 @@ df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM'
                        &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
                        &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
 
-#foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-#foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-#foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-#foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-
-#for1 = foreigners['V1'].dropna().tolist()
-#for2 = foreigners['V2'].dropna().tolist()
-#for3 = foreigners['V3'].dropna().tolist()
-#for4 = foreigners['V4'].dropna().tolist()
-
-#foreign_list = for1+for2+for3+for4 
-
-#foreign_list_casefold=[s.casefold() for s in foreign_list]
-
-#exclusions = foreign_list_casefold
-
-#ex_foreigners = df_local_teams.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
-
-#top_performers_clean = ex_foreigners.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
-
 top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 
 top_performers_clean.reset_index(inplace=True)
 
 
-#spexed_list = top_performers.loc[~octc_df['NAME'].str.casefold().isin(spex_athletes_casefold)]  # ~ means NOT IN. DROP spex carded athletes
-
-#spexed_list.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[True, True, False], inplace=True)
-#spexed_list['overall_rank'] = 1
-#spexed_list['overall_rank'] = spexed_list.groupby(['MAPPED_EVENT', 'GENDER'])['overall_rank'].cumsum()
-
-#Apply OCTC selection rule: max 6 for 100m/400m and max 3 for all other events
-
-#spexed_list=spexed_list[(((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<7))|(~((spexed_list['MAPPED_EVENT']=='400m')|(spexed_list['MAPPED_EVENT']=='100m'))&(spexed_list['overall_rank']<4))]
 
 # Create performance tier column
 
@@ -355,7 +326,7 @@ st.write(final_df)
 
 
 # Process custom threshold benchmark
-'''
+
 benchmarks['custom']=''
 
 input = st.number_input("Input desired benchmark threshold (%):")
@@ -409,61 +380,5 @@ st.write(custom_df)
 mask = custom_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
 
 # For distance events
-
 '''
-####### OLD CODE BELOW ###
 
-# Extract year and month
-
-#data['year'] = pd.DatetimeIndex(data['Date']).year
-#data['month'] = pd.DatetimeIndex(data['Date']).month
-
-# Filter dataframe
-
-
-#events = data['Event'].drop_duplicates()
-#event_choice = st.sidebar.selectbox('Select the event:', events)
-#dates = data['year'].loc[data["Event"] == event_choice].drop_duplicates()
-
-
-#start_year = st.sidebar.selectbox('Start Year', dates)
-#end_year = st.sidebar.selectbox('End Year', dates)
-
-#mask = ((data['year'] >= start_year) & (data['year'] <= end_year) & (data['Event']==event_choice))
-
-#filter=data.loc[mask]
-
-#st.dataframe(filter)
-
-
-# Plot using Seaborn
-
-#metrics = filter['Metric']
-
-#fig, ax = plt.subplots()
-#plt.style.use("dark_background")
-
-#plt.title("Distribution of Times/Distances")
-#ax = sns.histplot(data=filter, x='Metric', kde=True, color = "#b80606")
-
-#ax = plt.hist(metrics, bins=7)
-
-#st.pyplot(fig)
-
-
-# Print stats summary
-
-#summary = metrics.describe()
-#st.write(summary)
-
-#col1, col2, col3, col4 = st.columns(4)
-#col1.metric("No. Records", value=int(summary[0]))
-#col2.metric("Mean", value=summary[1].round(2))
-#col3.metric("Standard Dev.", value=summary[2].round(2))
-#col4.metric("Min Value", value=summary[3])
-
-#col1, col2, col3, col4 = st.columns(4)
-#col1.metric("25 percentile", value=summary[4].round(2))
-#col2.metric("50 percentile", value=summary[5].round(2))
-#col3.metric("75 percentile", value=summary[6].round(2))
-#col4.metric("Max Value", value=summary[7])
