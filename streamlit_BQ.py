@@ -36,6 +36,13 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 client = bigquery.Client(credentials=credentials)
 
+storage_client = storage.Client()
+
+blobs = storage_client.list_blobs(octc_athletes)
+
+for blob in blobs:
+        print(blob.name)
+
 
 #@st.cache(persist=True)
 
