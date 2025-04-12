@@ -39,7 +39,7 @@ credentials = service_account.Credentials.from_service_account_info(
 
 storage_client = storage.Client(credentials=credentials)
 
-blobs = storage_client.list_blobs(octc_athletes)
+blobs = storage_client.list_blobs("octc_athletes")
 
 for blob in blobs:
         st.write(blob.name)
