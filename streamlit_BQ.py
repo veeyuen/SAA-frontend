@@ -50,11 +50,12 @@ for blob in blobs:
 
 
 st.write("Choose file to open:")
-file = st.multiselect(
+blob_name = st.multiselect(
     "Please select the desired file:", 
     files,)
 
-blob = bucket.blob(file)
+bucket = storage_client.bucket("octc_athletes")
+blob = bucket.blob(blob_name)
 
 
 #@st.cache(persist=True)
