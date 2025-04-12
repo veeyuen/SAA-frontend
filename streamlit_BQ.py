@@ -35,7 +35,9 @@ from google.cloud import bigquery
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
+
 #client = bigquery.Client(credentials=credentials)
+
 
 storage_client = storage.Client(credentials=credentials)
 
@@ -52,6 +54,8 @@ file = st.multiselect(
     "Please select the desired file:", 
     files,)
 
+with file.open("r") as f:
+        print(f.read())
 
 #@st.cache(persist=True)
 
