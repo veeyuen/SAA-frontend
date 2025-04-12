@@ -41,13 +41,15 @@ storage_client = storage.Client(credentials=credentials)
 
 blobs = storage_client.list_blobs("octc_athletes")
 
-files = blobs.tolist()
+files = []
+
+for blob in blobs:
+        files.append(blob)
+
 
 st.write("Choose file to open:")
 st.write(files)
 
-#for blob in blobs:
-#        st.write(blob.name)
 
 
 #@st.cache(persist=True)
