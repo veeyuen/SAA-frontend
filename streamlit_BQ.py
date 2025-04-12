@@ -50,11 +50,11 @@ for blob in blobs:
 
 
 st.write("Choose file to open:")
-file = st.multiselect(
+blob = st.multiselect(
     "Please select the desired file:", 
     files,)
 
-with file.open("r") as f:
+with blob.open("r") as f:
         print(f.read())
 
 #@st.cache(persist=True)
