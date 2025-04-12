@@ -48,7 +48,7 @@ for blob in blobs:
 
 
 st.write("Choose file to open:")
-st.write(files)
+file = st.multiselect(files)
 
 
 
