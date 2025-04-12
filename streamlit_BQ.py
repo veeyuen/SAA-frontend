@@ -11,8 +11,8 @@ import plotly.express as px
 import analytics
 import re
 import gcsfs
-#from st_files_connection import FilesConnection
-from streamlit_gsheets import GSheetsConnection
+from st_files_connection import FilesConnection
+#from streamlit_gsheets import GSheetsConnection
 from functions import convert_time, process_benchmarks, process_results, map_events
 from google.cloud import storage
 
