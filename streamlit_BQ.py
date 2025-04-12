@@ -42,7 +42,7 @@ storage_client = storage.Client()
 blobs = storage_client.list_blobs(octc_athletes)
 
 for blob in blobs:
-        print(blob.name)
+        st.write(blob.name)
 
 
 #@st.cache(persist=True)
