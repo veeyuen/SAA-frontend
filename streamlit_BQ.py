@@ -48,8 +48,9 @@ for blob in blobs:
 
 
 st.write("Choose file to open:")
-file = st.multiselect(files)
-
+file = st.multiselect(
+    "Please select the desired file:", 
+    files,)
 
 
 #@st.cache(persist=True)
