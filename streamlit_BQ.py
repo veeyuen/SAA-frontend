@@ -55,7 +55,7 @@ blob_name = st.multiselect(
     files,)
 
 bucket = storage_client.bucket("octc_athletes")
-blob = bucket.blob(blob_name)
+blob = bucket.blob(blob_name[0])
 
 
 #@st.cache(persist=True)
