@@ -36,40 +36,40 @@ credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
 
-#client = bigquery.Client(credentials=credentials)
+client = bigquery.Client(credentials=credentials)
 
 
-storage_client = storage.Client(credentials=credentials)
+#storage_client = storage.Client(credentials=credentials)
 
-blobs = storage_client.list_blobs("octc_athletes")
+#blobs = storage_client.list_blobs("octc_athletes")
 
-files = []
+#files = []
 
-for blob in blobs:
-        files.append(blob)
+#for blob in blobs:
+#        files.append(blob)
 
 
-st.write("Choose file to open:")
-blob_name = st.multiselect(
-    "Please select the desired file:", 
-    files,)
+#st.write("Choose file to open:")
+#blob_name = st.multiselect(
+#    "Please select the desired file:", 
+#    files,)
 
-bucket = storage_client.bucket("octc_athletes")
-blob = bucket.blob(blob_name)
- with blob.open("r") as f:
-        st.write("READ")
+#bucket = storage_client.bucket("octc_athletes")
+#blob = bucket.blob(blob_name)
+# with blob.open("r") as f:
+#        st.write("READ")
 
-#@st.cache(persist=True)
+@st.cache(persist=True)
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
-#@st.cache_data(ttl=600)
+@st.cache_data(ttl=600)
 
 # Get name variations from GCS bucket
 
-#conn = st.connection('gcs', type=FilesConnection)
+conn = st.connection('gcs', type=FilesConnection)
 
-#names = conn.read("name_variations/name_variations.csv", input_format="csv")
+names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 #names = pd.read_csv(file_path, sep=",")
 
