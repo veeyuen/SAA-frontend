@@ -71,6 +71,7 @@ conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
 names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
+st.write(names)
 #names = pd.read_csv(file_path, sep=",")
 
 ## Access list of name variations and foreigners from gsheets (sheet1 and sheet2, respectively)
