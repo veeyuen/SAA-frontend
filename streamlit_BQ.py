@@ -66,11 +66,7 @@ client = bigquery.Client(credentials=credentials)
 
 ## Get name variations from GCS bucket
 
-conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-names = conn.read("name_variations/name_variations.csv", input_format="csv")
-
-st.write(names)
 #names = pd.read_csv(file_path, sep=",")
 
 '''
@@ -272,6 +268,9 @@ df['NAME'] = df['NAME'].str.strip()
 
 # Read csv of name variations from GCS bucket
 
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
+
+names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 
 # Iterate over dataframe and replace names
