@@ -100,27 +100,29 @@ year_list = df['YEAR'].unique().tolist() # get unique list of years
 region_list = df['REGION'].unique().tolist()
 competition_list = df['COMPETITION'].unique().tolist()
 
+
+
+
+year_selection = st.multiselect(
+    "Please select the desired year(s):",
+    year_list,
+)
+
+region_selection = st.multiselect(
+    "Please select the desired region(S):",
+    region_list,
+)
+
+competition_selection = st.multiselect(
+    "Please select the desired competition(s):",
+    competition_list,
+)
+
+mask = ((df['YEAR'] == year_selection))
+
+df_filtered = df[mask]
+
 '''
-
-#year_selection = st.multiselect(
-#    "Please select the desired year(s):",
-#    year_list,
-#)
-
-#region_selection = st.multiselect(
-#    "Please select the desired region(S):",
-#    region_list,
-#)
-
-#competition_selection = st.multiselect(
-#    "Please select the desired competition(s):",
-#    competition_list,
-#)
-
-
-#df_filtered = df[df['DATE'].isin(year_selection) & df['REGION'].isin(region_selection) & df['COMPETITION'].isin(competition_selection)]
-
-
 ### EXTRACT LIST OF ATHLETES ###
 
 #athletes = client.query_and_wait(athletes_sql).to_dataframe()
