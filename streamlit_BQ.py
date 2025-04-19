@@ -63,9 +63,9 @@ client = bigquery.Client(credentials=credentials)
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
-@st.cache_data(ttl=600)
+#@st.cache_data(ttl=600)
 
-# Get name variations from GCS bucket
+## Get name variations from GCS bucket
 
 conn = st.connection('gcs', type=FilesConnection)
 
