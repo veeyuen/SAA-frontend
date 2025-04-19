@@ -59,7 +59,7 @@ client = bigquery.Client(credentials=credentials)
 # with blob.open("r") as f:
 #        st.write("READ")
 
-@st.cache(persist=True)
+#@st.cache(persist=True)
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
