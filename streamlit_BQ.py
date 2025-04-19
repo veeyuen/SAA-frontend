@@ -120,7 +120,7 @@ competition_selection = st.multiselect(
 
 mask = ((df['YEAR'] == year_selection))
 
-df_filtered = df[mask]
+df_filtered = df.loc[mask]
 
 '''
 ### EXTRACT LIST OF ATHLETES ###
