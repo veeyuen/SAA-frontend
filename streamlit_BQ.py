@@ -69,7 +69,7 @@ client = bigquery.Client(credentials=credentials)
 
 #names = pd.read_csv(file_path, sep=",")
 
-'''
+
     
 ### DEFINE SQL QUERIES ###
 
@@ -90,14 +90,15 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 
 
-#
-#df = client.query_and_wait(all_sql).to_dataframe()
+## Download all data from BQ
 
-#df.dropna(how= "all", axis=1, inplace=True)
+df = client.query_and_wait(all_sql).to_dataframe()
 
-#year_list = df['YEAR'].unique().tolist() # get unique list of years
-#region_list = df['REGION'].unique().tolist()
-#competition_list = df['COMPETITION'].unique().tolist()
+df.dropna(how= "all", axis=1, inplace=True)
+
+year_list = df['YEAR'].unique().tolist() # get unique list of years
+region_list = df['REGION'].unique().tolist()
+competition_list = df['COMPETITION'].unique().tolist()
 
 #year_selection = st.multiselect(
 #    "Please select the desired year(s):",
