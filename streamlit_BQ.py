@@ -100,6 +100,8 @@ year_list = df['YEAR'].unique().tolist() # get unique list of years
 region_list = df['REGION'].unique().tolist()
 competition_list = df['COMPETITION'].unique().tolist()
 
+'''
+
 #year_selection = st.multiselect(
 #    "Please select the desired year(s):",
 #    year_list,
