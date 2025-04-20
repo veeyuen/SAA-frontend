@@ -104,6 +104,15 @@ competition_list = df['COMPETITION'].unique().tolist()
 start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
+df['event_date_dt'] = pd.to_datetime(df['event_date'], errors='coerce')
+
+start = np.datetime64(start_date)
+end = np.datetime64(end_date)
+
+mask = (df['event_date_dt'] >= start_date) & (df['event_date_dt'] <= end_date)
+period_selected = df.loc[mask]
+
+
 #year_selection = st.multiselect(
 ##    "Please select the desired year(s):",
 #    year_list,
