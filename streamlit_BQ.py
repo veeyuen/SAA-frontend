@@ -14,7 +14,7 @@ import gcsfs
 from st_files_connection import FilesConnection
 from functions import convert_time, process_benchmarks, process_results, map_events, event_date
 from google.cloud import storage
-
+from mitosheet.streamlit.v1 import spreadsheet
 
 from matplotlib import pyplot as plt
 
@@ -109,6 +109,10 @@ end = np.datetime64(end_date)
 mask = (df['event_date_dt'] >= start) & (df['event_date_dt'] <= end)
 athletes_selected = df.loc[mask]
 
+
+## Allow public access via mito
+final_dfs, code = spreadsheet(athletes_selected)
+st.write(final_dfs)
 
 
 
