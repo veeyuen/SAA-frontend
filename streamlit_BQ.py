@@ -96,8 +96,7 @@ df = client.query_and_wait(all_sql).to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-df = event_date(df)  # create event date column
-
+df = event_date(df)  # call function
 
 start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
@@ -139,30 +138,13 @@ athletes_selected = df.loc[mask]
 
 athletes_selected['MAPPED_EVENT']=''
 
-map_events(athletes_selected)
+map_events(athletes_selected) # call function
 
-st.write(athletes_selected.shape)
-'''
+#st.write(athletes_selected.shape)
+
 ### PROCESS BENCHMARKS ###
 
-comparisons = client.query_and_wait(benchmark_sql).to_dataframe()
-
-competition_list = comparisons['COMPETITION'].unique().tolist()
-competition_year_list = comparisons['YEAR'].unique().tolist()
-
-benchmark_selection = st.multiselect(
-    "Please select the desired benchmark competition:",
-    competition_list,
-)
-
-benchmark_year_selection = st.multiselect(
-    "Please select the desired benchmark year:",
-    competition_year_list,
-)
-
-
-benchmarks = comparisons[comparisons['YEAR'].isin(benchmark_year_selection) & comparisons['COMPETITION'].isin(benchmark_selection)]
-
+benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
 
 benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
 
@@ -173,11 +155,13 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 benchmarks = benchmarks.reset_index(drop=True)
 
-process_benchmarks(benchmarks)
+process_benchmarks(benchmarks) # call function
 
 st.write(" ")
 st.write(benchmarks)
 
+
+'''
 ## Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
