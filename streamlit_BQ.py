@@ -136,7 +136,7 @@ athletes_selected = df.loc[mask]
 
 ## Map relevant events to a standard description ##
 
-athletes['MAPPED_EVENT']=''
+athletes_selected['MAPPED_EVENT']=''
 
 map_events(athletes_selected)
 
