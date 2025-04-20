@@ -96,10 +96,6 @@ df = client.query_and_wait(all_sql).to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-#year_list = df['YEAR'].unique().tolist() # get unique list of years
-#region_list = df['REGION'].unique().tolist()
-#competition_list = df['COMPETITION'].unique().tolist()
-
 df = event_date(df)  # create event date column
 
 
@@ -112,58 +108,40 @@ start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
 mask = (df['event_date_dt'] >= start) & (df['event_date_dt'] <= end)
-data_selected = df.loc[mask]
+athletes_selected = df.loc[mask]
 
 
-#year_selection = st.multiselect(
-##    "Please select the desired year(s):",
-#    year_list,
-#)
 
-#region_selection = st.multiselect(
-#    "Please select the desired region(S):",
-#    region_list,
-#)
 
-#competition_selection = st.multiselect(
-#    "Please select the desired competition(s):",
-#    competition_list,
-#)
-
-#mask = ((df['YEAR'] == year_selection))
-
-#df_filtered = df.loc[mask]
-
-'''
 ### EXTRACT LIST OF ATHLETES ###
 
 #athletes = client.query_and_wait(athletes_sql).to_dataframe()
 
 # SELECT YEARS
 
-selection = client.query_and_wait(all_sql).to_dataframe()
+#selection = client.query_and_wait(all_sql).to_dataframe()
 
-selection.dropna(how= "all", axis=1, inplace=True)
+#selection.dropna(how= "all", axis=1, inplace=True)
 
-year_list = selection['YEAR'].unique().tolist() # get unique list of years
+#year_list = selection['YEAR'].unique().tolist() # get unique list of years
 #region_list = df['REGION'].unique().tolist()
 #competition_list = df['COMPETITION'].unique().tolist()
 
-year_selection = st.multiselect(
-    "Please select the desired year(s):",
-    year_list,
-)
+#year_selection = st.multiselect(
+#    "Please select the desired year(s):",
+#    year_list,
+#)
 
-athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
+#athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
 
-## Map events to a standard description##
+## Map relevant events to a standard description ##
 
 athletes['MAPPED_EVENT']=''
 
-map_events(athletes)
+map_events(athletes_selected)
 
 st.write('HERE')
-
+'''
 ### PROCESS BENCHMARKS ###
 
 comparisons = client.query_and_wait(benchmark_sql).to_dataframe()
