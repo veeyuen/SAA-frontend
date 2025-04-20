@@ -391,7 +391,7 @@ def map_events(athletes):
     return athletes
 
 @st.cache_data
-def process_results(df):
+def event_date(df):
 
     for i in range(len(df)):
         
