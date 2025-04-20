@@ -113,6 +113,7 @@ athletes_selected = df.loc[mask]
 
 
 
+
 ### EXTRACT LIST OF ATHLETES ###
 
 #athletes = client.query_and_wait(athletes_sql).to_dataframe()
@@ -140,7 +141,7 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_events(athletes_selected)
 
-st.write('HERE')
+st.write(athletes_selected.shape)
 '''
 ### PROCESS BENCHMARKS ###
 
