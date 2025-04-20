@@ -395,40 +395,40 @@ def event_date(df):
 
     for i in range(len(df)):
         
-    rowIndex = df.index[i]
+        rowIndex = df.index[i]
 
-    date = df.iloc[rowIndex,16]
-    year = df.iloc[rowIndex,17]    
+        date = df.iloc[rowIndex,16]
+        year = df.iloc[rowIndex,17]    
     
-    if 'to' in date or ' - ' in date:
+        if 'to' in date or ' - ' in date:
         
-        pos = re.search('to|\s\-\s', date)
+            pos = re.search('to|\s\-\s', date)
                                                 
         # Splice string to day and month
 
-        split_pos_start=pos.start()+3
+            split_pos_start=pos.start()+3
 
             
-        final_date = date[split_pos_start:] # left string post splicing
-        final_year = year[2:]
+            final_date = date[split_pos_start:] # left string post splicing
+            final_year = year[2:]
         
-        event_date = final_date + '/' + final_year
-        
-        df.loc[rowIndex, 'event_date'] = event_date
-        
-    elif re.search('\w\-\w', date):
-        
-        if df.iloc[rowIndex, 15] == "National School Games":
-        
-            event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd
+            event_date = final_date + '/' + final_year
         
             df.loc[rowIndex, 'event_date'] = event_date
         
-        else:
+        elif re.search('\w\-\w', date):
+        
+            if df.iloc[rowIndex, 15] == "National School Games":
+        
+                event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd
+        
+                df.loc[rowIndex, 'event_date'] = event_date
+        
+            else:
             
-            event_date = date + '-' + year[2:]
+                event_date = date + '-' + year[2:]
             
-            df.loc[rowIndex, 'event_date'] = event_date
+                df.loc[rowIndex, 'event_date'] = event_date
 
         
         
