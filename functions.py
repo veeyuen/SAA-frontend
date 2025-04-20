@@ -6,6 +6,7 @@ import datetime
 import numpy as np
 
 
+
 ## Helper functions
 
 # Convert results into standard format
@@ -388,4 +389,59 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Decathlon'
 
     return athletes
+
+@st.cache_data
+def process_results(df):
+
+    for i in range(len(df)):
+        
+    rowIndex = df.index[i]
+
+    date = df.iloc[rowIndex,16]
+    year = df.iloc[rowIndex,17]    
+    
+    if 'to' in date or ' - ' in date:
+        
+        pos = re.search('to|\s\-\s', date)
+                                                
+        # Splice string to day and month
+
+        split_pos_start=pos.start()+3
+
+            
+        final_date = date[split_pos_start:] # left string post splicing
+        final_year = year[2:]
+        
+        event_date = final_date + '/' + final_year
+        
+        df.loc[rowIndex, 'event_date'] = event_date
+        
+    elif re.search('\w\-\w', date):
+        
+        if df.iloc[rowIndex, 15] == "National School Games":
+        
+            event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd
+        
+            df.loc[rowIndex, 'event_date'] = event_date
+        
+        else:
+            
+            event_date = date + '-' + year[2:]
+            
+            df.loc[rowIndex, 'event_date'] = event_date
+
+        
+        
+
+        
+    df['event_date'] = df['event_date'].astype(str)
+    df['event_date'] = df['event_date'].str.replace('\xa0', ' ', regex=True)
+    df['event_date'] = df['event_date'].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
+    df['event_date'] = df['event_date'].str.replace('\r', ' ', regex=True)
+    df['event_date'] = df['event_date'].str.replace('\n', ' ', regex=True)
+    df['event_date'] = df['event_date'].str.strip()
+
+    return df
+       
+    
 
