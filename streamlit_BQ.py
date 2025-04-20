@@ -112,7 +112,7 @@ athletes_selected = df.loc[mask]
 
 ## Allow public access via mito
 final_dfs, code = spreadsheet(athletes_selected)
-st.write(final_dfs)
+#st.write(final_dfs)
 
 
 
