@@ -101,26 +101,27 @@ region_list = df['REGION'].unique().tolist()
 competition_list = df['COMPETITION'].unique().tolist()
 
 
+start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
+#year_selection = st.multiselect(
+##    "Please select the desired year(s):",
+#    year_list,
+#)
 
-year_selection = st.multiselect(
-    "Please select the desired year(s):",
-    year_list,
-)
+#region_selection = st.multiselect(
+#    "Please select the desired region(S):",
+#    region_list,
+#)
 
-region_selection = st.multiselect(
-    "Please select the desired region(S):",
-    region_list,
-)
+#competition_selection = st.multiselect(
+#    "Please select the desired competition(s):",
+#    competition_list,
+#)
 
-competition_selection = st.multiselect(
-    "Please select the desired competition(s):",
-    competition_list,
-)
+#mask = ((df['YEAR'] == year_selection))
 
-mask = ((df['YEAR'] == year_selection))
-
-df_filtered = df.loc[mask]
+#df_filtered = df.loc[mask]
 
 '''
 ### EXTRACT LIST OF ATHLETES ###
