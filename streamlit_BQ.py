@@ -162,10 +162,7 @@ benchmarks = benchmarks.reset_index(drop=True)
 process_benchmarks(benchmarks) # call function
 
 st.write(" ")
-st.write(benchmarks)
 
-
-'''
 ## Calculate benchmarks for timed and distance events separately
 
 mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
@@ -189,7 +186,7 @@ benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
 benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 
-df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
+df = athletes_selected.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
@@ -199,8 +196,8 @@ df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 st.write(" ")
 st.write(" ")
 
-process_results(df)
-
+process_results(df) # call fuction
+'''
 # Fill empty age values
 
 #df["AGE"].fillna(0, inplace=True)
