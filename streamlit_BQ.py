@@ -96,9 +96,11 @@ df = client.query_and_wait(all_sql).to_dataframe()
 
 df.dropna(how= "all", axis=1, inplace=True)
 
-year_list = df['YEAR'].unique().tolist() # get unique list of years
-region_list = df['REGION'].unique().tolist()
-competition_list = df['COMPETITION'].unique().tolist()
+#year_list = df['YEAR'].unique().tolist() # get unique list of years
+#region_list = df['REGION'].unique().tolist()
+#competition_list = df['COMPETITION'].unique().tolist()
+
+df = event_date(df)  # create event date column
 
 
 start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
@@ -109,7 +111,7 @@ df['event_date_dt'] = pd.to_datetime(df['event_date'], errors='coerce')
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-mask = (df['event_date_dt'] >= start_date) & (df['event_date_dt'] <= end_date)
+mask = (df['event_date_dt'] >= start) & (df['event_date_dt'] <= end)
 period_selected = df.loc[mask]
 
 
