@@ -112,7 +112,7 @@ start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
 mask = (df['event_date_dt'] >= start) & (df['event_date_dt'] <= end)
-period_selected = df.loc[mask]
+data_selected = df.loc[mask]
 
 
 #year_selection = st.multiselect(
