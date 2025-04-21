@@ -162,7 +162,7 @@ benchmarks = benchmarks.reset_index(drop=True)
 process_benchmarks(benchmarks) # call function
 
 st.write(" ")
-"""
+
 ## Calculate benchmarks for timed and distance events separately
 
 #mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
@@ -211,7 +211,7 @@ st.write(" ")
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
-mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
+#mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
 
 # For distance events
 
@@ -373,5 +373,5 @@ mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
 #mask = custom_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
 
 # For distance events
-"""
+
 
