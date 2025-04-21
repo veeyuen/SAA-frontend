@@ -165,38 +165,38 @@ st.write(" ")
 """
 ## Calculate benchmarks for timed and distance events separately
 
-mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
+#mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
 
 
 # For distance events
 
 #st.write(benchmarks)
 
-benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
-benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
-benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
+#benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
+#benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
+#benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
 
 # For timed events
 
-benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
-benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
-benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
+#benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
+#benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
+#benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
 # Merge benchmarks with df
 
-benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
+#benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 
-df = athletes_selected.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
-df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
+#df = athletes_selected.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
+#df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+#df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
 
 
 ## Convert df results into seconds format
 
-st.write(" ")
-st.write(" ")
+#st.write(" ")
+#st.write(" ")
 
-process_results(df) # call fuction
+#process_results(df) # call fuction
 
 # Fill empty age values
 
@@ -207,7 +207,7 @@ process_results(df) # call fuction
 
 #octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
 
-df[['2%', '3.5%', '5%', 'RESULT_CONV']] = df[['2%', '3.5%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
+#df[['2%', '3.5%', '5%', 'RESULT_CONV']] = df[['2%', '3.5%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
@@ -215,23 +215,23 @@ mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
 
 # For distance events
 
-df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
-df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
-df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
-df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
+#df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
+#df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
+#df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
+#df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
 
 # For timed events
 
-df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
-df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
-df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
-df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
+#df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
+#df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
+#df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
+#df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
 
-df=df.loc[df['COMPETITION']!='Southeast Asian Games']
+#df=df.loc[df['COMPETITION']!='Southeast Asian Games']
 
 # Create scalar to measure relative performance
 
-df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+#df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
 
 
@@ -240,29 +240,29 @@ df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 # Read name variations from GCS name lists bucket (Still in beta)
 
 
-df['NAME'] = df['NAME'].str.replace('\xa0', '', regex=True)
-df['NAME'] = df['NAME'].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
-df['NAME'] = df['NAME'].str.replace('\r', '', regex=True)
-df['NAME'] = df['NAME'].str.replace('\n', '', regex=True)
-df['NAME'] = df['NAME'].str.strip()
+#df['NAME'] = df['NAME'].str.replace('\xa0', '', regex=True)
+#df['NAME'] = df['NAME'].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
+#df['NAME'] = df['NAME'].str.replace('\r', '', regex=True)
+#df['NAME'] = df['NAME'].str.replace('\n', '', regex=True)
+#df['NAME'] = df['NAME'].str.strip()
 
 
 # Read csv of name variations from GCS bucket
 
-conn = st.connection('gcs', type=FilesConnection, ttl=600)
+#conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-names = conn.read("name_variations/name_variations.csv", input_format="csv")
+#names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 
 # Iterate over dataframe and replace names
 
-for index, row in names.iterrows():
+#for index, row in names.iterrows():
         
-    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+#    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
 # Read list of foreigners from GCS bucket
 
-file_path = "gs://name_lists/List of Foreigners.csv"
+#file_path = "gs://name_lists/List of Foreigners.csv"
 #foreigners = pd.read_csv(file_path,
 #                 sep=",",
 #                 encoding="unicode escape")
@@ -275,102 +275,102 @@ file_path = "gs://name_lists/List of Foreigners.csv"
 
 # Process list of foreign names and their variations
 
-df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
-                       &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
-                       &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
-                       &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
-                       &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
-                       &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
-                       &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
-                       &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
-                       &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
-                       &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
+#df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
+#                       &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
+#                       &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
+#                       &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
+#                       &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
+#                       &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
+#                       &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
+#                       &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
+#                       &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
+#                       &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
 
-top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+#top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 
-top_performers_clean.reset_index(inplace=True)
+#top_performers_clean.reset_index(inplace=True)
 
 
 
 # Create performance tier column
 
-top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
-                                np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
-                                np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
-                                np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
+#top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
+#                                np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
+#                                np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
+#                                np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
 
 
 # Drop rows without a corresponding benchmark
 
-final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
+#final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
 
 # Show resulting OCTC dataframe
 
-st.write(" ")
-st.write(" ")
-st.write(" ")
+#st.write(" ")
+#st.write(" ")
+#st.write(" ")
 
 
 
-st.write("LIST OF OCTC SELECTION ATHLETES:")
+#st.write("LIST OF OCTC SELECTION ATHLETES:")
 
-st.write(final_df)
+#st.write(final_df)
 
 
 # Process custom threshold benchmark
 
-benchmarks['custom']=''
+#benchmarks['custom']=''
 
-input = st.number_input("Input desired benchmark threshold (%):")
+#input = st.number_input("Input desired benchmark threshold (%):")
 
-mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
+#mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put', na=True)
 
 # For distance events
 
-benchmarks.loc[mask, 'custom']=benchmarks['Metric']*((100-input)/100)
+#benchmarks.loc[mask, 'custom']=benchmarks['Metric']*((100-input)/100)
 
 # For timed events
 
-benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*((100+input)/100)
+#benchmarks.loc[~mask, 'custom']=benchmarks['Metric']*((100+input)/100)
 
 
-temp_df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-temp_df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
+#temp_df = athletes.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
+#temp_df['RESULT'] = athletes['RESULT'].replace(regex=r'–', value=np.nan)
 
-for i in range(len(temp_df)):
+#for i in range(len(temp_df)):
      
-    rowIndex = temp_df.index[i]
+#    rowIndex = temp_df.index[i]
 
-    input_string=temp_df.iloc[rowIndex,5]    
+#    input_string=temp_df.iloc[rowIndex,5]    
     
-    metric=temp_df.iloc[rowIndex,2]
+ #   metric=temp_df.iloc[rowIndex,2]
     
-    if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
-        continue 
+ #   if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric==' DNS' or metric=='NH':
+ #       continue 
         
-    out = convert_time(i, input_string, metric)
+ #   out = convert_time(i, input_string, metric)
          
-    temp_df.loc[rowIndex, 'RESULT_CONV'] = out
+  #  temp_df.loc[rowIndex, 'RESULT_CONV'] = out
 
-temp_df["AGE"].fillna(0, inplace=True)
-temp_df['AGE'] = temp_df['AGE'].astype('float')
+#temp_df["AGE"].fillna(0, inplace=True)
+#temp_df['AGE'] = temp_df['AGE'].astype('float')
 
 
 
 # Create new df for custom benchmarks
 
-custom_df = temp_df.loc[(((temp_df['CATEGORY_EVENT']=='Mid')|(temp_df['CATEGORY_EVENT']=='Sprint')|(temp_df['CATEGORY_EVENT']=='Long')|(temp_df['CATEGORY_EVENT']=='Hurdles')|(temp_df['CATEGORY_EVENT']=='Walk')|(temp_df['CATEGORY_EVENT']=='Relay')|(temp_df['CATEGORY_EVENT']=='Marathon')|(temp_df['CATEGORY_EVENT']=='Steeple')|(temp_df['CATEGORY_EVENT']=='Pentathlon')|(temp_df['CATEGORY_EVENT']=='Heptathlon')|(temp_df['CATEGORY_EVENT']=='Triathlon'))&(temp_df['RESULT_CONV'] <= temp_df['custom']) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))|(((temp_df['CATEGORY_EVENT']=='Jump')|(temp_df['CATEGORY_EVENT']=='Throw'))&(temp_df['RESULT_CONV'] >= temp_df['custom']) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))]
+#custom_df = temp_df.loc[(((temp_df['CATEGORY_EVENT']=='Mid')|(temp_df['CATEGORY_EVENT']=='Sprint')|(temp_df['CATEGORY_EVENT']=='Long')|(temp_df['CATEGORY_EVENT']=='Hurdles')|(temp_df['CATEGORY_EVENT']=='Walk')|(temp_df['CATEGORY_EVENT']=='Relay')|(temp_df['CATEGORY_EVENT']=='Marathon')|(temp_df['CATEGORY_EVENT']=='Steeple')|(temp_df['CATEGORY_EVENT']=='Pentathlon')|(temp_df['CATEGORY_EVENT']=='Heptathlon')|(temp_df['CATEGORY_EVENT']=='Triathlon'))&(temp_df['RESULT_CONV'] <= temp_df['custom']) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))|(((temp_df['CATEGORY_EVENT']=='Jump')|(temp_df['CATEGORY_EVENT']=='Throw'))&(temp_df['RESULT_CONV'] >= temp_df['custom']) & (temp_df['AGE']<40) & ((temp_df['MAPPED_EVENT']!='Marathon')|(temp_df['AGE']<60) & (temp_df['MAPPED_EVENT']=='Marathon')))]
 
-custom_df=custom_df.loc[custom_df['COMPETITION']!='SEA Games']
+#custom_df=custom_df.loc[custom_df['COMPETITION']!='SEA Games']
 
 
-st.write(custom_df)
+#st.write(custom_df)
 
 
 # Measure against 2%, 3.5% and 5% of SEAG 3rd place
 
-mask = custom_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
+#mask = custom_df['CATEGORY_EVENT'].str.contains(r'Jump|Throw', na=True) 
 
 # For distance events
 """
