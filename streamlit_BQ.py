@@ -144,8 +144,6 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_events(athletes_selected) # call function
 
-st.write(athletes_selected.columns)
-
 #st.write(athletes_selected.shape)
 
 ### PROCESS BENCHMARKS ###
