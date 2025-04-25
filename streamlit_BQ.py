@@ -155,9 +155,9 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 benchmarks = benchmarks.reset_index(drop=True, inplace=True)
 
-process_benchmarks(benchmarks) # call function to convert benchmark results to float64
+#process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
-st.write(benchmarks.shape)
+st.write(benchmarks)
 
 ## Calculate benchmarks for timed and distance events separately
 
