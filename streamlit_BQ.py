@@ -73,7 +73,7 @@ client = bigquery.Client(credentials=credentials)
     
 ### DEFINE SQL QUERIES ###
 
-benchmark_sql = """
+seag_benchmark_sql = """
 SELECT YEAR, EVENT, SUB_EVENT, GENDER, NAME, RESULT, RANK, CATEGORY_EVENT, COMPETITION, STAGE, HEAT
 FROM `saa-analytics.benchmarks.saa_benchmarks_prod`
 WHERE YEAR='2023' AND COMPETITION='Southeast Asian Games' AND (RANK='3' OR RANK='3.0')
@@ -151,9 +151,24 @@ map_international_events(athletes_selected) # call function
 
 #st.write(athletes_selected.shape)
 
-### LOAD BENCHMARKS FROM BQ AND PROCESS###
+### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
-benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
+if benchmark_option=='2023 SEAG Bronze':
+
+    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
+
+elif benchmark_option=='26th Asian Athletics': 
+
+    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+
+    benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
+
+else:
+    
+    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+
+    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
+    
 
 benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
 
