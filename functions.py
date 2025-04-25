@@ -160,11 +160,11 @@ def process_benchmarks(df):
         
             continue
         
-        out = convert_time(i, input_string, metric)
+        df.loc[rowIndex, 'Metric'] = convert_time(i, input_string, metric)
         
       #  print(rowIndex, input_string, out)
         
-        df.loc[rowIndex, 'Metric'] = out
+      #  df.loc[rowIndex, 'Metric'] = out
     
     return df
 
