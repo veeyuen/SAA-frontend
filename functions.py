@@ -514,7 +514,7 @@ def event_date(df):
         
         elif re.search('\w\-\w', date):
         
-            if df.iloc[rowIndex, 15] == "National School Games":
+            if df.loc[rowIndex, 'COMPETITION'] == "National School Games":
         
                 event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd
         
