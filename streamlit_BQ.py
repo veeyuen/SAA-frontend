@@ -12,7 +12,7 @@ import analytics
 import re
 import gcsfs
 from st_files_connection import FilesConnection
-from functions import convert_time, process_benchmarks, process_results, map_events, event_date
+from functions import convert_time, process_benchmarks, process_results, map_events, event_date, clean_columns
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
