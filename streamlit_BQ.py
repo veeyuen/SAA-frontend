@@ -179,20 +179,22 @@ benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
 ## Prepare to merge benchmarks with athlete df ##
 
-benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
+#benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
 
 clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
-df = athletes_selected.reset_index().merge(benchmarks.reset_index(), 
-                                           on=['MAPPED_EVENT',
-                                           'GENDER'], 
-                                           how='left')
-                                           
+df = pd.merge(
+    left=athletes, 
+    right=benchmarks,
+    how='left',
+    left_on=['MAPPED_EVENT', 'GENDER'],
+    right_on=['EVENT', 'GENDER'],
+)                   
+
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
 
-## Convert df results into seconds format
-
+## Convert athlete results into float64 compatible format
 
 process_results(df) # call fuction
 
