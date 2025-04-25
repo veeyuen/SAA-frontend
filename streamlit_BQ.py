@@ -184,8 +184,8 @@ benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
 df = athletes_selected.reset_index().merge(benchmarks.reset_index(), 
-                                           on=['MAPPED_EVENT','
-                                           GENDER'], 
+                                           on=['MAPPED_EVENT',
+                                           'GENDER'], 
                                            how='left')
                                            
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
