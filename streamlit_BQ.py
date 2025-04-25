@@ -150,6 +150,8 @@ else:
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
     benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
+
+    st.write('HERE')
     
 
 ## Convert times in benchmarks to standard format
