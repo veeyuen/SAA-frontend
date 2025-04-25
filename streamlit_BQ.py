@@ -183,17 +183,18 @@ benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
 
 clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
-#df = athletes_selected.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
-#df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
-#df['RESULT'] = df['RESULT'].replace(regex=r'-', value=np.nan)
+df = athletes_selected.reset_index().merge(benchmarks.reset_index(), 
+                                           on=['MAPPED_EVENT','
+                                           GENDER'], 
+                                           how='left')
+                                           
+df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
 
 ## Convert df results into seconds format
 
-#st.write(" ")
-#st.write(" ")
 
-#process_results(df) # call fuction
+process_results(df) # call fuction
 
 # Fill empty age values
 
