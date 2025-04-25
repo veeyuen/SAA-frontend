@@ -118,7 +118,7 @@ benchmarks_list=['2023 SEAG Bronze', '26th Asian Athletics', '2025 Taiwan Open']
 
 benchmark_option = st.selectbox(
     "Please select performance benchmark",
-    ("2023 SEAG Bronze", "26th Asian Athletics", "26th Asian Athletics"),
+    ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
 
