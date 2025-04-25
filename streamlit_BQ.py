@@ -151,7 +151,7 @@ else:
 
     benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
 
-    st.write('HERE')
+    st.write(benchmarks)
     
 
 ## Convert times in benchmarks to standard format
