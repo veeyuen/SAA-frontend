@@ -154,7 +154,7 @@ def process_benchmarks(df):
 
         input_string=df.loc[rowIndex,'EVENT']
     
-        metric=df.loc[rowIndex,'BENCHMARKS']
+        metric=df.loc[rowIndex,'BENCHMARK']
     
         if metric==None:
         
@@ -180,7 +180,7 @@ def process_results(df):
 
         input_string=df.loc[rowIndex,'MAPPED_EVENT']    # event description
     
-        metric=df.iloc[rowIndex,'RESULT'] # result
+        metric=df.loc[rowIndex,'RESULT'] # result
     
         if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
             continue
