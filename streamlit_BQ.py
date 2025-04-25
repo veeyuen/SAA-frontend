@@ -181,7 +181,7 @@ benchmarks = benchmarks.reset_index(drop=True)
 
 process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
-st.write(" ")
+st.write(benchmarks)
 
 ## Calculate benchmarks for timed and distance events separately
 
