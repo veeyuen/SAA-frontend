@@ -538,6 +538,88 @@ def event_date(df):
     df['event_date'] = df['event_date'].str.strip()
 
     return df
+
+@st.cache_data
+def revert_times(df):
+
+    df.reset_index(drop=True, inplace=True)
+
+    for i in range(len(df)):
+            
+        rowIndex = df.index[i]
+    
+        event=df.loc[rowIndex,'MAPPED_EVENT']
+            
+        
+        time_base2=df.loc[rowIndex,'2%']
+        time_base3=df.loc[rowIndex,'3.5%']
+        time_base5=df.loc[rowIndex,'5%']
+        
+            
+        if metric==None:
+            continue
+            
+        if event=='800m' or event=='10,000m' or event=='5000m' or event=='3000m Steeplechase' or event=='1500m':
+            
+          #  print(i, event, time_base2, time_base3, time_base5)     
+            
+            date_preconvert2 = datetime.datetime.utcfromtimestamp(time_base2)
+            date_preconvert3 = datetime.datetime.utcfromtimestamp(time_base3)
+            date_preconvert5 = datetime.datetime.utcfromtimestamp(time_base5)
+            
+        #    print(date_preconvert2, date_preconvert3, date_preconvert5)
+                
+            
+            output2 = datetime.datetime.strftime(date_preconvert2, "%M:%S.%f")
+            output3 = datetime.datetime.strftime(date_preconvert3, "%M:%S.%f")
+            output5 = datetime.datetime.strftime(date_preconvert5, "%M:%S.%f")
+                
+         #   print(event, output2, output3, output5)
+            
+       
+            df.at[rowIndex, '2%'] = output2 # copy over time format
+            df.at[rowIndex, '3.5%'] = output3
+            df.at[rowIndex, '5%'] = output5
+    
+            
+        elif event=='Marathon':
+            
+          #  print(time_base2, time_base3, time_base5)
+    
+            
+            try:
+                
+    
+            
+                date_preconvert2 = datetime.datetime.utcfromtimestamp(time_base2)
+                date_preconvert3 = datetime.datetime.utcfromtimestamp(time_base3)
+                date_preconvert5 = datetime.datetime.utcfromtimestamp(time_base5)
+    
+                
+                
+                output2 = datetime.datetime.strftime(date_preconvert2, "%H:%M:%S")
+                output3 = datetime.datetime.strftime(date_preconvert3, "%H:%M:%S")
+                output5 = datetime.datetime.strftime(date_preconvert5, "%H:%M:%S")
+    
+                
+                df.at[rowIndex, '2%'] = output2 # copy over time format
+                df.at[rowIndex, '3.5%'] = output3
+                df.at[rowIndex, '5%'] = output5
+    
+                
+             #   print('output', output2, output3, output5)
+    
+    
+            
+            except:
+                
+                pass
+
+    return df
+                            
+                 
+    
+
        
     
 
