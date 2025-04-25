@@ -151,7 +151,7 @@ map_international_events(athletes_selected) # call function
 
 #st.write(athletes_selected.shape)
 
-### PROCESS BENCHMARKS ###
+### LOAD BENCHMARKS FROM BQ AND PROCESS###
 
 benchmarks = client.query_and_wait(benchmark_sql).to_dataframe()
 
@@ -164,7 +164,7 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 benchmarks = benchmarks.reset_index(drop=True)
 
-process_benchmarks(benchmarks) # call function
+process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
 st.write(" ")
 
