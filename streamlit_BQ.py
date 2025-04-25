@@ -111,10 +111,15 @@ athletes_selected = df.loc[mask]
 
 
 ## Allow public access via mito
-final_dfs, code = spreadsheet(athletes_selected)
-#st.write(final_dfs)
 
+#final_dfs, code = spreadsheet(athletes_selected)
 
+benchmarks_list=['2023 SEAG Bronze', '26th Asian Athletics', '2025 Taiwan Open']
+
+benchmark_option = st.selectbox(
+    "Please select performance benchmark",
+    ("2023 SEAG Bronze", "26th Asian Athletics", "26th Asian Athletics"),
+)
 
 
 ### EXTRACT LIST OF ATHLETES ###
