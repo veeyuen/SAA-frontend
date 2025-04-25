@@ -135,6 +135,7 @@ if benchmark_option=='2023 SEAG Bronze':
 
     benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
 
+    benchmarks.reset_index(drop=True, inplace=True)
     benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
     benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
