@@ -616,6 +616,21 @@ def revert_times(df):
                 pass
 
     return df
+
+@st.cache_data
+def clean_columns(df):
+
+    for col in df.columns:
+        df[col] = df[col].astype(str)
+        df[col] = df[col].str.replace('\xa0', ' ', regex=True)
+        df[col] = df[col].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
+        df[col] = df[col].str.replace('\r', ' ', regex=True)
+        df[col] = df[col].str.replace('\n', ' ', regex=True)
+        df[col] = df[col].str.strip()
+
+    return df
+
+
                             
                  
     
