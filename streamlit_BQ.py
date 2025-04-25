@@ -140,7 +140,7 @@ if benchmark_option=='2023 SEAG Bronze':
     benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
 
-elif benchmark_option=='26th Asian Athletics': 
+elif benchmark_option=='2025 Taiwan Open': 
 
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
