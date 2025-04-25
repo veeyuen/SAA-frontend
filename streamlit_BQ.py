@@ -133,6 +133,12 @@ if benchmark_option=='2023 SEAG Bronze':
 
     benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
 
+    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
+
+    benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
+    benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
+
+
 elif benchmark_option=='26th Asian Athletics': 
 
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
@@ -145,11 +151,6 @@ else:
 
     benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
     
-
-benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
-
-benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
-benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
 ## Convert times in benchmarks to standard format
 
