@@ -209,44 +209,42 @@ def map_events(athletes):
         athletes[col] = athletes[col].str.replace('\n', ' ', regex=True)
         athletes[col] = athletes[col].str.strip()
 
-# Correct javelin category
-
+    # Correct javelin category
+    
     mask = athletes['EVENT'].str.contains(r'Javelin', na=True)
     athletes.loc[mask, 'CATEGORY_EVENT'] = 'Throw'
-
-# Map running categories
-
+    
+    
+    # Running
+    
     mask = (athletes['EVENT'].str.contains(r'Dash', na=True) & athletes['DISTANCE'].str.contains(r'100', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'100', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
-
     mask = athletes['EVENT'].str.contains(r'100 Meter Run', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
     mask = athletes['EVENT'].str.contains(r'^100m$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m'
+    
     mask = (athletes['EVENT'].str.contains(r'Dash', na=True) & athletes['DISTANCE'].str.contains(r'200', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'200', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
-
     mask = athletes['EVENT'].str.contains(r'^200m$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
     mask = athletes['EVENT'].str.contains(r'200\sMeter', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '200m'
-    mask = athletes['EVENT'].str.contains(r'300 Meter Run', na=True)
-    athletes.loc[mask, 'MAPPED_EVENT'] = '300m'
+    
     mask = (athletes['EVENT'].str.contains(r'Dash', na=True) & athletes['DISTANCE'].str.contains(r'400', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
     mask = athletes['EVENT'].str.contains(r'^400m$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
-
     mask = athletes['EVENT'].str.contains(r'^400\sMeter$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
-
-
-    mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'^600$', na=True, regex=True))
-    athletes.loc[mask, 'MAPPED_EVENT'] = '600m'
+    mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'400', na=True))
+    athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
+    
+    
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'800', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
     mask = athletes['EVENT'].str.contains(r'800 Meter Run', na=True)
@@ -255,8 +253,8 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'1000', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '1000m'
-
-
+    
+    
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'1500', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '1500m'
     mask = athletes['EVENT'].str.contains(r'^1500m$', na=True, regex=True)
@@ -271,18 +269,26 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '10,000m'
     mask = athletes['EVENT'].str.contains(r'^10000m$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '10,000m'
+    mask = athletes['EVENT'].str.contains(r'^10\,000m$', na=True)
+    athletes.loc[mask, 'MAPPED_EVENT'] = '10,000m'
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'Mile', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '1 Mile'
-
-# Map hurdles
-
+    
+    
+    
+    # Hurdles
+    
     mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['EVENT_CLASS'].str.contains('0.84', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['DIVISION'].str.contains('None', na=False) & athletes['GENDER'].str.contains(r'Female', na=False) & athletes['REGION'].str.contains(r'International', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'100', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
-
+    mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['REGION'].str.contains(r'International', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
+    athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
+    
+    
+    
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'110', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'110', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.838|0.84', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
@@ -291,85 +297,95 @@ def map_events(athletes):
              & ((athletes['EVENT_CLASS'].str.contains('None', na=False))|(athletes['EVENT_CLASS']==np.nan)|(athletes['EVENT_CLASS']=='')) 
              & athletes['REGION'].str.contains(r'International', na=False) & (athletes['DIVISION'].str.contains(r'None', na=False)))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-                                
-
+    
+    #mask = (athletes['EVENT'].str.contains(r'110m Hurdles|110m hurdles', na=False) & athletes['REGION'].str.contains(r'International', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
+    
+    
+    # Using np.where instead
+    
+    
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'110', na=False) & athletes['EVENT_CLASS'].str.contains(r'1.067', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'110', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-
+    
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.84|84cm', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-
-
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['DIVISION'].str.contains(r'Open|Invitational', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-
     mask = (athletes['EVENT'].str.contains(r'400m Hurdles', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False)  & athletes['GENDER'].str.contains(r'Male', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-
-
     mask = (athletes['EVENT'].str.contains(r'Hurdles', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762', na=False)& athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'400m Hurdles', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762m', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'400m Hurdles|400m hurdles', na=False) & athletes['EVENT_CLASS'].str.contains('None|0.762|0.914', na=False) & athletes['REGION'].str.contains(r'International', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-
-
-# Throws
-
+    mask = (athletes['EVENT'].str.contains(r'400m Hurdles|400m hurdles', na=False) & athletes['REGION'].str.contains(r'International', na=False))  # this is the correct syntax
+    athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
+    
+    
+    
+    # Throws
+     
     mask = (athletes['EVENT'].str.contains(r'Javelin Throw|Javelin throw|Javelin', na=False) & athletes['EVENT_CLASS'].str.contains(r'600g', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
     mask = (athletes['EVENT'].str.contains(r'Javelin Throw|Javelin throw|Javelin', na=False) & athletes['EVENT_CLASS'].str.contains(r'800g', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
     mask = (athletes['EVENT'].str.contains(r'Javelin Throw|Javelin throw', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
-
+    
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False, regex=True) & (athletes['GENDER']=='Female') & (athletes['EVENT_CLASS']=='4kg'))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['GENDER']=='Male') & (athletes['EVENT_CLASS'].str.contains(r'7.26', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['GENDER']=='Female') & (athletes['EVENT_CLASS'].str.contains(r'4', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['DIVISION'].str.contains(r'OPEN|Open', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-
+    mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['REGION'].str.contains(r'International', na=False)) & athletes['EVENT_CLASS'].str.contains(r'None', na=False))# there are some additional characters after Put
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
+    
+    
     mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'7.26kg', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
     mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'4.00kg', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
     mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & (athletes['DIVISION'].str.contains(r'OPEN|Open', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
-
+    
+    
+    
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus|Discus throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'2kg|2.00kg', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus|Discus throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'1kg|1.00kg', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['DIVISION'].str.contains(r'None', na=False) & athletes['EVENT_CLASS'].str.contains(r'None', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-
-
-# Jumps
-
+    
+    mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['REGION'].str.contains(r'International', na=False) & athletes['EVENT_CLASS'].str.contains(r'None', na=False))
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
+    
+    
+    
+    # Jumps
+    
     mask = athletes['EVENT'].str.contains(r'High Jump', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'High Jump'
-
+    
     mask = athletes['EVENT'].str.contains(r'^Long\sJump$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Long Jump'
     mask = athletes['EVENT'].str.contains(r'Long Jump Open', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Long Jump'
     mask = athletes['EVENT'].str.contains(r'Long Jump Trial', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Long Jump'
-
-
+    
+    
     mask = athletes['EVENT'].str.contains(r'Triple Jump', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Triple Jump'
     mask = athletes['EVENT'].str.contains(r'Pole Vault', na=True)
@@ -382,23 +398,58 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Triple Jump'
     mask = athletes['EVENT'].str.contains(r'^Pole\svault$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Pole Vault'
-
-# Steeplechase
-
+    
+    # Steeplechase
+    
+    #mask = athletes['EVENT'].str.contains(r'2000m S/C', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
+    #mask = athletes['EVENT'].str.contains(r'2000m steeplechase', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
+    #mask = athletes['EVENT'].str.contains(r'2000 Meter Steeplechase', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'Steeplechase', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'Steeplechase', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
-
-
-# Walk
-
+    
+    
+    # Marathon
+    
+    mask = athletes['EVENT'].str.contains(r'^Marathon$', na=True)
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Marathon'
+    mask = athletes['EVENT'].str.contains(r'^Half\sMarathon$', na=True)
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Half Marathon'
+    mask = athletes['EVENT'].str.contains(r'^Half\smarathon$', na=True)
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Half Marathon'
+    
+    
+    # Walk
+    
+    #mask = athletes['EVENT'].str.contains(r'1500m Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
+    #mask = athletes['EVENT'].str.contains(r'1500 Meter Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
+    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'1500', na=False))
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
+    
+    
+    #mask = athletes['EVENT'].str.contains(r'3000m Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
+    #mask = athletes['EVENT'].str.contains(r'3000 Meter Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
+    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False))
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
+    
+    
+    #mask = athletes['EVENT'].str.contains(r'5000 Meter Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
+    #mask = athletes['EVENT'].str.contains(r'5000m Race Walk', na=True)
+    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
     mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'10000', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '10000m Racewalk'
-
-
-# Relay
-
+    
+    # Relay
+    
     mask = athletes['EVENT'].str.contains(r'4x80m Relay', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 80m'
     mask = athletes['EVENT'].str.contains(r'^4\sx\s100m$', na=True)
@@ -409,7 +460,7 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 100m'
     mask = (athletes['EVENT'].str.contains(r'Relay', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 100m'
-
+    
     mask = athletes['EVENT'].str.contains(r'4x400m Relay', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m'
     mask = athletes['EVENT'].str.contains(r'4 X 400m Relay', na=True)
@@ -420,9 +471,9 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m'
     mask = athletes['EVENT'].str.contains(r'^4\sx\s400m$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '4 x 400m'
-
-# Map decathlon/heptathlon
-
+    
+    # Decathlon/Heptathlon
+    
     mask = athletes['EVENT'].str.contains(r'^Heptathlon$', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Heptathlon'
     mask = athletes['EVENT'].str.contains(r'^Decathlon$', na=True)
@@ -431,6 +482,7 @@ def map_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Heptathlon'
     mask = athletes['EVENT'].str.contains(r'Decathlon', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Decathlon'
+
 
     return athletes
 
