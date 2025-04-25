@@ -90,7 +90,7 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 
 
-## Download all data from BQ
+## Download all athlete data from BQ
 
 df = client.query_and_wait(all_sql).to_dataframe()
 
@@ -114,34 +114,11 @@ athletes_selected = df.loc[mask]
 
 #final_dfs, code = spreadsheet(athletes_selected)
 
-benchmarks_list=['2023 SEAG Bronze', '26th Asian Athletics', '2025 Taiwan Open']
-
 benchmark_option = st.selectbox(
     "Please select performance benchmark",
     ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
-
-### EXTRACT LIST OF ATHLETES ###
-
-#athletes = client.query_and_wait(athletes_sql).to_dataframe()
-
-# SELECT YEARS
-
-#selection = client.query_and_wait(all_sql).to_dataframe()
-
-#selection.dropna(how= "all", axis=1, inplace=True)
-
-#year_list = selection['YEAR'].unique().tolist() # get unique list of years
-#region_list = df['REGION'].unique().tolist()
-#competition_list = df['COMPETITION'].unique().tolist()
-
-#year_selection = st.multiselect(
-#    "Please select the desired year(s):",
-#    year_list,
-#)
-
-#athletes = selection[selection['YEAR'].isin(year_selection)] # filter results based on selected year
 
 ## Map relevant events to a standard description ##
 
@@ -149,7 +126,6 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_international_events(athletes_selected) # call function
 
-#st.write(athletes_selected.shape)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
@@ -177,7 +153,7 @@ benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION'
 
 ## Convert times in benchmarks to standard format
 
-benchmarks = benchmarks.reset_index(drop=True)
+benchmarks = benchmarks.reset_index(drop=True, inplace=True)
 
 process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
