@@ -165,6 +165,8 @@ mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Pu
 
 # For distance events
 
+st.write(benchmarks.columns)
+
 #st.write(benchmarks)
 
 benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
