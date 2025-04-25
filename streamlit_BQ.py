@@ -153,36 +153,35 @@ else:
     benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
     
 
-## Convert times in benchmarks to standard format
+## Convert benchmarks results to float64 compatible format ##
 
-#benchmarks = benchmarks.reset_index(drop=True, inplace=True)
-
-#process_benchmarks(benchmarks) # call function to convert benchmark results to float64
+process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
 st.write(benchmarks)
 
-## Calculate benchmarks for timed and distance events separately
+## Calculate 2%, 3.5% and 5% tolerances for timed and distance events separately ##
 
-#mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put', na=True)
-
+mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
 # For distance events
 
 #st.write(benchmarks)
 
-#benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
-#benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
-#benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
+benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
+benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
+benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
 
 # For timed events
 
-#benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
-#benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
-#benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
+benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
+benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
+benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
-# Merge benchmarks with df
+## Prepare to merge benchmarks with athlete df ##
 
-#benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
+benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()
+
+clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
 #df = athletes_selected.reset_index().merge(benchmarks.reset_index(), on=['MAPPED_EVENT','GENDER'], how='left')
 #df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
