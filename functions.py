@@ -193,7 +193,7 @@ def process_results(df):
     return df
 
 @st.cache_data
-def map_events(athletes):
+def map_international_events(athletes):
 
     # Create temporary mapped event column
 
