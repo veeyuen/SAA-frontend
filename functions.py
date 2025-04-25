@@ -52,6 +52,11 @@ def convert_time(i, string, metric):
                 else:
     
                     output=float(str(metric))
+
+            elif string=='':   # no event description at all!
+                
+                output='' # return nothing
+            
         
             else:
         
@@ -64,6 +69,44 @@ def convert_time(i, string, metric):
                 if count==0:
                 
                     output=float(substring)
+
+                elif '10,000m' in string and count==2:  # fix erroneous timing format from XX:XX:XX to XX:XX.XX
+                
+                
+                    idx = 5 # 6th character position
+                    replacement = "."
+                    metric = metric[:idx] + replacement + metric[idx+1:]                
+                
+                    m,s = metric.split(':')            
+
+                    output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
+                    
+
+                elif '1500m' in string and count==2:  # fix erroneous timing format from XX:XX:XX to XX:XX.XX
+                    
+                    if len(substring)==7:  # format is X:XX:XX and not XX:XX:XX 
+                        
+                        idx = 4 # 5th character position
+                        replacement = "."
+                        metric = '0' + metric[:idx] + replacement + metric[idx+1:]                
+                
+                        m,s = metric.split(':')            
+
+                        output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
+                    
+                        
+                    else:  # format is XX:XX:XX
+                        
+                        idx = 5 # 5th character position
+                        replacement = "."
+                        metric = metric[:idx] + replacement + metric[idx+1:]                
+                
+                        m,s = metric.split(':')            
+
+                        output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
+                    
+                    
+        
                        
                 elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
                 
