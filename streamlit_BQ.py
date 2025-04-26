@@ -135,34 +135,34 @@ benchmarks = get_benchmark(benchmark_option)
 
 
 
-'''
-if benchmark_option=='2023 SEAG Bronze':
 
-    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
+#if benchmark_option=='2023 SEAG Bronze':
 
-    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
+#    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
 
-    benchmarks.reset_index(drop=True, inplace=True)
-    benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
-    benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
+#    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
+
+ #   benchmarks.reset_index(drop=True, inplace=True)
+ #   benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
+ #   benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
 
-elif benchmark_option=='2025 Taiwan Open': 
+#elif benchmark_option=='2025 Taiwan Open': 
 
-    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+ #   conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-    benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
+ #   benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
 
-else:
+#else:
     
-    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+#    conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
+#    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
     
-'''
+
 ## Convert benchmarks results to float64 compatible format ##
 
-#process_benchmarks(benchmarks) # call function to convert benchmark results to float64
+process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
 st.write(benchmarks)
 
