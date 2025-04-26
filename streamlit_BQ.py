@@ -129,8 +129,9 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_international_events(athletes_selected) # call function
 
+benchmarks = pd.DataFrame()
 
-get_benchmark(benchmark_option)
+get_benchmark(benchmark_option, benchmarks)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
