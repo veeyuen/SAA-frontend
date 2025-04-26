@@ -118,8 +118,9 @@ benchmark_option = st.selectbox(
     "Please select performance benchmark",
     ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
     index=None,
+    on_change=get_benchmark,
     placeholder='Choose an option',
-).on_change(get_benchmark)
+)
 
 
 ## Map relevant events to a standard description ##
