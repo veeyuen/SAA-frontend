@@ -216,7 +216,7 @@ def process_results(df):
     
         df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
         
- #   df[['RESULT_CONV']] = df[['RESULT_CONV']].apply(pd.to_numeric)
+    df[['RESULT_CONV']] = df[['RESULT_CONV']].apply(pd.to_numeric)
     
     mask = df['MAPPED_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
 
