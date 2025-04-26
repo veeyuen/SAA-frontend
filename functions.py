@@ -167,7 +167,7 @@ def process_benchmarks(df):
     df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
 
        
-    mask = df['MAPPED_EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
+    mask = df['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
     df.loc[mask, '2%'] = df['Metric']*0.98
     df.loc[mask, '3.5%'] = df['Metric']*0.965
