@@ -161,6 +161,16 @@ def process_benchmarks(df):
             continue
         
         df.loc[rowIndex, 'Metric'] = convert_time(i, input_string, metric)
+
+    df.loc[mask, '2%'] = df['Metric']*0.98
+    df.loc[mask, '3.5%'] = df['Metric']*0.965
+    df.loc[mask, '5%'] = df['Metric']*0.95
+
+# For timed events
+
+    df.loc[~mask, '2%'] = df['Metric']*1.02
+    df.loc[~mask, '3.5%'] = df['Metric']*1.035
+    df.loc[~mask, '5%'] = df['Metric']*1.05
         
       #  print(rowIndex, input_string, out)
         
