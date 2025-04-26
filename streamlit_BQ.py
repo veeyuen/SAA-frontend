@@ -92,22 +92,22 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 ## Download all athlete data from BQ
 
-df = client.query_and_wait(all_sql).to_dataframe()
+data = client.query_and_wait(all_sql).to_dataframe()
 
-df.dropna(how= "all", axis=1, inplace=True)
+data.dropna(how= "all", axis=1, inplace=True)
 
-df = event_date(df)  # call function
+data = event_date(df)  # call function
 
 start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
-df['event_date_dt'] = pd.to_datetime(df['event_date'], errors='coerce')
+data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
 
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-mask = (df['event_date_dt'] >= start) & (df['event_date_dt'] <= end)
-athletes_selected = df.loc[mask]
+mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
+athletes_selected = data.loc[mask]
 
 
 ## Allow public access via mito
