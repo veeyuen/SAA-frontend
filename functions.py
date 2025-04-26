@@ -161,6 +161,8 @@ def process_benchmarks(df):
             continue
         
         df.loc[rowIndex, 'Metric'] = convert_time(i, input_string, metric)
+       
+    mask = df['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
     df.loc[mask, '2%'] = df['Metric']*0.98
     df.loc[mask, '3.5%'] = df['Metric']*0.965
