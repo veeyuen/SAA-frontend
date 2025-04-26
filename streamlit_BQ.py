@@ -118,7 +118,7 @@ athletes_selected = data.loc[mask]
 benchmark_option = st.selectbox(
     "Please select performance benchmark",
     ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
-    index='2023 SEAG Bronze',
+    index=0,
 )
 
 
