@@ -188,6 +188,17 @@ def process_benchmarks(df):
 @st.cache_data
 def process_results(df):
 
+    df.reset_index(drop=True, inplace=True)
+
+    for col in df.columns:
+    
+        df[col] = df[col].astype(str)
+        df[col] = df[col].str.replace('\xa0', ' ', regex=True)
+        df[col] = df[col].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
+        df[col] = df[col].str.replace('\r', ' ', regex=True)
+        df[col] = df[col].str.replace('\n', ' ', regex=True)
+        df[col] = df[col].str.strip()
+
     for i in range(len(df)):
     
         result_out=''
@@ -201,11 +212,9 @@ def process_results(df):
         if metric=='—' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
             continue
     
-        result_out = convert_time(i, input_string, metric)
+        df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
  #   print('line', i, input_string, metric, result_out)
          
-        df.loc[rowIndex, 'RESULT_CONV'] = result_out
-
     return df
 
 @st.cache_data
