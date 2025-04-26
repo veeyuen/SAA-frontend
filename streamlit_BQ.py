@@ -134,7 +134,7 @@ map_international_events(athletes_selected) # call function
 
 
 
-
+'''
 if benchmark_option=='2023 SEAG Bronze':
 
     benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
@@ -158,7 +158,7 @@ else:
 
     benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
     
-
+'''
 ## Convert benchmarks results to float64 compatible format ##
 
 process_benchmarks(benchmarks) # call function to convert benchmark results to float64
