@@ -679,6 +679,8 @@ def clean_columns(df):
 @st.cache_data
 def get_benchmark(benchmark_option):
 
+    benchmarks=pd.Dataframe()
+
     if benchmark_option=='2023 SEAG Bronze':
 
         benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
