@@ -167,7 +167,7 @@ def process_benchmarks(df):
     df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
 
        
-    mask = df['CATEGORY_EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
+    mask = df['MAPPED_EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
     df.loc[mask, '2%'] = df['Metric']*0.98
     df.loc[mask, '3.5%'] = df['Metric']*0.965
@@ -216,7 +216,7 @@ def process_results(df):
         
     df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
     
-    mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+    mask = df['MAPPED_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
 
     df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
     df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
