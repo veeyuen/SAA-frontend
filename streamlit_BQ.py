@@ -161,7 +161,7 @@ st.write(benchmarks)
 
 ## Calculate 2%, 3.5% and 5% tolerances for timed and distance events separately ##
 
-mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
+#mask = benchmarks['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
 # For distance events
 
@@ -169,15 +169,15 @@ st.write(benchmarks.columns)
 
 #st.write(benchmarks)
 
-benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
-benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
-benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
+#benchmarks.loc[mask, '2%']=benchmarks['Metric']*0.98
+#benchmarks.loc[mask, '3.5%']=benchmarks['Metric']*0.965
+#benchmarks.loc[mask, '5%']=benchmarks['Metric']*0.95
 
 # For timed events
 
-benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
-benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
-benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
+#benchmarks.loc[~mask, '2%']=benchmarks['Metric']*1.02
+#benchmarks.loc[~mask, '3.5%']=benchmarks['Metric']*1.035
+#benchmarks.loc[~mask, '5%']=benchmarks['Metric']*1.05
 
 ## Prepare to merge benchmarks with athlete df ##
 
