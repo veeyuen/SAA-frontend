@@ -96,7 +96,7 @@ data = client.query_and_wait(all_sql).to_dataframe()
 
 data.dropna(how= "all", axis=1, inplace=True)
 
-data = event_date(df)  # call function
+data = event_date(data)  # call function
 
 start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
