@@ -176,6 +176,8 @@ df = pd.merge(
 
 df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
+st.write(df.columns)
+
 
 ## Convert athlete results into float64 compatible format
 
