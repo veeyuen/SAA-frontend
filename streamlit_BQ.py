@@ -207,13 +207,31 @@ for index, row in names.iterrows():
 
 # Read list of foreigners from GCS bucket
 
-#file_path = "gs://name_lists/List of Foreigners.csv"
-#foreigners = pd.read_csv(file_path,
-#                 sep=",",
-#                 encoding="unicode escape")
+foreigners = conn.read("name_lists/List of Foreigners.csv", input_format="csv")
 
-#conn = st.connection("gsheets", type=GSheetsConnection, worksheet="Sheet2")
-#foreigners = conn.read()
+# Remove foreigners
+
+foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+
+for1 = foreigners['V1'].dropna().tolist()
+for2 = foreigners['V2'].dropna().tolist()
+for3 = foreigners['V3'].dropna().tolist()
+for4 = foreigners['V4'].dropna().tolist()
+
+foreign_list = for1+for2+for3+for4 
+
+foreign_list_casefold=[s.casefold() for s in foreign_list]
+
+exclusions = foreign_list_casefold
+
+no_foreigners_list = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+
+# Choose the best result for each event participated by every athlete
+
+top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 #st.write(foreigners)
 
