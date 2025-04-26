@@ -147,6 +147,9 @@ def convert_time(i, string, metric):
 
 @st.cache_data
 def process_benchmarks(df):
+
+   # df[['2%', '5%', 'RESULT_CONV']] = df[['2%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
+
     
     for i in range(len(df)):
 
