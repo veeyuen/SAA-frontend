@@ -12,7 +12,7 @@ import analytics
 import re
 import gcsfs
 from st_files_connection import FilesConnection
-from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns, get_benchmark
+from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -118,7 +118,6 @@ benchmark_option = st.selectbox(
     "Please select performance benchmark",
     ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
     index=None,
-    on_change=get_benchmark,
     placeholder='Choose an option',
 )
 
@@ -129,37 +128,35 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_international_events(athletes_selected) # call function
 
-benchmarks = pd.DataFrame()
 
-get_benchmark(benchmark_option, benchmarks)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
 
 
 
-#if benchmark_option=='2023 SEAG Bronze':
+if benchmark_option=='2023 SEAG Bronze':
 
-#    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
+    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
 
-#    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
+    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
 
-#    benchmarks.reset_index(drop=True, inplace=True)
-#    benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
-#    benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
+    benchmarks.reset_index(drop=True, inplace=True)
+    benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
+    benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
 
 
-#elif benchmark_option=='2025 Taiwan Open': 
+elif benchmark_option=='2025 Taiwan Open': 
 
-#    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+    conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-#    benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
+    benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
 
-#else:
+else:
     
-#    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+    conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-#    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
+    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
     
 
 ## Convert benchmarks results to float64 compatible format ##
