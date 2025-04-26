@@ -167,7 +167,7 @@ def process_benchmarks(df):
     df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
 
        
-    mask = df['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
+    mask = df['CATEGORY_EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
     df.loc[mask, '2%'] = df['Metric']*0.98
     df.loc[mask, '3.5%'] = df['Metric']*0.965
@@ -213,7 +213,22 @@ def process_results(df):
             continue
     
         df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
- #   print('line', i, input_string, metric, result_out)
+        
+    df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
+    
+    mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+
+    df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
+    df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
+    df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
+    df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
+    
+    df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
+
+    df=df.loc[df['COMPETITION']!='Southeast Asian Games'] # Do not include results from SEAG in dataset
          
     return df
 
