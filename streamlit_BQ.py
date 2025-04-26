@@ -129,7 +129,7 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_international_events(athletes_selected) # call function
 
-get_benchmark(benchmark_option)
+benchmarks = get_benchmark(benchmark_option)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
