@@ -183,67 +183,27 @@ st.write(df.columns)
 
 process_results(df) # call fuction
 
-# Fill empty age values
 
-#df["AGE"].fillna(0, inplace=True)
-#df['AGE'] = df['AGE'].astype('float')
+## Create scalar to measure relative performance ##
 
-# Apply OCTC criteria
-
-#octc_df = df.loc[(((df['CATEGORY_EVENT']=='Mid')|(df['CATEGORY_EVENT']=='Sprint')|(df['CATEGORY_EVENT']=='Long')|(df['CATEGORY_EVENT']=='Hurdles')|(df['CATEGORY_EVENT']=='Walk')|(df['CATEGORY_EVENT']=='Relay')|(df['CATEGORY_EVENT']=='Marathon')|(df['CATEGORY_EVENT']=='Steeple')|(df['CATEGORY_EVENT']=='Pentathlon')|(df['CATEGORY_EVENT']=='Heptathlon')|(df['CATEGORY_EVENT']=='Triathlon'))&(df['RESULT_CONV'] <= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))|(((df['CATEGORY_EVENT']=='Jump')|(df['CATEGORY_EVENT']=='Throw'))&(df['RESULT_CONV'] >= df['5pc']) & (df['AGE']<40) & ((df['MAPPED_EVENT']!='Marathon')|(df['AGE']<60) & (df['MAPPED_EVENT']=='Marathon')))]
-
-#df[['2%', '3.5%', '5%', 'RESULT_CONV']] = df[['2%', '3.5%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
-
-# Measure against 2%, 3.5% and 5% of SEAG 3rd place
-
-#mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw', na=True)
-
-# For distance events
-
-#df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
-#df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
-#df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
-#df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
-
-# For timed events
-
-#df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
-#df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
-#df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
-#df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
-
-#df=df.loc[df['COMPETITION']!='Southeast Asian Games']
-
-# Create scalar to measure relative performance
-
-#df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
-
-
-
+df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
-
-#df['NAME'] = df['NAME'].str.replace('\xa0', '', regex=True)
-#df['NAME'] = df['NAME'].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
-#df['NAME'] = df['NAME'].str.replace('\r', '', regex=True)
-#df['NAME'] = df['NAME'].str.replace('\n', '', regex=True)
-#df['NAME'] = df['NAME'].str.strip()
-
+clean_columns(df) 
 
 # Read csv of name variations from GCS bucket
 
-#conn = st.connection('gcs', type=FilesConnection, ttl=600)
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
 
-#names = conn.read("name_variations/name_variations.csv", input_format="csv")
-
+names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 # Iterate over dataframe and replace names
 
-#for index, row in names.iterrows():
+for index, row in names.iterrows():
         
-#    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
 # Read list of foreigners from GCS bucket
 
