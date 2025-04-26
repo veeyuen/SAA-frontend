@@ -12,7 +12,7 @@ import analytics
 import re
 import gcsfs
 from st_files_connection import FilesConnection
-from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns
+from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns, get_benchmark
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -36,6 +36,7 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 
 client = bigquery.Client(credentials=credentials)
+
 
 
 #storage_client = storage.Client(credentials=credentials)
@@ -128,7 +129,7 @@ athletes_selected['MAPPED_EVENT']=''
 
 map_international_events(athletes_selected) # call function
 
-
+get_benchmark(benchmark_option)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
