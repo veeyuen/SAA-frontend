@@ -148,7 +148,6 @@ def convert_time(i, string, metric):
 @st.cache_data
 def process_benchmarks(df):
 
-   # df[['2%', '5%', 'RESULT_CONV']] = df[['2%', '5%', 'RESULT_CONV']].apply(pd.to_numeric)
 
     
     for i in range(len(df)):
@@ -164,6 +163,9 @@ def process_benchmarks(df):
             continue
         
         df.loc[rowIndex, 'Metric'] = convert_time(i, input_string, metric)
+
+    df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
+
        
     mask = df['EVENT'].str.contains(r'jump|throw|Pole|put|Jump|Throw|pole|Put|Decathlon|Heptathlon', na=True)
 
