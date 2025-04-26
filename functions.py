@@ -199,6 +199,8 @@ def process_results(df):
         df[col] = df[col].str.replace('\n', ' ', regex=True)
         df[col] = df[col].str.strip()
 
+    df['RESULT_CONV'] = ''
+
     for i in range(len(df)):
     
         result_out=''
