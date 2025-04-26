@@ -705,7 +705,6 @@ def get_benchmark(benchmark_option):
     
         benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
 
-    st.write(benchmarks)
     
     return benchmarks
     
