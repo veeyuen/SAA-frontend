@@ -677,7 +677,7 @@ def clean_columns(df):
                             
                  
 @st.cache_data
-def get_benchmark(benchmark_option, benchmarks):
+def get_benchmark(benchmark_option):
 
     if benchmark_option=='2023 SEAG Bronze':
 
