@@ -113,23 +113,23 @@ athletes_selected = data.loc[mask]
 
 ## Allow public access via mito
 
-#final_dfs, code = spreadsheet(athletes_selected)
+final_dfs, code = spreadsheet(athletes_selected)
 
-benchmark_option = st.selectbox(
-    "Please select performance benchmark",
-    ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
-    index=0,
-    on_change=get_benchmark,
-)
+#benchmark_option = st.selectbox(
+#    "Please select performance benchmark",
+#    ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
+#    index=0,
+#    on_change=get_benchmark,
+#)
 
 
 ## Map relevant events to a standard description ##
 
-athletes_selected['MAPPED_EVENT']=''
+#athletes_selected['MAPPED_EVENT']=''
 
-map_international_events(athletes_selected) # call function
+#map_international_events(athletes_selected) # call function
 
-benchmarks = get_benchmark(benchmark_option)
+#benchmarks = get_benchmark(benchmark_option)
 
 ### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
 
@@ -162,83 +162,83 @@ benchmarks = get_benchmark(benchmark_option)
 
 ## Convert benchmarks results to float64 compatible format ##
 
-process_benchmarks(benchmarks) # call function to convert benchmark results to float64
+#process_benchmarks(benchmarks) # call function to convert benchmark results to float64
 
-st.write(benchmarks)
+#st.write(benchmarks)
 
 
 ## Prepare to merge benchmarks with athlete df ##
 
 #benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
 
-clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
+#clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
-df = pd.merge(
-    left=athletes_selected, 
-    right=benchmarks,
-    how='left',
-    left_on=['MAPPED_EVENT', 'GENDER'],
-    right_on=['EVENT', 'GENDER'],
-)                   
+#df = pd.merge(
+#    left=athletes_selected, 
+#    right=benchmarks,
+#    how='left',
+#    left_on=['MAPPED_EVENT', 'GENDER'],
+#    right_on=['EVENT', 'GENDER'],
+#)                   
 
-df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+#df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
-st.write(df.columns)
+#st.write(df.columns)
 
 
 ## Convert athlete results into float64 compatible format
 
-process_results(df) # call fuction
+#process_results(df) # call fuction
 
 
 ## Create scalar to measure relative performance ##
 
-df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+#df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
-clean_columns(df) 
+#clean_columns(df) 
 
 # Read csv of name variations from GCS bucket
 
-conn = st.connection('gcs', type=FilesConnection, ttl=600)
-names = conn.read("name_variations/name_variations.csv", input_format="csv")
+#conn = st.connection('gcs', type=FilesConnection, ttl=600)
+#names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 # Iterate over dataframe and replace names
 
-for index, row in names.iterrows():
+#for index, row in names.iterrows():
         
-    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+#    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
 # Read list of foreigners from GCS bucket
 
-conn = st.connection('gcs', type=FilesConnection, ttl=600)
-foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
+#conn = st.connection('gcs', type=FilesConnection, ttl=600)
+#foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
 
 # Remove foreigners
 
-foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+#foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+#foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+#foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+#foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
 
-for1 = foreigners['V1'].dropna().tolist()
-for2 = foreigners['V2'].dropna().tolist()
-for3 = foreigners['V3'].dropna().tolist()
-for4 = foreigners['V4'].dropna().tolist()
+#for1 = foreigners['V1'].dropna().tolist()
+#for2 = foreigners['V2'].dropna().tolist()
+#for3 = foreigners['V3'].dropna().tolist()
+#for4 = foreigners['V4'].dropna().tolist()
 
-foreign_list = for1+for2+for3+for4 
+#foreign_list = for1+for2+for3+for4 
 
-foreign_list_casefold=[s.casefold() for s in foreign_list]
+#foreign_list_casefold=[s.casefold() for s in foreign_list]
 
-exclusions = foreign_list_casefold
+#exclusions = foreign_list_casefold
 
-no_foreigners_list = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+#no_foreigners_list = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
 # Choose the best result for each event participated by every athlete
 
-top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+#top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 #st.write(foreigners)
 
