@@ -236,7 +236,7 @@ def process_results(df):
     df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
 
-    df=df.loc[df['COMPETITION']!='Southeast Asian Games'] # Do not include results from SEAG in dataset
+  #  df=df.loc[df['COMPETITION']!='Southeast Asian Games'] # Do not include results from SEAG in dataset
          
     return df
 
