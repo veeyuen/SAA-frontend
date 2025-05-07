@@ -168,8 +168,9 @@ if benchmark_option != 'None':
 
     
 
+st.write(df.columns)
 
-## Create scalar to measure relative performance ##
+## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
 df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
