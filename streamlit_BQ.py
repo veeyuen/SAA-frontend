@@ -144,8 +144,8 @@ clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to
 
 if benchmark_option != 'None':
 
+    process_results(athletes_selected) # call fuction
 
-    
     df = pd.merge(
         left=athletes_selected, 
         right=benchmark,
@@ -161,7 +161,6 @@ if benchmark_option != 'None':
     st.write(df.columns)
 
     
-    process_results(df) # call fuction
 
 
 ## Create scalar to measure relative performance ##
