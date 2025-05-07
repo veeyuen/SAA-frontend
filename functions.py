@@ -149,18 +149,14 @@ def convert_time(i, string, metric):
 
 @st.cache_data
 def process_benchmarks(df):
-
-    st.write('FUNCTION CALLED')
-
-
-    
+  
     for i in range(len(df)):
 
         rowIndex = df.index[i]
 
         input_string=df.loc[rowIndex,'EVENT']
     
-        metric=df.loc[rowIndex,'RESULT']
+        metric=df.loc[rowIndex,'RESULT_x']
     
         if metric==None:
         
