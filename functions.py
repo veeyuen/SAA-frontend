@@ -150,6 +150,8 @@ def convert_time(i, string, metric):
 @st.cache_data
 def process_benchmarks(df):
 
+    st.write('FUNCTION CALLED')
+
 
     
     for i in range(len(df)):
