@@ -119,12 +119,10 @@ athletes_selected = data.loc[mask]
 
 final_dfs, code = spreadsheet(athletes_selected)
 
-#benchmark_option = st.selectbox(
-#    "Please select performance benchmark",
-#    ("2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
-#    index=0,
-#    on_change=get_benchmark,
-#)
+benchmark_option = st.selectbox(
+    "Please select performance benchmark (Select None to Access All Records in Database)",
+    ("None", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
+)
 
 
 ## Map relevant events to a standard description ##
