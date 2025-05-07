@@ -146,7 +146,6 @@ if benchmark_option != 'None':
 
     st.write(athletes_selected.columns)
 
-    process_results(athletes_selected) # call fuction
 
     df = pd.merge(
         left=athletes_selected, 
@@ -157,6 +156,8 @@ if benchmark_option != 'None':
     )                   
 
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
+
+    process_results(athletes_selected) # call fuction
 
 ## Convert athlete results into float64 compatible format
 
