@@ -39,8 +39,15 @@ client = bigquery.Client(credentials=credentials)
 
 ## Initialize Session State ##
 
-if 'benchmark_option' not in st.session_state:
-        st.session_state['benchmark_option'] = None
+if 'option1' not in st.session_state:
+        st.session_state['option1'] = None
+
+if 'option2' not in st.session_state:
+        st.session_state['option2'] = None
+
+if 'option3' not in st.session_state:
+        st.session_state['option3'] = None
+
 
 
 #storage_client = storage.Client(credentials=credentials)
@@ -111,13 +118,19 @@ elif benchmark_option == '2023 SEAG Bronze':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2023 SEAG Bronze']
 
+    option=option1
+
 elif benchmark_option == '26th Asian Athletics':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '26th Asian Athletics']
 
+    option=option2
+
 elif benchmark_option == '2025 Taiwan Open':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
+
+    option=option3
 
 
 ## Map relevant events to a standard description ##
@@ -143,7 +156,7 @@ map_international_events(athletes_selected) # call function
 
 
 
-if benchmark_option != 'None' and st.session_state.benchmark_option is None:
+if benchmark_option != 'None' and st.session_state.option is None:
 
     st.write('HERE')
 
@@ -166,7 +179,7 @@ if benchmark_option != 'None' and st.session_state.benchmark_option is None:
 
     process_results(df) # call fuction
 
-    st.session_state.benchmark_option = df
+    st.session_state.option = df
 
 ## Convert athlete results into float64 compatible format
 
