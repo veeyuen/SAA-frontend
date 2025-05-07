@@ -123,7 +123,9 @@ map_international_events(athletes_selected) # call function
 
 ## Convert benchmarks results to float64 compatible format ##
 
-process_benchmarks(benchmark) # call function to convert benchmark results to float64
+if '2%' not in benchmark.columns:
+
+    process_benchmarks(benchmark) # call function to convert benchmark results to float64
 
 st.write(benchmark)
 
