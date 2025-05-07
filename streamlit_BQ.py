@@ -101,7 +101,15 @@ if benchmark_option == 'None':
 
 elif benchmark_option == '2023 SEAG Bronze':
 
-    benchmark = benchmark[benchmark['BENCHMARK']== '2023 SEAG Bronze']
+    benchmark = benchmarks[benchmarks['BENCHMARK']== '2023 SEAG Bronze']
+
+elif benchmark_option == '26th Asian Athletics':
+
+    benchmark = benchmarks[benchmarks['BENCHMARK']== '26th Asian Athletics']
+
+elif benchmark_option == '2025 Taiwan Open':
+
+    benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
 
 
 ## Map relevant events to a standard description ##
