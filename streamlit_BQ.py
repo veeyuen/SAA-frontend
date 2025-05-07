@@ -142,7 +142,7 @@ st.write(athletes_selected.columns)
 
 clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
-if benchmark_option! = 'None':
+if benchmark_option != 'None':
 
     df = pd.merge(
         left=athletes_selected, 
