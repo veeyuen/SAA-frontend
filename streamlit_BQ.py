@@ -146,7 +146,7 @@ df = pd.merge(
     right_on=['EVENT', 'GENDER'],
 )                   
 
-df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+#df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
 st.write(df.columns)
 
