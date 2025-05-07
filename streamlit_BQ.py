@@ -41,7 +41,7 @@ client = bigquery.Client(credentials=credentials)
 
 #storage_client = storage.Client(credentials=credentials)
 
-
+df = pd.DataFrame()
     
 ### DEFINE SQL QUERIES ###
 
