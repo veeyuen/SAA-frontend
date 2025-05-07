@@ -171,7 +171,7 @@ if benchmark_option != 'None':
 
 ## Create scalar to measure relative performance ##
 
-#df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
@@ -180,14 +180,14 @@ if benchmark_option != 'None':
 
 # Read csv of name variations from GCS bucket
 
-#conn = st.connection('gcs', type=FilesConnection, ttl=600)
-#names = conn.read("name_variations/name_variations.csv", input_format="csv")
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
+names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 # Iterate over dataframe and replace names
 
-#for index, row in names.iterrows():
+for index, row in names.iterrows():
         
-#    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
 # Read list of foreigners from GCS bucket
 
