@@ -145,6 +145,8 @@ map_international_events(athletes_selected) # call function
 
 if benchmark_option != 'None' and st.session_state.benchmark_option is None:
 
+    st.write('HERE')
+
     df = pd.merge(
         left=athletes_selected, 
         right=benchmark,
