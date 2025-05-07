@@ -141,6 +141,8 @@ map_international_events(athletes_selected) # call function
 
 if benchmark_option != 'None':
 
+    df=pd.DataFrame()
+
 
 
     df = pd.merge(
