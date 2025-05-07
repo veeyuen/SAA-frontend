@@ -12,7 +12,7 @@ import analytics
 import re
 import gcsfs
 from st_files_connection import FilesConnection
-from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns, get_benchmark
+from functions import convert_time, process_benchmarks, process_results, map_international_events, event_date, clean_columns
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -40,35 +40,6 @@ client = bigquery.Client(credentials=credentials)
 
 
 #storage_client = storage.Client(credentials=credentials)
-
-#blobs = storage_client.list_blobs("octc_athletes")
-
-#files = []
-
-#for blob in blobs:
-#        files.append(blob)
-
-
-#st.write("Choose file to open:")
-#blob_name = st.multiselect(
-#    "Please select the desired file:", 
-#    files,)
-
-#bucket = storage_client.bucket("octc_athletes")
-#blob = bucket.blob(blob_name)
-# with blob.open("r") as f:
-#        st.write("READ")
-
-#@st.cache(persist=True)
-
-# Perform query.
-# Uses st.cache_data to only rerun when the query changes or after 10 min.
-#@st.cache_data(ttl=600)
-
-## Get name variations from GCS bucket
-
-
-#names = pd.read_csv(file_path, sep=",")
 
 
     
@@ -123,6 +94,14 @@ benchmark_option = st.selectbox(
     "Please select performance benchmark (Select None to Access All Records in Database)",
     ("None", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
+
+if benchmark_option == 'None':
+
+    final_dfs, code = spreadsheet(athletes_selected)
+
+else:
+
+    pass
 
 
 ## Map relevant events to a standard description ##
