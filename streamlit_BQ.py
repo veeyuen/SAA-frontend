@@ -152,7 +152,7 @@ if benchmark_option != 'None':
         right_on=['EVENT', 'GENDER'],
     )                   
 
-    #df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+    df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
     st.write(df.columns)
 
