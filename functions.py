@@ -158,7 +158,7 @@ def process_benchmarks(df):
 
         input_string=df.loc[rowIndex,'EVENT']
     
-        metric=df.loc[rowIndex,'BENCHMARK']
+        metric=df.loc[rowIndex,'RESULT']
     
         if metric==None:
         
