@@ -134,6 +134,8 @@ map_international_events(athletes_selected) # call function
 
 #benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
 
+st.write(athletes_selected.columns)
+
 clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
 df = pd.merge(
