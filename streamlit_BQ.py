@@ -144,6 +144,8 @@ clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to
 
 if benchmark_option != 'None':
 
+    st.write(athletes_selected.columns)
+
     process_results(athletes_selected) # call fuction
 
     df = pd.merge(
@@ -157,8 +159,6 @@ if benchmark_option != 'None':
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
 ## Convert athlete results into float64 compatible format
-
-    st.write(df.columns)
 
     
 
