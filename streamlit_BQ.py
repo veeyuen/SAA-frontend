@@ -136,7 +136,7 @@ map_international_events(athletes_selected) # call function
 
 #benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
 
-st.write(athletes_selected.columns)
+#st.write(athletes_selected.columns)
 
 
 
@@ -152,7 +152,7 @@ if benchmark_option != 'None':
         right_on=['EVENT', 'GENDER'],
     )                   
 
-    df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+    #df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
     st.write(df.columns)
 
