@@ -134,19 +134,19 @@ map_international_events(athletes_selected) # call function
 
 #benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
 
-#clean_columns(benchmarks) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
+clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
-#df = pd.merge(
-#    left=athletes_selected, 
-#    right=benchmarks,
-#    how='left',
-#    left_on=['MAPPED_EVENT', 'GENDER'],
-#    right_on=['EVENT', 'GENDER'],
-#)                   
+df = pd.merge(
+    left=athletes_selected, 
+    right=benchmark,
+    how='left',
+    left_on=['MAPPED_EVENT', 'GENDER'],
+    right_on=['EVENT', 'GENDER'],
+)                   
 
-#df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
-#st.write(df.columns)
+st.write(df.columns)
 
 
 ## Convert athlete results into float64 compatible format
