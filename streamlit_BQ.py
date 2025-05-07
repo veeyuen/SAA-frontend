@@ -162,7 +162,7 @@ if benchmark_option != 'None':
 
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
-    process_results(athletes_selected) # call fuction
+    process_results(df) # call fuction
 
 ## Convert athlete results into float64 compatible format
 
