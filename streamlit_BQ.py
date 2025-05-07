@@ -63,9 +63,9 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 ## Read all performance benchmarks csv from GCS bucket and process##
 
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
-benchmarks = conn.read("competition_benchmarks/All_Benchmarks.csv", input_format="csv")
+benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
 
-process_benchmarks(benchmarks)
+#process_benchmarks(benchmarks)
 
 st.write(benchmarks)
 
