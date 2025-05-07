@@ -140,7 +140,6 @@ map_international_events(athletes_selected) # call function
 
 
 
-clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
 if benchmark_option != 'None':
 
@@ -153,7 +152,11 @@ if benchmark_option != 'None':
         left_on=['MAPPED_EVENT', 'GENDER'],
         right_on=['EVENT', 'GENDER'],
     )                   
+    
+    
+    clean_columns(df) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
+    
     st.write(df.columns)
 
 
