@@ -39,8 +39,14 @@ client = bigquery.Client(credentials=credentials)
 
 ## Initialize Session State ##
 
-if 'option' not in st.session_state:
-        st.session_state.option = None
+if 'option1' not in st.session_state:
+        st.session_state.option1 = None
+
+if 'option2' not in st.session_state:
+        st.session_state.option2 = None
+
+if 'option3' not in st.session_state:
+        st.session_state.option3 = None
 
 
 
