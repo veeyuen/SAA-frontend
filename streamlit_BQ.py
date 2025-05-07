@@ -103,6 +103,8 @@ if benchmark_option == 'None':
 
     final_dfs, code = spreadsheet(athletes_selected)
 
+    benchmark = pd.DataFrame()
+
 elif benchmark_option == '2023 SEAG Bronze':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2023 SEAG Bronze']
