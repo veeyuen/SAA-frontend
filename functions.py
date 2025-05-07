@@ -166,7 +166,13 @@ def process_benchmarks(df):
         
             continue
         
-        df.loc[rowIndex, 'Metric'] = convert_time(i, input_string, metric)
+        
+        out = convert_time(i, input_string, metric)
+
+        print(i, input_string, metric, out)
+
+        df.loc[rowIndex, 'Metric'] = out
+        
 
     df[['Metric']] = df[['Metric']].apply(pd.to_numeric)
 
