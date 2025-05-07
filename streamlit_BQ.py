@@ -166,11 +166,11 @@ if benchmark_option != 'None':
 
     
 
-st.write(df.columns)
+    st.write(df.columns)
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
-df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
+    df['PERF_SCALAR']=df['Delta5']/df['Metric']*100
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
