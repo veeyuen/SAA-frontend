@@ -74,8 +74,8 @@ data.dropna(how= "all", axis=1, inplace=True)
 
 data = event_date(data)  # call function
 
-start_date = st.date_input("Input start period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-end_date = st.date_input("Input end period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
+start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
 data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
 
@@ -91,7 +91,7 @@ athletes_selected = data.loc[mask]
 #final_dfs, code = spreadsheet(athletes_selected)
 
 benchmark_option = st.selectbox(
-    "Please select performance benchmark (Select None to Access All Records in Database)",
+    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
     ("None", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
