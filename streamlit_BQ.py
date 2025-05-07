@@ -99,9 +99,9 @@ if benchmark_option == 'None':
 
     final_dfs, code = spreadsheet(athletes_selected)
 
-else:
+elif benchmark_option == '2023 SEAG Bronze':
 
-    pass
+    benchmark = benchmark[benchmark['BENCHMARK']== '2023 SEAG Bronze']
 
 
 ## Map relevant events to a standard description ##
