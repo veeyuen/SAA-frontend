@@ -67,7 +67,7 @@ benchmarks = conn.read("competition_benchmarks/All_Benchmarks.csv", input_format
 
 process_benchmarks(benchmarks)
 
-#st.write(benchmarks)
+st.write(benchmarks)
 
 
 ## Download all athlete data from BQ
