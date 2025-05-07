@@ -29,7 +29,7 @@ from google.oauth2 import service_account
 from google.cloud import bigquery
 
 
-# Create API client.
+## Create BigQuery API client ##
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
@@ -37,6 +37,10 @@ credentials = service_account.Credentials.from_service_account_info(
 
 client = bigquery.Client(credentials=credentials)
 
+## Initialize Session State ##
+
+if 'benchmark_option' not in st.session_state:
+        st.session_state['benchmark_option'] = None
 
 
 #storage_client = storage.Client(credentials=credentials)
@@ -141,7 +145,6 @@ map_international_events(athletes_selected) # call function
 
 if benchmark_option != 'None':
 
-
     df = pd.merge(
         left=athletes_selected, 
         right=benchmark,
@@ -160,6 +163,8 @@ if benchmark_option != 'None':
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
     process_results(df) # call fuction
+
+    st.session_state.benchmark_option = df
 
 ## Convert athlete results into float64 compatible format
 
