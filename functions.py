@@ -227,12 +227,12 @@ def process_results(df):
     mask = df['MAPPED_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
 
     df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
-    df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.5%']
+    df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.50%']
     df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
     df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
     
     df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
-    df.loc[~mask, 'Delta3.5'] = df['3.5%'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta3.5'] = df['3.50%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
 
