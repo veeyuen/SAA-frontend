@@ -451,11 +451,15 @@ def map_international_events(athletes):
     #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
     #mask = athletes['EVENT'].str.contains(r'2000 Meter Steeplechase', na=True)
     #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    mask = (athletes['EVENT'].str.contains(r'Steeplechase', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
+    mask = (athletes['EVENT'].str.contains(r'3000m Steeplechase|3000m S\/C', na=True) & athletes['REGION'].str.contains(r'International', na=False))
+    athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
+    mask = (athletes['EVENT'].str.contains(r'Steeplechase|S\/C', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
+    athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
+    mask = (athletes['EVENT'].str.contains(r'3000m Steeplechase|3000m S\/C', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'Steeplechase', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
-    
+
     
     # Marathon
     
@@ -677,38 +681,3 @@ def clean_columns(df):
 
                             
                  
-@st.cache_data
-def get_benchmark(benchmark_option):
-
-    benchmarks=pd.DataFrame()
-
-    if benchmark_option=='2023 SEAG Bronze':
-
-        benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
-
-        benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
-
-        benchmarks.reset_index(drop=True, inplace=True)
-        benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
-        benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
-    
-    
-    elif benchmark_option=='2025 Taiwan Open': 
-    
-        conn = st.connection('gcs', type=FilesConnection, ttl=600)
-    
-        benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
-    
-    else:
-        
-        conn = st.connection('gcs', type=FilesConnection, ttl=600)
-    
-        benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
-
-    
-    return benchmarks
-    
-    
-           
-    
-
