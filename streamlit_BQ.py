@@ -88,7 +88,7 @@ athletes_selected = data.loc[mask]
 
 ## Allow public access via mito
 
-final_dfs, code = spreadsheet(athletes_selected)
+#final_dfs, code = spreadsheet(athletes_selected)
 
 benchmark_option = st.selectbox(
     "Please select performance benchmark (Select None to Access All Records in Database)",
