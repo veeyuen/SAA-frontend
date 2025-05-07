@@ -144,7 +144,6 @@ clean_columns(benchmark) # clean benchmarks of hidden characters, spaces etc. to
 
 if benchmark_option != 'None':
 
-    st.write(athletes_selected.columns)
 
 
     df = pd.merge(
@@ -154,6 +153,9 @@ if benchmark_option != 'None':
         left_on=['MAPPED_EVENT', 'GENDER'],
         right_on=['EVENT', 'GENDER'],
     )                   
+
+    st.write(df.columns)
+
 
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
