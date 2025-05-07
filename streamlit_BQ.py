@@ -127,7 +127,7 @@ map_international_events(athletes_selected) # call function
 
 ## Convert benchmarks results to float64 compatible format ##
 
-st.write(benchmark)
+#st.write(benchmark)
 
 
 ## Prepare to merge benchmarks with athlete df ##
