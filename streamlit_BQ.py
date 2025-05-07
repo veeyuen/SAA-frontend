@@ -60,11 +60,12 @@ all_sql="""
 SELECT * FROM `saa-analytics.results.athlete_results_prod`
 """
 
-## Read all performance benchmarks csv from GCS bucket ##
+## Read all performance benchmarks csv from GCS bucket and process##
 
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks.csv", input_format="csv")
 
+process_benchmarks(benchmarks)
 
 ## Download all athlete data from BQ
 
@@ -123,9 +124,6 @@ map_international_events(athletes_selected) # call function
 
 ## Convert benchmarks results to float64 compatible format ##
 
-if '2%' not in benchmark.columns:
-
-    process_benchmarks(benchmark) # call function to convert benchmark results to float64
 
 st.write(benchmark)
 
