@@ -67,6 +67,9 @@ benchmarks = conn.read("competition_benchmarks/All_Benchmarks.csv", input_format
 
 process_benchmarks(benchmarks)
 
+st.write(benchmarks)
+
+
 ## Download all athlete data from BQ
 
 data = client.query_and_wait(all_sql).to_dataframe()
@@ -125,7 +128,6 @@ map_international_events(athletes_selected) # call function
 ## Convert benchmarks results to float64 compatible format ##
 
 
-st.write(benchmark)
 
 
 ## Prepare to merge benchmarks with athlete df ##
