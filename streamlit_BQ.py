@@ -157,7 +157,7 @@ if benchmark_option != 'None':
     clean_columns(df) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
     
-    st.write(df.columns)
+   # st.write(df.columns)
 
 
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
