@@ -114,40 +114,12 @@ elif benchmark_option == '2025 Taiwan Open':
 
 ## Map relevant events to a standard description ##
 
-#athletes_selected['MAPPED_EVENT']=''
+athletes_selected['MAPPED_EVENT']=''
 
-#map_international_events(athletes_selected) # call function
-
-#benchmarks = get_benchmark(benchmark_option)
-
-### LOAD BENCHMARKS FROM BQ OR GCS AND PROCESS###
+map_international_events(athletes_selected) # call function
 
 
-
-
-#if benchmark_option=='2023 SEAG Bronze':
-
-#    benchmarks = client.query_and_wait(seag_benchmark_sql).to_dataframe()
-
-#    benchmarks=benchmarks[benchmarks['HEAT'].isnull() & benchmarks['SUB_EVENT'].isnull()]  # r
-
- #   benchmarks.reset_index(drop=True, inplace=True)
- #   benchmarks.rename(columns = {'RESULT':'BENCHMARK'}, inplace = True)
- #   benchmarks.drop(['YEAR', 'HEAT', 'NAME', 'RANK', 'CATEGORY_EVENT', 'COMPETITION', 'STAGE'], axis=1, inplace=True)
-
-
-#elif benchmark_option=='2025 Taiwan Open': 
-
- #   conn = st.connection('gcs', type=FilesConnection, ttl=600)
-
- #   benchmarks = conn.read("event_benchmarks/2025 Taiwan Open Benchmarks.csv", input_format="csv")
-
-#else:
-    
-#    conn = st.connection('gcs', type=FilesConnection, ttl=600)
-
-#    benchmarks = conn.read("event_benchmarks/26th Asian Athletics Benchmarks.csv", input_format="csv")
-    
+### PROCESS BENCHMARKS###
 
 ## Convert benchmarks results to float64 compatible format ##
 
