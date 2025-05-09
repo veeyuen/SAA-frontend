@@ -82,7 +82,17 @@ def convert_time(i, string, metric):
                     m,s = metric.split(':')            
 
                     output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
-                    
+
+                elif '5000m' in string and count==2:  # fix erroneous timing format from XX:XX:XX to XX:XX.XX
+                
+                
+                    idx = 5 # 6th character position
+                    replacement = "."
+                    metric = metric[:idx] + replacement + metric[idx+1:]                
+                
+                    m,s = metric.split(':')            
+
+                    output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())          
 
                 elif '1500m' in string and count==2:  # fix erroneous timing format from XX:XX:XX to XX:XX.XX
                     
@@ -106,9 +116,7 @@ def convert_time(i, string, metric):
                         m,s = metric.split(':')            
 
                         output = float(datetime.timedelta(minutes=int(m),seconds=float(s)).total_seconds())
-                    
-                    
-        
+                       
                        
                 elif (type(metric)==datetime.time or type(metric)==datetime.datetime):
                 
@@ -451,12 +459,6 @@ def map_international_events(athletes):
     
     # Steeplechase
     
-    #mask = athletes['EVENT'].str.contains(r'2000m S/C', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    #mask = athletes['EVENT'].str.contains(r'2000m steeplechase', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    #mask = athletes['EVENT'].str.contains(r'2000 Meter Steeplechase', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'3000m Steeplechase|3000m S\/C', na=True) & athletes['REGION'].str.contains(r'International', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'Steeplechase|S\/C', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
