@@ -226,6 +226,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 # Show resulting OCTC dataframe
 
     st.write("LIST OF ATHLETES MEETING BENCHMARKS:")
+    st.write(" ")
+    st.write(" ")
+    
 
     final_df = final_df[final_df['TIER']==('Tier 1'|'Tier 2'|'Tier 3'|'Tier 4')]  # Choose only those record with Tier value
     
