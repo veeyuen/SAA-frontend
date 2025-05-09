@@ -112,7 +112,7 @@ benchmark_option = st.selectbox(
     ("None - Direct Access to All Database Records", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
-if benchmark_option == 'None':
+if benchmark_option == 'None - Direct Access to All Database Records':
 
     final_dfs, code = spreadsheet(athletes_selected)
 
