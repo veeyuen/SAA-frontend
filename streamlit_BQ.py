@@ -232,35 +232,34 @@ for index, row in names.iterrows():
 
 # Process list of foreign names and their variations
 
-#df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
-#                       &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
-#                       &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                       &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
-#                       &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                       &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
-#                       &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
-#                       &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
-#                       &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
-#                       &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
+df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
+                       &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
+                       &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
+                       &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
+                       &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
+                       &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
+                       &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
+                       &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
+                       &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')
+                       &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')] 
 
-#top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
-
-#top_performers_clean.reset_index(inplace=True)
+top_performers_clean.reset_index(inplace=True)
 
 
 
 # Create performance tier column
 
-#top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
-#                                np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
-#                                np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
-#                                np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
+top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
+                                np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
+                                np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
+                                np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
 
 
 # Drop rows without a corresponding benchmark
 
-#final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
+final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
 
 # Show resulting OCTC dataframe
 
@@ -270,9 +269,9 @@ for index, row in names.iterrows():
 
 
 
-#st.write("LIST OF OCTC SELECTION ATHLETES:")
+st.write("LIST OF SELECTED ATHLETES:")
 
-#st.write(final_df)
+st.write(final_df)
 
 
 # Process custom threshold benchmark
