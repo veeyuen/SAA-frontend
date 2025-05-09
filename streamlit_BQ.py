@@ -156,7 +156,7 @@ map_international_events(athletes_selected) # call function
 st.write(option)
 st.write(st.session_state.option)
 
-if benchmark_option != 'None' and st.session_state.option is None:
+if benchmark_option != 'None':
 
     st.write('HERE')
 
