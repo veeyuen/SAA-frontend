@@ -14,7 +14,7 @@ from st_files_connection import FilesConnection
 
 # Convert results into standard format
 
-@st.cache_data
+#@st.cache_data
 def convert_time(i, string, metric):
 
     global output
@@ -147,7 +147,7 @@ def convert_time(i, string, metric):
 
 ## Convert time into seconds and distances into float
 
-@st.cache_data
+#@st.cache_data
 def process_benchmarks(df):
   
     for i in range(len(df)):
@@ -191,7 +191,7 @@ def process_benchmarks(df):
     
     return df
 
-@st.cache_data
+#@st.cache_data
 def process_results(df):
 
     df.reset_index(drop=True, inplace=True)
@@ -240,7 +240,7 @@ def process_results(df):
          
     return df
 
-@st.cache_data
+#@st.cache_data
 def map_international_events(athletes):
 
     # Create temporary mapped event column
@@ -538,7 +538,7 @@ def map_international_events(athletes):
 
     return athletes
 
-@st.cache_data
+#@st.cache_data
 def event_date(df):
 
     for i in range(len(df)):
@@ -591,7 +591,7 @@ def event_date(df):
 
     return df
 
-@st.cache_data
+#@st.cache_data
 def revert_times(df):
 
     df.reset_index(drop=True, inplace=True)
@@ -669,7 +669,7 @@ def revert_times(df):
 
     return df
 
-@st.cache_data
+#@st.cache_data
 def clean_columns(df):
 
     for col in df.columns:
