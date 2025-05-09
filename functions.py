@@ -232,7 +232,7 @@ def process_results(df):
         
     #df[['RESULT_CONV']] = df[['RESULT_CONV']].apply(pd.to_numeric)
     
-    mask = df['MAPPED_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+    mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
     df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']] = df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']].apply(pd.to_numeric, errors='coerce')
 
 
