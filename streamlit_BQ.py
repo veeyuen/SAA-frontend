@@ -200,28 +200,28 @@ for index, row in names.iterrows():
 
 # Read list of foreigners from GCS bucket
 
-#conn = st.connection('gcs', type=FilesConnection, ttl=600)
-#foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
+foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
 
 # Remove foreigners
 
-#foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-#foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-#foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-#foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
 
-#for1 = foreigners['V1'].dropna().tolist()
-#for2 = foreigners['V2'].dropna().tolist()
-#for3 = foreigners['V3'].dropna().tolist()
-#for4 = foreigners['V4'].dropna().tolist()
+for1 = foreigners['V1'].dropna().tolist()
+for2 = foreigners['V2'].dropna().tolist()
+for3 = foreigners['V3'].dropna().tolist()
+for4 = foreigners['V4'].dropna().tolist()
 
-#foreign_list = for1+for2+for3+for4 
+foreign_list = for1+for2+for3+for4 
 
-#foreign_list_casefold=[s.casefold() for s in foreign_list]
+foreign_list_casefold=[s.casefold() for s in foreign_list]
 
-#exclusions = foreign_list_casefold
+exclusions = foreign_list_casefold
 
-#no_foreigners_list = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+df = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
 # Choose the best result for each event participated by every athlete
 
