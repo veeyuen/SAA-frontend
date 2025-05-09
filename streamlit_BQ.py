@@ -215,8 +215,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
                                     np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier 2',
-                                    np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.50']>=0)), 'Tier 3', 
-                                    np.where(((top_performers_clean['Delta3.50']<0) & (top_performers_clean['Delta5']>=0)), 'Tier 4', ' '))))
+                                    np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier 3', 
+                                    np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier 4', ' '))))
     
     
     # Drop rows without a corresponding benchmark
