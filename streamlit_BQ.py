@@ -195,7 +195,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 # Process list of foreign names and their variations
 
     df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
-                           &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos') 
+                           &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos')&(df['TEAM']!='Thailand')&(df['TEAM']!='Myanmar') 
                            &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
                            &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
                            &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
