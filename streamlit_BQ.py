@@ -177,9 +177,6 @@ if benchmark_option != 'None':
 
 ## Convert athlete results into float64 compatible format
 
-    
-
-    st.write(df.columns)
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
@@ -192,14 +189,14 @@ if benchmark_option != 'None':
 
 # Read csv of name variations from GCS bucket
 
-#conn = st.connection('gcs', type=FilesConnection, ttl=600)
-#names = conn.read("name_variations/name_variations.csv", input_format="csv")
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
+names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
 # Iterate over dataframe and replace names
 
-#for index, row in names.iterrows():
+for index, row in names.iterrows():
         
-#    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+    df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
 # Read list of foreigners from GCS bucket
 
