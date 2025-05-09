@@ -118,19 +118,16 @@ elif benchmark_option == '2023 SEAG Bronze':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2023 SEAG Bronze']
 
-    option='option1'
 
 elif benchmark_option == '26th Asian Athletics':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '26th Asian Athletics']
 
-    option='option2'
 
 elif benchmark_option == '2025 Taiwan Open':
 
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
 
-    option='option3'
 
 
 ## Map relevant events to a standard description ##
@@ -153,8 +150,6 @@ map_international_events(athletes_selected) # call function
 
 #st.write(athletes_selected.columns)
 
-st.write(option)
-st.write(st.session_state.option)
 
 if benchmark_option != 'None':
 
@@ -179,7 +174,6 @@ if benchmark_option != 'None':
 
     process_results(df) # call fuction
 
-    st.session_state.option = df
 
 ## Convert athlete results into float64 compatible format
 
