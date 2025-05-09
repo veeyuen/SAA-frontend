@@ -37,16 +37,28 @@ credentials = service_account.Credentials.from_service_account_info(
 
 client = bigquery.Client(credentials=credentials)
 
-## Initialize Session State ##
+## Read csv file containing list of foreigners ##
 
-if 'option1' not in st.session_state:
-        st.session_state.option1 = None
+conn = st.connection('gcs', type=FilesConnection, ttl=600)
+foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
 
-if 'option2' not in st.session_state:
-        st.session_state.option2 = None
+# Remove foreigners
 
-if 'option3' not in st.session_state:
-        st.session_state.option3 = None
+foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
+foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
+foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
+
+for1 = foreigners['V1'].dropna().tolist()
+for2 = foreigners['V2'].dropna().tolist()
+for3 = foreigners['V3'].dropna().tolist()
+for4 = foreigners['V4'].dropna().tolist()
+
+foreign_list = for1+for2+for3+for4 
+
+foreign_list_casefold=[s.casefold() for s in foreign_list]
+
+exclusions = foreign_list_casefold
 
 
 
@@ -198,30 +210,9 @@ if benchmark_option != 'None':
         
         df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
-# Read list of foreigners from GCS bucket
-
-    conn = st.connection('gcs', type=FilesConnection, ttl=600)
-    foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
-
 # Remove foreigners
 
-    foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-    foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-    foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-    foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-
-    for1 = foreigners['V1'].dropna().tolist()
-    for2 = foreigners['V2'].dropna().tolist()
-    for3 = foreigners['V3'].dropna().tolist()
-    for4 = foreigners['V4'].dropna().tolist()
-
-    foreign_list = for1+for2+for3+for4 
-
-    foreign_list_casefold=[s.casefold() for s in foreign_list]
-
-    exclusions = foreign_list_casefold
-
-    df = df_select.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+    df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
 # Choose the best result for each event participated by every athlete
 
