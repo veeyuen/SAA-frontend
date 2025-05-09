@@ -42,7 +42,7 @@ client = bigquery.Client(credentials=credentials)
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
 
-# Remove foreigners
+# Create list of foreigners 
 
 foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
 foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
@@ -59,10 +59,6 @@ foreign_list = for1+for2+for3+for4
 foreign_list_casefold=[s.casefold() for s in foreign_list]
 
 exclusions = foreign_list_casefold
-
-
-
-#storage_client = storage.Client(credentials=credentials)
     
 ### DEFINE SQL QUERIES ###
 
@@ -85,10 +81,6 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
-
-#process_benchmarks(benchmarks)
-
-#st.write(benchmarks)
 
 
 ## Download all athlete data from BQ
@@ -149,23 +141,7 @@ athletes_selected['MAPPED_EVENT']=''
 map_international_events(athletes_selected) # call function
 
 
-### PROCESS BENCHMARKS###
-
-## Convert benchmarks results to float64 compatible format ##
-
-#st.write(benchmark)
-
-
-## Prepare to merge benchmarks with athlete df ##
-
-#benchmarks['MAPPED_EVENT']=benchmarks['EVENT'].str.strip()  # create MAPPED_EVENT column from EVENT column
-
-#st.write(athletes_selected.columns)
-
-
 if benchmark_option != 'None':
-
-    st.write('HERE')
 
     df = pd.merge(
         left=athletes_selected, 
@@ -184,10 +160,7 @@ if benchmark_option != 'None':
 
     df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
 
-    process_results(df) # call fuction
-
-
-## Convert athlete results into float64 compatible format
+    process_results(df) # call function to convert results to standard float64 format
 
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
@@ -196,8 +169,6 @@ if benchmark_option != 'None':
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
-
-#clean_columns(df) 
 
 # Read csv of name variations from GCS bucket
 
@@ -254,13 +225,9 @@ if benchmark_option != 'None':
     
 # Show resulting OCTC dataframe
 
-#st.write(" ")
-#st.write(" ")
-#st.write(" ")
-
-
-
     st.write("LIST OF SELECTED ATHLETES:")
+
+    final_df = final_df[final_df['TIER']!='']  # Choose only those record with Tier value
     
     st.write(final_df)
 
