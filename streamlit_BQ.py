@@ -201,7 +201,7 @@ if benchmark_option != 'None':
 # Read list of foreigners from GCS bucket
 
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
-    foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="unicode escape", input_format="csv")
+    foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
 
 # Remove foreigners
 
