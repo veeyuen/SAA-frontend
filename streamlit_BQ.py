@@ -109,7 +109,7 @@ athletes_selected = data.loc[mask]
 
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-    ("None", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
+    ("None - Direct Access to All Database Records", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
 if benchmark_option == 'None':
@@ -214,9 +214,9 @@ if benchmark_option != 'None':
     # Create performance tier column
     
     top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
-                                    np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier2',
-                                    np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier3', 
-                                    np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier4', ' '))))
+                                    np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier 2',
+                                    np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.50']>=0)), 'Tier 3', 
+                                    np.where(((top_performers_clean['Delta3.50']<0) & (top_performers_clean['Delta5']>=0)), 'Tier 4', ' '))))
     
     
     # Drop rows without a corresponding benchmark
@@ -225,9 +225,9 @@ if benchmark_option != 'None':
     
 # Show resulting OCTC dataframe
 
-    st.write("LIST OF SELECTED ATHLETES:")
+    st.write("LIST OF ATHLETES MEETING BENCHMARKS:")
 
-    final_df = final_df[final_df['TIER']!='']  # Choose only those record with Tier value
+#    final_df = final_df[final_df['TIER']='Tier 1']  # Choose only those record with Tier value
     
     st.write(final_df)
 
