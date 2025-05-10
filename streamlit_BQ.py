@@ -82,9 +82,6 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
 
-st.write(benchmarks)
-
-
 ## Download all athlete data from BQ
 
 data = client.query_and_wait(all_sql).to_dataframe()
@@ -135,6 +132,7 @@ elif benchmark_option == '2025 Taiwan Open':
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
 
 
+st.write(benchmark)
 
 ## Map relevant events to a standard description ##
 
@@ -144,7 +142,6 @@ map_international_events(athletes_selected) # call function
 
 
 st.write(athletes_selected.columns)
-st.write(benchmark.columns)
 
 if benchmark_option != 'None - Direct Access to All Database Records':
 
