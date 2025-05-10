@@ -547,7 +547,7 @@ def map_international_events(athletes):
 #@st.cache_data
 def event_date(df):
 
-#    for i in range(len(df)):
+    for i in range(len(df)):
         
 #        rowIndex = df.index[i]
 
@@ -584,92 +584,88 @@ def event_date(df):
             
  #               df.loc[rowIndex, 'event_date'] = event_date
 
-    rowIndex = df.index[i]
-
-    date = df.loc[rowIndex,'DATE']
-    year = df.loc[rowIndex,'YEAR']    
+        rowIndex = df.index[i]
     
-    if 'to' in date or ' - ' in date:
+        date = df.loc[rowIndex,'DATE']
+        year = df.loc[rowIndex,'YEAR']    
         
-        if re.search('to|\s\-\s\d\s|\s\-\d\d', date):  # e.g. 03-04
-              
-            pos = re.search('to|\s\-\s\d', date)
-            # Splice string to day and month
-
-            split_pos_start=pos.start()+3
+        if 'to' in date or ' - ' in date:
             
-
-
-            final_date = date[split_pos_start:] # left string post splicing
-
-            final_year = year[2:]
-
-            event_date = final_date + '/' + final_year
-
-
-            df.loc[rowIndex, 'event_date'] = event_date
-
-        elif re.search('(\-\s\d\w)|(\-\s\d\d\w)', date):  # e.g. 18 - 19 January
-                        
-            pos = re.search('\-', date)  # from '-' onwards only
-            # Splice string to day and month
-
-            split_pos_start=pos.start()+2
-            
-
-            final_date = date[split_pos_start:] # left string post splicing
-
-            
-            final_year = year[2:]
-
-            event_date = final_date + ' ' + final_year
-
-
-            df.loc[rowIndex, 'event_date'] = event_date
-            
-        
-    elif re.search('\w\-\w', date):
-        
-        if df.loc[rowIndex, 'COMPETITION'] == "National School Games":
-            
-            if df.loc[rowIndex, 'YEAR'] == '2024':
-        
-                event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd. 04 because event was in April 24 only
-            
-       #         print('NSG 2024', event_date)
-        
+            if re.search('to|\s\-\s\d\s|\s\-\d\d', date):  # e.g. 03-04
+                  
+                pos = re.search('to|\s\-\s\d', date)
+                # Splice string to day and month
+    
+                split_pos_start=pos.start()+3
+                
+    
+    
+                final_date = date[split_pos_start:] # left string post splicing
+    
+                final_year = year[2:]
+    
+                event_date = final_date + '/' + final_year
+    
+    
                 df.loc[rowIndex, 'event_date'] = event_date
-            
-            elif df.loc[rowIndex, 'YEAR'] == '2025':
+    
+            elif re.search('(\-\s\d\w)|(\-\s\d\d\w)', date):  # e.g. 18 - 19 January
+                            
+                pos = re.search('\-', date)  # from '-' onwards only
+                # Splice string to day and month
+    
+                split_pos_start=pos.start()+2
                 
-                event_date = date + '-' +year[2:]
+    
+                final_date = date[split_pos_start:] # left string post splicing
+    
                 
-        #        print('NSG2025', event_date)
-                
+                final_year = year[2:]
+    
+                event_date = final_date + ' ' + final_year
+    
+    
                 df.loc[rowIndex, 'event_date'] = event_date
                 
-        elif re.search('\d\-\d',  date):        #10-13 April
             
-
-            rpos = re.search('\-', date)
-            string = date[rpos.end():]
-                        
-            event_date = string + ' ' + year
-                        
-            df.loc[rowIndex, 'event_date'] = event_date
-
+        elif re.search('\w\-\w', date):
             
-        
-        else:
+            if df.loc[rowIndex, 'COMPETITION'] == "National School Games":
+                
+                if df.loc[rowIndex, 'YEAR'] == '2024':
             
-            event_date = date + '-' + year[2:]
+                    event_date = '04'+'/'+date[1:3] + '/' + year[2:]  # reverse order from dd/mm to mm/dd. 04 because event was in April 24 only
+                
+           #         print('NSG 2024', event_date)
             
-            df.loc[rowIndex, 'event_date'] = event_date
+                    df.loc[rowIndex, 'event_date'] = event_date
+                
+                elif df.loc[rowIndex, 'YEAR'] == '2025':
+                    
+                    event_date = date + '-' +year[2:]
+                    
+            #        print('NSG2025', event_date)
+                    
+                    df.loc[rowIndex, 'event_date'] = event_date
+                    
+            elif re.search('\d\-\d',  date):        #10-13 April
+                
+    
+                rpos = re.search('\-', date)
+                string = date[rpos.end():]
+                            
+                event_date = string + ' ' + year
+                            
+                df.loc[rowIndex, 'event_date'] = event_date
+    
+                
+            
+            else:
+                
+                event_date = date + '-' + year[2:]
+                
+                df.loc[rowIndex, 'event_date'] = event_date
 
-        
-        
-
-        
     df['event_date'] = df['event_date'].astype(str)
     df['event_date'] = df['event_date'].str.replace('\xa0', ' ', regex=True)
     df['event_date'] = df['event_date'].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
