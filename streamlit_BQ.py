@@ -223,13 +223,17 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
     
 # Show resulting OCTC dataframe
-
+    st.write(" ")
+    st.write(" ")
     st.write("LIST OF ATHLETES MEETING BENCHMARKS:")
     st.write(" ")
     st.write(" ")
     
 
     final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
+    final_df = final_df[final_df['NAME', 'RANK', 'TEAM', 'RESULT_x', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
+    'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
+    'MAPPED_EVENT', 'BENCHMARK_COMPETITION', 'Metric', '2%', '3.5%', '5%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']
     
     st.write(final_df)
 
