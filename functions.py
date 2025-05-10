@@ -241,12 +241,12 @@ def process_results(df):
     df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
     df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.50%']
     df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
-    df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['Metric']
+    df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['STANDARDISED_BENCHMARK']
     
     df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta3.5'] = df['3.50%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
-    df.loc[~mask, 'Delta_Benchmark'] = df['Metric'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta_Benchmark'] = df['STANDARDISED_BENCHMARK'] - df['RESULT_CONV']
 
   #  df=df.loc[df['COMPETITION']!='Southeast Asian Games'] # Do not include results from SEAG in dataset
          
