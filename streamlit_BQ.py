@@ -108,7 +108,7 @@ athletes_selected = data.loc[mask]
 
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-    ("None - Direct Access to All Database Records", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
+    ("None - Direct Access to All Database Records", "2023 SEAG Bronze", "2023 SEAG Bronze - OCTC", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
 if benchmark_option == 'None - Direct Access to All Database Records':
