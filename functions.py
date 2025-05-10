@@ -231,6 +231,8 @@ def process_results(df):
         df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
         
     #df[['RESULT_CONV']] = df[['RESULT_CONV']].apply(pd.to_numeric)
+
+    st.write(df.columns)
     
     mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
     df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']] = df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']].apply(pd.to_numeric, errors='coerce')
