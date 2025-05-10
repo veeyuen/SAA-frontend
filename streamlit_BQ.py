@@ -228,7 +228,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     st.write("LIST OF ATHLETES MEETING BENCHMARKS:")
     st.write(" ")
     st.write(" ")
-    
+
+    st.write(final_df.columns)
 
     final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
     final_df = final_df[final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT_x', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
