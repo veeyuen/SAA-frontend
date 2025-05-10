@@ -154,6 +154,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         right_on=['EVENT', 'GENDER'],
     )                   
     
+    st.write(df)
+
     
     clean_columns(df) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
@@ -235,7 +237,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
   #  final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
     
-    st.write(final_df)
+  #  st.write(final_df)
 
 
 # Process custom threshold benchmark
