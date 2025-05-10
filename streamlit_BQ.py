@@ -106,8 +106,6 @@ athletes_selected = data.loc[mask]
 
 #final_dfs, code = spreadsheet(athletes_selected)
 
-st.write(benchmarks.columns)
-
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
     ("None - Direct Access to All Database Records", "2023 SEAG Bronze", "26th Asian Athletics", "2025 Taiwan Open"),
@@ -143,7 +141,6 @@ athletes_selected['MAPPED_EVENT']=''
 map_international_events(athletes_selected) # call function
 
 
-st.write(athletes_selected.columns)
 
 if benchmark_option != 'None - Direct Access to All Database Records':
 
