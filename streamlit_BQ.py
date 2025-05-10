@@ -229,8 +229,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     st.write(" ")
     st.write(" ")
 
-    st.write(final_df.columns)
-
     final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
     final_df = final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
     'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
