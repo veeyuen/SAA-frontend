@@ -250,9 +250,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
         rerank_filtered_octc = rerank_octc[(rerank['TIER_ADJ']!=' ') & (rerank_octc['TIER_ADJ']!='Tier 4')]
 
-        rerank_filtered_octc = rerank_filtered_octc.drop(['TIER', 'RANK'], axis=1)
+        rerank_filtered_octc = rerank_filtered_octc.drop(['TIER', 'Rank'], axis=1)
 
-        rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'RANK_ADJ': 'RANK'}, inplace=True)
+        rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'Rank'}, inplace=True)
 
         final_df = rerank_filtered_octc
 
