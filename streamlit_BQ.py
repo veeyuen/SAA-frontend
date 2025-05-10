@@ -119,20 +119,20 @@ if benchmark_option == 'None - Direct Access to All Database Records':
 
 elif benchmark_option == '2023 SEAG Bronze':
 
-    benchmark = benchmarks[benchmarks['BENCHMARK']== '2023 SEAG Bronze']
+    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2023 SEAG Bronze']
 
 
 elif benchmark_option == '26th Asian Athletics':
 
-    benchmark = benchmarks[benchmarks['BENCHMARK']== '26th Asian Athletics']
+    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '26th Asian Athletics']
 
 
 elif benchmark_option == '2025 Taiwan Open':
 
-    benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
+    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
 
 
-st.write(benchmarks)
+st.write(benchmark)
 
 ## Map relevant events to a standard description ##
 
