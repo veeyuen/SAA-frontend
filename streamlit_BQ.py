@@ -117,7 +117,7 @@ if benchmark_option == 'None - Direct Access to All Database Records':
 
     benchmark = pd.DataFrame()
 
-elif benchmark_option == '2023 SEAG Bronze':
+elif benchmark_option == '2023 SEAG Bronze' or benchmark_option == '2023 SEAG Bronze - OCTC':
 
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2023 SEAG Bronze']
 
