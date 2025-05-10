@@ -141,6 +141,9 @@ athletes_selected['MAPPED_EVENT']=''
 map_international_events(athletes_selected) # call function
 
 
+st.write(athletes_selected.columns)
+st.write(benchmark.columns)
+
 if benchmark_option != 'None - Direct Access to All Database Records':
 
     df = pd.merge(
