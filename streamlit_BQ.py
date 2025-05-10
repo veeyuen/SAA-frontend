@@ -246,7 +246,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                                 )))))
 
         rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT','GENDER','TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
-        rerank_octc['Rank_ADJ'] = rerank.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
+        rerank_octc['Rank_ADJ'] = rerank_octc.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
 
         rerank_filtered_octc = rerank_octc[(rerank['TIER_ADJ']!=' ') & (rerank_octc['TIER_ADJ']!='Tier 4')]
 
