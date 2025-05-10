@@ -132,7 +132,7 @@ elif benchmark_option == '2025 Taiwan Open':
     benchmark = benchmarks[benchmarks['BENCHMARK']== '2025 Taiwan Open']
 
 
-st.write(benchmark)
+st.write(benchmarks)
 
 ## Map relevant events to a standard description ##
 
