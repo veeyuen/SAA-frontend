@@ -132,8 +132,6 @@ elif benchmark_option == '2025 Taiwan Open':
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
 
 
-st.write(benchmark)
-
 ## Map relevant events to a standard description ##
 
 athletes_selected['MAPPED_EVENT']=''
@@ -152,8 +150,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         right_on=['EVENT', 'GENDER'],
     )                   
     
-    st.write(df)
-
     
     clean_columns(df) # clean benchmarks of hidden characters, spaces etc. to ensure proper merging
 
