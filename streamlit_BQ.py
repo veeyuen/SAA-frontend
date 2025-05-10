@@ -106,7 +106,7 @@ athletes_selected = data.loc[mask]
 
 #final_dfs, code = spreadsheet(athletes_selected)
 
-st.write(benchmarks)
+st.write(benchmarks.columns)
 
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
