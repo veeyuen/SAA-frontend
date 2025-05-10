@@ -230,7 +230,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     st.write(" ")
     
 
-    final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
+  #  final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
     
     st.write(final_df)
 
