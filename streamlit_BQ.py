@@ -82,6 +82,8 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
 
+st.write(benchmarks)
+
 
 ## Download all athlete data from BQ
 
