@@ -221,6 +221,39 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     # Drop rows without a corresponding benchmark
     
     final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
+
+
+    if benchmark_option == '2023 SEAG Bronze - OCTC':   # Additional logic for OCTC report
+
+        # Rank everyone for octc selection
+
+        all_ranking_octc = final_df.sort_values(['MAPPED_EVENT','GENDER','PERF_SCALAR'], ascending=[False, False, False])
+        all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
+
+        all_ranking_octc['TIER_ADJ'] = np.where(
+                                ((all_ranking_octc['TIER']=='Tier 1') & (all_ranking_octc['Rank']==3)), 'Tier 2',    
+                                np.where(
+                                ((all_ranking_octc['TIER']=='Tier 1') & (all_ranking_octc['Rank']>=4)), 'Tier 2',
+                                np.where(
+                                ((all_ranking_octc['TIER']=='Tier 2') & (all_ranking_octc['Rank']==3)), 'Tier 3', 
+                                np.where(
+                                ((all_ranking_octc['TIER']=='Tier 2') & (all_ranking_octc['Rank']>=4)), 'Tier 3', 
+                                np.where(                             
+                                ((all_ranking_octc['TIER']=='Tier 3') & (all_ranking_octc['Rank']==3)), 'Tier 4', 
+                                np.where(                             
+                                ((all_ranking_octc['TIER']=='Tier 3') & (all_ranking_octc['Rank']>=4)), 'Tier 4', all_ranking_octc['TIER']) 
+                
+                                )))))
+
+        rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT','GENDER','TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
+        rerank_octc['Rank_ADJ'] = rerank.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
+
+        rerank_filtered_octc = rerank_octc[(rerank['TIER_ADJ']!=' ') & (rerank_octc['TIER_ADJ']!='Tier 4')]
+
+        final_df = rerank_filtered_octc
+
+
+        
     
 # Show resulting OCTC dataframe
     st.write(" ")
