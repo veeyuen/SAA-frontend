@@ -235,7 +235,7 @@ def process_results(df):
     st.write(df.columns)
     
     mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
-    df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']] = df[['2%', '3.50%', '5%', 'RESULT_CONV', 'Metric']].apply(pd.to_numeric, errors='coerce')
+    df[['2%', '3.50%', '5%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']] = df[['2%', '3.50%', '5%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']].apply(pd.to_numeric, errors='coerce')
 
 
     df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
