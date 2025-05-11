@@ -256,6 +256,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
         final_df = rerank_filtered_octc
 
+        final_df=final_df.reset_index(drop=True)
+
 
         
     
