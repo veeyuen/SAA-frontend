@@ -206,7 +206,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
     
-    top_performers_clean.reset_index(inplace=True)
+    top_performers_clean.reset_index(inplace=True, drop=True)
     
     
     
