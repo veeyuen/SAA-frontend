@@ -90,7 +90,7 @@ benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", in
 
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open", "2025 World Athletics Champs"),
+    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open"),
 )
 
 if benchmark_option == 'None - Direct Access to All Database Records':
