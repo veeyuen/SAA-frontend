@@ -82,24 +82,6 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
 
-## Download all athlete data from BQ
-
-data = client.query_and_wait(all_sql).to_dataframe()
-
-data.dropna(how= "all", axis=1, inplace=True)
-
-data = event_date(data)  # call function
-
-start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-
-data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
-
-start = np.datetime64(start_date)
-end = np.datetime64(end_date)
-
-mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
-athletes_selected = data.loc[mask]
 
 
 ## Allow public access via mito
@@ -135,6 +117,26 @@ elif benchmark_option == '2025 World Athletics Champs':
 
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
+## Download all athlete data from BQ
+
+data = client.query_and_wait(all_sql).to_dataframe()
+
+data.dropna(how= "all", axis=1, inplace=True)
+
+data = event_date(data)  # call function
+
+start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
+
+data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
+
+start = np.datetime64(start_date)
+end = np.datetime64(end_date)
+
+mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
+athletes_selected = data.loc[mask]
+
+
 ## Map relevant events to a standard description ##
 
 athletes_selected['MAPPED_EVENT']=''
@@ -143,41 +145,40 @@ map_international_events(athletes_selected) # call function
 
 ## Override selection of athletes for 2025 World Athletics Champs only ##
 
-if benchmark_option == '2025 World Athletics Champs':
+#if benchmark_option == '2025 World Athletics Champs':
 
    # data=data.reset_index(drop=True)
 
-    data['event_date_dt'] = pd.to_datetime(data['event_date_dt']) # convert to datetime again
+#    data['event_date_dt'] = pd.to_datetime(data['event_date_dt']) # convert to datetime again
     
     
-    start_1 = datetime.datetime(2023, 11, 5)
-    end_1 = datetime.datetime(2025, 5, 4)
+#    start_1 = datetime.datetime(2023, 11, 5)
+#    end_1 = datetime.datetime(2025, 5, 4)
     
-    start_2 = datetime.datetime(2024, 2, 25)
-    end_2 = datetime.datetime(2025, 8, 24)
+#    start_2 = datetime.datetime(2024, 2, 25)
+#    end_2 = datetime.datetime(2025, 8, 24)
     
-    start_3 = datetime.datetime(2024, 8, 1)
-    #start_3 = datetime.datetime(2025, 5, 1)
-    end_3 = datetime.datetime(2025, 8, 24)
-    
-    
-    start_date1 = np.datetime64(start_1)
-    end_date1 = np.datetime64(end_1)
-    start_date2 = np.datetime64(start_2)
-    end_date2 = np.datetime64(end_2)
-    start_date3 = np.datetime64(start_3)
-    end_date3 = np.datetime64(end_3)
+#    start_3 = datetime.datetime(2024, 8, 1)
+#    end_3 = datetime.datetime(2025, 8, 24)
     
     
-    mask1 = ((data['MAPPED_EVENT']==(('Marathon') or ('35km Racewalk'))) & (data['event_date_dt'] >= start_date1) & (data['event_date_dt'] <= end_date1))
-    mask2 = ((data['MAPPED_EVENT']==(('10,000m') or ('20km Racewalk') or ('Combined'))) & (data['event_date_dt'] >= start_date2) & (data['event_date_dt'] <= end_date2))
-    mask3 = ((data['MAPPED_EVENT']!=(('Marathon') or ('35km Racewalk') or ('10,000m')|('20km Racewalk')|('Combined'))) & (data['event_date_dt'] >= start_date3) & (data['event_date_dt'] <= end_date3))
+#    start_date1 = np.datetime64(start_1)
+#    end_date1 = np.datetime64(end_1)
+#    start_date2 = np.datetime64(start_2)
+#    end_date2 = np.datetime64(end_2)
+#    start_date3 = np.datetime64(start_3)
+#    end_date3 = np.datetime64(end_3)
     
-    combined_mask = (mask1|mask2|mask3)
     
-    athletes_selected = data.loc[combined_mask]
+#    mask1 = ((data['MAPPED_EVENT']==(('Marathon') or ('35km Racewalk'))) & (data['event_date_dt'] >= start_date1) & (data['event_date_dt'] <= end_date1))
+#    mask2 = ((data['MAPPED_EVENT']==(('10,000m') or ('20km Racewalk') or ('Combined'))) & (data['event_date_dt'] >= start_date2) & (data['event_date_dt'] <= end_date2))
+#    mask3 = ((data['MAPPED_EVENT']!=(('Marathon') or ('35km Racewalk') or ('10,000m')|('20km Racewalk')|('Combined'))) & (data['event_date_dt'] >= start_date3) & (data['event_date_dt'] <= end_date3))
+    
+#    combined_mask = (mask1|mask2|mask3)
+    
+#    athletes_selected = data.loc[combined_mask]
 
-
+## Map benchmarks ##
 
 if benchmark_option != 'None - Direct Access to All Database Records':
 
