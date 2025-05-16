@@ -131,6 +131,11 @@ elif benchmark_option == '2025 Taiwan Open':
 
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
 
+elif benchmark_option == '2025 World Athletics Champs':
+
+    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
+
+
 
 ## Map relevant events to a standard description ##
 
