@@ -98,10 +98,6 @@ data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-data['MAPPED_EVENT']=''
-
-map_international_events(data) # call function
-
 
 mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
 athletes_selected = data.loc[mask]
@@ -144,9 +140,9 @@ elif benchmark_option == '2025 World Athletics Champs':
 
 ## Map relevant events to a standard description ##
 
-#athletes_selected['MAPPED_EVENT']=''
+athletes_selected['MAPPED_EVENT']=''
 
-#map_international_events(athletes_selected) # call function
+map_international_events(athletes_selected) # call function
 
 ## Override selection of athletes for 2025 World Athletics Champs only ##
 
