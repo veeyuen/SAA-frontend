@@ -82,6 +82,24 @@ SELECT * FROM `saa-analytics.results.athlete_results_prod`
 conn = st.connection('gcs', type=FilesConnection, ttl=600)
 benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
 
+## Download all athlete data from BQ
+
+data = client.query_and_wait(all_sql).to_dataframe()
+
+data.dropna(how= "all", axis=1, inplace=True)
+
+data = event_date(data)  # call function
+
+start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
+
+data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
+
+start = np.datetime64(start_date)
+end = np.datetime64(end_date)
+
+mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
+athletes_selected = data.loc[mask]
 
 
 ## Allow public access via mito
@@ -117,24 +135,6 @@ elif benchmark_option == '2025 World Athletics Champs':
 
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
-## Download all athlete data from BQ
-
-data = client.query_and_wait(all_sql).to_dataframe()
-
-data.dropna(how= "all", axis=1, inplace=True)
-
-data = event_date(data)  # call function
-
-start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-
-data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
-
-start = np.datetime64(start_date)
-end = np.datetime64(end_date)
-
-mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
-athletes_selected = data.loc[mask]
 
 
 ## Map relevant events to a standard description ##
