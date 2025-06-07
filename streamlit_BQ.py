@@ -216,7 +216,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
-    clean_columns(names)  # clean name list of special characters, white spaces etc.
+    names = clean_columns(names)  # clean name list of special characters, white spaces etc.
 
 # Iterate over dataframe and replace names
 
