@@ -199,7 +199,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     st.write(df.columns)
 
 
-    df['RESULT_x'] = df['RESULT_x'].replace(regex=r'–', value=np.nan)
+    df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
     process_results(df) # call function to convert results to standard float64 format
 
