@@ -265,7 +265,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     # Drop rows without a corresponding benchmark
 
-    st.write(top_performers_clean.columns)
+    #st.write(top_performers_clean.columns)
     
     final_df = top_performers_clean[top_performers_clean['STANDARDISED_BENCHMARK'].notna()]
 
