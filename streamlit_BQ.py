@@ -266,7 +266,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     st.write(top_performers_clean.columns)
     
-    final_df = top_performers_clean[top_performers_clean['BENCHMARK'].notna()]
+    final_df = top_performers_clean[top_performers_clean['STANDARDISED_BENCHMARK'].notna()]
 
 
     if benchmark_option == '2023 SEAG Bronze - OCTC':   # Additional logic for OCTC report
