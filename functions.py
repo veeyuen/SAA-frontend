@@ -235,17 +235,19 @@ def process_results(df):
 #    st.write(df.columns)
     
     mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
-    df[['2%', '3.50%', '5%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']] = df[['2%', '3.50%', '5%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']].apply(pd.to_numeric, errors='coerce')
+    df[['2%', '3.50%', '5%', '10%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']] = df[['2%', '3.50%', '5%', '10%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']].apply(pd.to_numeric, errors='coerce')
 
 
     df.loc[mask, 'Delta2'] = df['RESULT_CONV']-df['2%']
     df.loc[mask, 'Delta3.5'] = df['RESULT_CONV']-df['3.50%']
     df.loc[mask, 'Delta5'] = df['RESULT_CONV']-df['5%']
+    df.loc[mask, 'Delta10'] = df['RESULT_CONV']-df['10%']
     df.loc[mask, 'Delta_Benchmark'] = df['RESULT_CONV']-df['STANDARDISED_BENCHMARK']
     
     df.loc[~mask, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta3.5'] = df['3.50%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta5'] = df['5%'] - df['RESULT_CONV']
+    df.loc[~mask, 'Delta10'] = df['10%'] - df['RESULT_CONV']
     df.loc[~mask, 'Delta_Benchmark'] = df['STANDARDISED_BENCHMARK'] - df['RESULT_CONV']
 
   #  df=df.loc[df['COMPETITION']!='Southeast Asian Games'] # Do not include results from SEAG in dataset
