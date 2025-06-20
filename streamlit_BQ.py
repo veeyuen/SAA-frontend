@@ -219,11 +219,19 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     names = clean_columns(names)  # clean name list of special characters, white spaces etc.
 
+    names['VARIATION'] = names['VARIATION'].str.casefold() # convert to lower case
+    names['NAME'] = names['NAME'].str.casefold()
+
+
 # Iterate over dataframe and replace names
+    
+    df['NAME'] = df['NAME'].str.casefold()  # everything lower case
 
     for index, row in names.iterrows():
         
         df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+
+    df['NAME'] = df['NAME'].str.title()  # capitalize first letter
 
 # Remove foreigners
 
