@@ -20,7 +20,7 @@ def dob_dict(df):
 
   dictionary_dob_clean = dict(zip(dob_df['clean_name'].str.casefold(), dob_df['DOB_dt']))
 
-  return dictionary_dob, dictionary_dob_clean
+  return dictionary_dob_clean
 
 
 
