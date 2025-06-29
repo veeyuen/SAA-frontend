@@ -89,6 +89,7 @@ data = client.query_and_wait(all_sql).to_dataframe()
 
 data.dropna(how= "all", axis=1, inplace=True)
 
+data['DATE'] = data['DATE'].astype(str)
 data = event_date(data)  # call function
 
 start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
