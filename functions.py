@@ -588,8 +588,8 @@ def event_date(df):
 
         rowIndex = df.index[i]
     
-        date = df.loc[rowIndex,'DATE']
-        year = df.loc[rowIndex,'YEAR']    
+        date = str(df.loc[rowIndex,'DATE'])
+        year = str(df.loc[rowIndex,'YEAR'])    
         
         if 'to' in date or ' - ' in date:
             
