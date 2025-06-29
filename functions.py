@@ -662,11 +662,11 @@ def event_date(df):
     
                 
             
-            else:
+        else:
                 
-                event_date = date + '-' + year[2:]
+            event_date = date + '-' + year[2:]
                 
-                df.loc[rowIndex, 'event_date'] = event_date
+            df.loc[rowIndex, 'event_date'] = event_date
 
     df['event_date'] = df['event_date'].astype(str)
     df['event_date'] = df['event_date'].str.replace('\xa0', ' ', regex=True)
