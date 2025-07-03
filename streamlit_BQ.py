@@ -70,7 +70,7 @@ WHERE YEAR='2023' AND COMPETITION='Southeast Asian Games' AND (RANK='3' OR RANK=
 
 athletes_sql="""
 SELECT NAME, RESULT, TEAM, AGE, RANK AS COMPETITION_RANK, DIVISION, EVENT, DISTANCE, EVENT_CLASS, UNIQUE_ID, DOB, NATIONALITY, WIND, CATEGORY_EVENT, GENDER, COMPETITION, YEAR, REGION
-FROM `saa-analytics.results.athlete_results_prod` 
+FROM `saa-analytics.results.PRODUCTION` 
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
 """
 all_sql="""
@@ -89,19 +89,37 @@ data = client.query_and_wait(all_sql).to_dataframe()
 
 data.dropna(how= "all", axis=1, inplace=True)
 
-data['DATE'] = data['DATE'].astype(str)
-data = event_date(data)  # call function
+## Convert DATE to datetime with timezone ##
+
+# DATE column to contain timezone - tz aware mode
+
+data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+
+# datetime to contain UTC (timezone)
+
+data['NOW'] = datetime.datetime.now()
+timezone = pytz.timezone('UTC')
+data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+
+data['delta_time'] = data['NOW'] - data['DATE']
+data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
+data['event_month'] = data['DATE'].dt.month
+
+# Make sure date conversion is is valid for all rows
+
+#assert not competitors['delta_time'].isna().any()
+
+competitors['DATE']=competitors['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+
 
 start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-
-data['event_date_dt'] = pd.to_datetime(data['event_date'], errors='coerce')
 
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
 
-mask = (data['event_date_dt'] >= start) & (data['event_date_dt'] <= end)
+mask = (data['DATE'] >= start) & (data['DATE'] <= end)
 athletes_selected = data.loc[mask]
 
 
