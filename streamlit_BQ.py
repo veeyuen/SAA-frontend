@@ -110,7 +110,7 @@ data['event_month'] = data['DATE'].dt.month
 
 #assert not competitors['delta_time'].isna().any()
 
-competitors['DATE']=competitors['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
 
 
 start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
