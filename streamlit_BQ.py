@@ -74,7 +74,7 @@ FROM `saa-analytics.results.PRODUCTION`
 WHERE RESULT!='NM' AND RESULT!='-' AND RESULT!='DNS' AND RESULT!='DNF' AND RESULT!='DNQ' AND RESULT!='DQ' AND RESULT IS NOT NULL
 """
 all_sql="""
-SELECT * FROM `saa-analytics.results.athlete_results_prod`
+SELECT * FROM `saa-analytics.results.PRODUCTION`
 """
 
 ## Read all performance benchmarks csv from GCS bucket and process##
