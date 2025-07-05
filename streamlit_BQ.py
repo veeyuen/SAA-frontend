@@ -39,7 +39,7 @@ credentials = service_account.Credentials.from_service_account_info(
 client = bigquery.Client(credentials=credentials)
 
 ## Read csv file containing list of foreigners ##
-@st.cache_data
+@st.cache_resource
 def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
@@ -86,7 +86,7 @@ SELECT * FROM `saa-analytics.results.PRODUCTION`
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
 
-@st.cache_data
+@st.cache_resource
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
@@ -96,7 +96,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
-@st.cache_data
+@st.cache_resource
 def fetch_data():
     data = client.query_and_wait(all_sql).to_dataframe()
     return data
