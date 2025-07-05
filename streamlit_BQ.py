@@ -150,7 +150,7 @@ start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
 
-mask = (data['DATE'] >= start) & (data['DATE'] <= end)
+mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 
 
