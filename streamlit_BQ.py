@@ -45,6 +45,8 @@ def fetch_foreigners()
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
 
+fetch_foreigners()  # get list of foreigners
+
 # Create list of foreigners 
 
 foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
