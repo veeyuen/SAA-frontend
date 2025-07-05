@@ -44,7 +44,6 @@ def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
-
 foreigners = fetch_foreigners()  # get list of foreigners
 
 @st.cache_data(ttl=3600)
@@ -53,6 +52,7 @@ def name_variations():
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
     names = clean_columns(names)  # clean name list of special characters, white spaces etc.
     return names
+names = name_variations()
 
 
 # Create list of foreigners 
@@ -99,7 +99,6 @@ def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
     return benchmarks
-
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
@@ -108,7 +107,6 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 def fetch_data(ttl=3600):
     data = client.query_and_wait(all_sql).to_dataframe()
     return data
-
 data = fetch_data() # fetch the entire database of results
 
 data.dropna(how= "all", axis=1, inplace=True)
