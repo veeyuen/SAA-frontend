@@ -45,7 +45,7 @@ def foreigners():
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
 
-foreigners()  # get list of foreigners
+foreigners = foreigners()  # get list of foreigners
 
 # Create list of foreigners 
 
