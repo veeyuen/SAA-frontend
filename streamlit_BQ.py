@@ -47,6 +47,14 @@ def fetch_foreigners():
 
 foreigners = fetch_foreigners()  # get list of foreigners
 
+@st.cache_data(ttl=3600)
+def name_variations():
+    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+    names = conn.read("name_variations/name_variations.csv", input_format="csv")
+    names = clean_columns(names)  # clean name list of special characters, white spaces etc.
+    return names
+
+
 # Create list of foreigners 
 
 foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
@@ -249,10 +257,10 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 # Read csv of name variations from GCS bucket
 
-    conn = st.connection('gcs', type=FilesConnection, ttl=600)
-    names = conn.read("name_variations/name_variations.csv", input_format="csv")
+ #   conn = st.connection('gcs', type=FilesConnection, ttl=600)
+  #  names = conn.read("name_variations/name_variations.csv", input_format="csv")
 
-    names = clean_columns(names)  # clean name list of special characters, white spaces etc.
+  #  names = clean_columns(names)  # clean name list of special characters, white spaces etc.
 
     names['VARIATION'] = names['VARIATION'].str.casefold() # convert to lower case
     names['NAME'] = names['NAME'].str.casefold()
