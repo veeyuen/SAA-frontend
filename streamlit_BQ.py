@@ -87,16 +87,21 @@ SELECT * FROM `saa-analytics.results.PRODUCTION`
 
 
 @st.cache_data
-def benchmarks():
+def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
     return benchmarks
 
-benchmarks = benchmarks()  # fetch benchmarks
+benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
-data = client.query_and_wait(all_sql).to_dataframe()
+@st.cache_data
+def fetch_data():
+    data = client.query_and_wait(all_sql).to_dataframe()
+    return data
+
+data = fetch_data() # fetch the entire database of results
 
 data.dropna(how= "all", axis=1, inplace=True)
 
