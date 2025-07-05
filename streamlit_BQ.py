@@ -39,10 +39,11 @@ credentials = service_account.Credentials.from_service_account_info(
 client = bigquery.Client(credentials=credentials)
 
 ## Read csv file containing list of foreigners ##
-@st.cache_resource
+@st.cache_data
 def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
+    st.dataframe(foreigners)
     return foreigners
 
 foreigners = fetch_foreigners()  # get list of foreigners
