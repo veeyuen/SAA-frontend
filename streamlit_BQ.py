@@ -124,6 +124,11 @@ def fetch_data(ttl=3600):
     data['event_month'] = data['DATE'].dt.month
 
     data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+    
+    data['MAPPED_EVENT']=''
+
+    map_international_events(data) # call function
+
 
     return data
 data = fetch_data() # fetch the entire database of results
@@ -186,9 +191,9 @@ elif benchmark_option == '2025 World Athletics Champs':
 
 ## Map relevant events to a standard description ##
 
-athletes_selected['MAPPED_EVENT']=''
+#athletes_selected['MAPPED_EVENT']=''
 
-map_international_events(athletes_selected) # call function
+#map_international_events(athletes_selected) # call function
 
 ## Override selection of athletes for 2025 World Athletics Champs only ##
 
