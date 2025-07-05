@@ -40,7 +40,7 @@ client = bigquery.Client(credentials=credentials)
 
 ## Read csv file containing list of foreigners ##
 @st.cache_data
-def fetch_foreigners()
+def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
