@@ -143,8 +143,7 @@ data = fetch_data() # fetch the entire database of results
 
 #assert not competitors['delta_time'].isna().any()
 
-st.dataframe(data)
-
+st.write(data['DATE].describe())
 start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
