@@ -129,6 +129,8 @@ def fetch_data(ttl=300):
 
     map_international_events(data) # call function
 
+    st.write(type(data['DATE']))
+
 
     return data
 data = fetch_data() # fetch the entire database of results
