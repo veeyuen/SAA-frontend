@@ -129,7 +129,7 @@ def fetch_data(ttl=300):
 
     map_international_events(data) # call function
 
-    st.write(type(data['DATE']))
+    st.write(data['DATE'])
 
 
     return data
