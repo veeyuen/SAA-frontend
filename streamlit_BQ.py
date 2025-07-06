@@ -133,6 +133,7 @@ def fetch_data(ttl=300):
     return data
 data = fetch_data() # fetch the entire database of results
 
+print(data['DATE'].dtypes)
 
 ## Convert DATE to datetime with timezone ##
 
