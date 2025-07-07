@@ -99,7 +99,7 @@ def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
     return benchmarks
-#benchmarks = fetch_benchmarks()  # fetch benchmarks
+benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
@@ -131,7 +131,7 @@ def fetch_data():
 
 
     return data
-#data = fetch_data() # fetch the entire database of results
+data = fetch_data() # fetch the entire database of results
 
 #data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
