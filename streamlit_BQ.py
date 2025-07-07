@@ -146,9 +146,7 @@ data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='in
 data['event_month'] = data['DATE'].dt.month
 
 data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
-    
-
-#st.write(data['DATE'].dtypes)
+st.write(data['DATE'].dtypes)
 
 ## Convert DATE to datetime with timezone ##
 
