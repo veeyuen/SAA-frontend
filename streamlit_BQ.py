@@ -131,7 +131,7 @@ def fetch_data():
 
 
     return data
-#data = fetch_data() # fetch the entire database of results
+data = fetch_data() # fetch the entire database of results
 
 #data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
