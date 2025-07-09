@@ -483,28 +483,6 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Half Marathon'
     
     
-    # Walk
-    
-    #mask = athletes['EVENT'].str.contains(r'1500m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'1500 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'1500', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'3000m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'3000 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'5000 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'5000m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
     mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'10000', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '10000m Racewalk'
     
