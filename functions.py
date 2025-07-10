@@ -680,6 +680,25 @@ def convert_time_refactored(i, string, metric):
 
     return output
 
-
+def process_results_refactored(df):
+    df.reset_index(drop=True, inplace=True)
+    df = clean_columns(df)
+    skip_results = {'—', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+    mask = ~df['RESULT'].isin(skip_results)
+    df.loc[mask, 'RESULT_CONV'] = df[mask].apply(convert_time, axis=1)
+    mask_field = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+    num_cols = ['2%', '3.50%', '5%', '10%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']
+    df[num_cols] = df[num_cols].apply(pd.to_numeric, errors='coerce')
+    df.loc[mask_field, 'Delta2'] = df['RESULT_CONV']-df['2%']
+    df.loc[mask_field, 'Delta3.5'] = df['RESULT_CONV']-df['3.50%']
+    df.loc[mask_field, 'Delta5'] = df['RESULT_CONV']-df['5%']
+    df.loc[mask_field, 'Delta10'] = df['RESULT_CONV']-df['10%']
+    df.loc[mask_field, 'Delta_Benchmark'] = df['RESULT_CONV']-df['STANDARDISED_BENCHMARK']
+    df.loc[~mask_field, 'Delta2'] =  df['2%'] - df['RESULT_CONV']
+    df.loc[~mask_field, 'Delta3.5'] = df['3.50%'] - df['RESULT_CONV']
+    df.loc[~mask_field, 'Delta5'] = df['5%'] - df['RESULT_CONV']
+    df.loc[~mask_field, 'Delta10'] = df['10%'] - df['RESULT_CONV']
+    df.loc[~mask_field, 'Delta_Benchmark'] = df['STANDARDISED_BENCHMARK'] - df['RESULT_CONV']
+    return df
                             
                  
