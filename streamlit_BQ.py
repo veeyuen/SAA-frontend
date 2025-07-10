@@ -91,6 +91,121 @@ all_sql="""
 SELECT * FROM `saa-analytics.results.PRODUCTION`
 """
 
+athletes_map_sql="""
+
+SELECT NAME, RESULT, TEAM, AGE, RANK AS COMPETITION_RANK, DIVISION, EVENT, DISTANCE, EVENT_CLASS, UNIQUE_ID, DOB, NATIONALITY, WIND, CATEGORY_EVENT, GENDER, COMPETITION, YEAR, REGION
+FROM `saa-analytics.results.PRODUCTION` 
+WHERE RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
+AND RESULT IS NOT NULL
+
+-- Standard running events
+UPDATE athletes SET MAPPED_EVENT = '100m'
+WHERE EVENT REGEXP '(Dash|Run).*100|100 Meter Run|^100m$';
+
+UPDATE athletes SET MAPPED_EVENT = '200m'
+WHERE EVENT REGEXP '(Dash|Run).*200|200 Meter Run|^200m$|200\\sMeter';
+
+UPDATE athletes SET MAPPED_EVENT = '400m'
+WHERE EVENT REGEXP '(Dash|Run).*400|^400m$|^400\\sMeter$|400m Relay';
+
+UPDATE athletes SET MAPPED_EVENT = '800m'
+WHERE EVENT REGEXP '(Run).*800|800 Meter Run|^800m$';
+
+UPDATE athletes SET MAPPED_EVENT = '1000m'
+WHERE EVENT REGEXP '(Run).*1000';
+
+UPDATE athletes SET MAPPED_EVENT = '1500m'
+WHERE EVENT REGEXP '(Run).*1500|^1500m$';
+
+UPDATE athletes SET MAPPED_EVENT = '3000m'
+WHERE EVENT REGEXP '(Run).*3000';
+
+UPDATE athletes SET MAPPED_EVENT = '5000m'
+WHERE EVENT REGEXP '(Run).*5000|^5000m$';
+
+UPDATE athletes SET MAPPED_EVENT = '10,000m'
+WHERE EVENT REGEXP '(Run).*10000|^10000m$|^10,000m$';
+
+UPDATE athletes SET MAPPED_EVENT = '1 Mile'
+WHERE EVENT REGEXP '(Run).*Mile';
+
+-- Throws
+UPDATE athletes SET MAPPED_EVENT = 'Javelin Throw'
+WHERE EVENT LIKE '%Javelin%';
+
+UPDATE athletes SET MAPPED_EVENT = 'Shot Put'
+WHERE EVENT REGEXP 'Shot Put|Shot put';
+
+UPDATE athletes SET MAPPED_EVENT = 'Hammer Throw'
+WHERE EVENT REGEXP 'Hammer Throw|Hammer throw';
+
+UPDATE athletes SET MAPPED_EVENT = 'Discus Throw'
+WHERE EVENT REGEXP 'Discus Throw|Discus|Discus throw';
+
+-- Jumps
+UPDATE athletes SET MAPPED_EVENT = 'High Jump'
+WHERE EVENT REGEXP 'High Jump|High jump';
+
+UPDATE athletes SET MAPPED_EVENT = 'Long Jump'
+WHERE EVENT REGEXP 'Long Jump|Long jump';
+
+UPDATE athletes SET MAPPED_EVENT = 'Triple Jump'
+WHERE EVENT REGEXP 'Triple Jump|Triple jump';
+
+UPDATE athletes SET MAPPED_EVENT = 'Pole Vault'
+WHERE EVENT REGEXP 'Pole Vault|Pole vault';
+
+-- Steeplechase
+UPDATE athletes SET MAPPED_EVENT = '3000m Steeplechase'
+WHERE EVENT REGEXP '3000m Steeplechase|3000m S/C|Steeplechase|S/C';
+
+-- Marathons
+UPDATE athletes SET MAPPED_EVENT = 'Marathon'
+WHERE EVENT = 'Marathon';
+
+UPDATE athletes SET MAPPED_EVENT = 'Half Marathon'
+WHERE EVENT IN ('Half Marathon', 'Half marathon');
+
+-- Race walk
+UPDATE athletes SET MAPPED_EVENT = '10000m Racewalk'
+WHERE EVENT LIKE '%Race Walk%' AND DISTANCE LIKE '%10000%';
+
+-- Relays
+UPDATE athletes SET MAPPED_EVENT = '4 x 80m'
+WHERE EVENT = '4x80m Relay';
+
+UPDATE athletes SET MAPPED_EVENT = '4 x 100m'
+WHERE EVENT IN ('4x100m Relay', '4 X 100m Relay', '4x100 Meter Relay', '4 x 100m') OR (EVENT LIKE '%Relay%' AND DISTANCE LIKE '%400%');
+
+UPDATE athletes SET MAPPED_EVENT = '4 x 400m'
+WHERE EVENT IN ('4x400m Relay', '4 X 400m Relay', '4 x 400m') OR (EVENT LIKE '%Relay%' AND DISTANCE LIKE '%1600%');
+
+-- Combined events
+UPDATE athletes SET MAPPED_EVENT = 'Heptathlon'
+WHERE EVENT IN ('Heptathlon');
+
+UPDATE athletes SET MAPPED_EVENT = 'Decathlon'
+WHERE EVENT IN ('Decathlon');
+
+-- Hurdles (examples, further logic can be expanded based on your specific rules)
+-- 100m Hurdles (Women)
+UPDATE athletes SET MAPPED_EVENT = '100m Hurdles'
+WHERE (EVENT LIKE '%100m Hurdles%' OR EVENT LIKE '%100m hurdles%' OR (EVENT = 'Hurdles' AND DISTANCE = '100'))
+  AND GENDER = 'Female';
+
+-- 110m Hurdles (Men)
+UPDATE athletes SET MAPPED_EVENT = '110m Hurdles'
+WHERE (EVENT LIKE '%110m Hurdles%' OR EVENT LIKE '%110m hurdles%' OR (EVENT = 'Hurdles' AND DISTANCE = '110'))
+  AND GENDER = 'Male';
+
+-- 400m Hurdles
+UPDATE athletes SET MAPPED_EVENT = '400m Hurdles'
+WHERE (EVENT LIKE '%400m Hurdles%' OR EVENT LIKE '%400m hurdles%' OR (EVENT = 'Hurdles' AND DISTANCE = '400'));
+
+"""
+
+
+
 ## Read all performance benchmarks csv from GCS bucket and process##
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
