@@ -465,28 +465,28 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 # Process list of foreign names and their variations
 
-#    df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
-#                           &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos')&(df['TEAM']!='Thailand')&(df['TEAM']!='Myanmar') 
-#                           &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                           &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
-#                           &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                           &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
-#                           &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
-#                           &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
-#                           &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')&(df['TEAM']!='Vietnam')
-#                           &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')
-#                           &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
-#                           &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
+    df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
+                           &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos')&(df['TEAM']!='Thailand')&(df['TEAM']!='Myanmar') 
+                           &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
+                           &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
+                           &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
+                           &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
+                           &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
+                           &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
+                           &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')&(df['TEAM']!='Vietnam')
+                           &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')
+                           &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
+                           &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
     
     # Remove foreign/national teams and nationalities efficiently
     
-    excluded_teams = {
-        'Malaysia','THAILAND','China','South Korea','Laos','Myanmar','Philippines',
-        'Piboonbumpen Thailand','Chinese Taipei','Gurkha Contingent','Australia','Hong Kong',
-        'PERAK','Sri Lanka','Indonesia','Waseda','Vietnam','INDIA','Hong Kong, China','AIC JAPAN'
-    }
-    excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
-    df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
+#    excluded_teams = {
+#        'Malaysia','THAILAND','China','South Korea','Laos','Myanmar','Philippines',
+#        'Piboonbumpen Thailand','Chinese Taipei','Gurkha Contingent','Australia','Hong Kong',
+#        'PERAK','Sri Lanka','Indonesia','Waseda','Vietnam','INDIA','Hong Kong, China','AIC JAPAN'
+#    }
+#    excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
+#    df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
     
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
     
