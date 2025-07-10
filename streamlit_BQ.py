@@ -243,7 +243,7 @@ def fetch_data():
     
     data['MAPPED_EVENT']=''
 
-    map_international_events(data) # call function
+#    map_international_events(data) # call function
 
 
     return data
