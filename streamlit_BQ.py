@@ -193,36 +193,49 @@ athletes_selected = data.loc[mask]
 
 #final_dfs, code = spreadsheet(athletes_selected)
 
-benchmark_option = st.selectbox(
-    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open"),
-)
+#benchmark_option = st.selectbox(
+#    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
+#    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open"),
+#)
+
+#if benchmark_option == 'None - Direct Access to All Database Records':
+
+#    final_dfs, code = spreadsheet(all_data)
+
+#    benchmark = pd.DataFrame()
+
+#elif benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option == '2023 SEAG Bronze - OCTC Selection':
+
+#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2023 SEAG Bronze']
+
+
+#elif benchmark_option == '26th Asian Athletics':
+
+#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '26th Asian Athletics']
+
+
+#elif benchmark_option == '2025 Taiwan Open':
+
+#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
+
+#elif benchmark_option == '2025 World Athletics Champs':
+
+#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
 if benchmark_option == 'None - Direct Access to All Database Records':
-
+    from mitosheet.streamlit.v1 import spreadsheet
     final_dfs, code = spreadsheet(all_data)
-
-    benchmark = pd.DataFrame()
-
-elif benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option == '2023 SEAG Bronze - OCTC Selection':
-
-    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2023 SEAG Bronze']
-
-
-elif benchmark_option == '26th Asian Athletics':
-
-    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '26th Asian Athletics']
-
-
-elif benchmark_option == '2025 Taiwan Open':
-
-    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
-
-elif benchmark_option == '2025 World Athletics Champs':
-
-    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
-
-
+    st.write(final_dfs)
+else:
+    # Fast lookup for benchmarks
+    bench_map = {
+        "2023 SEAG Bronze - SEAG Selection": '2023 SEAG Bronze',
+        "2023 SEAG Bronze - OCTC Selection": '2023 SEAG Bronze',
+        "26th Asian Athletics": '26th Asian Athletics',
+        "2025 Taiwan Open": '2025 Taiwan Open'
+    }
+    bench_name = bench_map.get(benchmark_option, None)
+    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION'] == bench_name] if bench_name else pd.DataFrame()
 
 ## Map relevant events to a standard description ##
 
