@@ -221,7 +221,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 @st.cache_data(ttl=400)
 def fetch_data():
-    data = client.query_and_wait(all_sql).to_dataframe()
+    data = client.query_and_wait(athletes_map_sql).to_dataframe()
 
     data.dropna(how= "all", axis=1, inplace=True)
 
@@ -241,7 +241,7 @@ def fetch_data():
 
   #  data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
     
-    data['MAPPED_EVENT']=''
+#    data['MAPPED_EVENT']=''
 
 #    map_international_events(data) # call function
 
