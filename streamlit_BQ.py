@@ -304,14 +304,11 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
   #  names = clean_columns(names)  # clean name list of special characters, white spaces etc.
 
-    names['VARIATION'] = names['VARIATION'].str.casefold() # convert to lower case
-    names['NAME'] = names['NAME'].str.casefold()
-
+    
 
 # Iterate over dataframe and replace names
     
-    df['NAME'] = df['NAME'].str.casefold()  # everything lower case
-
+   
   #  for index, row in names.iterrows():
         
   #      df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
@@ -321,13 +318,14 @@ if benchmark_option != 'None - Direct Access to All Database Records':
    #     df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
 
-    variation_map = dict(zip(names['VARIATION'], names['NAME']))
-    regex = '|'.join(map(re.escape, variation_map.keys()))
-    df['NAME'] = df['NAME'].str.replace(regex, lambda m: variation_map[m.group(0)], regex=True)
+    # Name normalization, vectorized
+    names['VARIATION'] = names['VARIATION'].str.casefold()
+    names['NAME'] = names['NAME'].str.casefold()
+    name_map = dict(zip(names['VARIATION'], names['NAME']))
+    name_regex = '|'.join(map(re.escape, name_map))
+    df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
 
     
-    df['NAME'] = df['NAME'].str.title()  # capitalize first letter
-
 # Remove foreigners
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
