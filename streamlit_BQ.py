@@ -32,11 +32,20 @@ from google.cloud import bigquery
 
 ## Create BigQuery API client ##
 
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"]
-)
+#credentials = service_account.Credentials.from_service_account_info(
+#    st.secrets["gcp_service_account"]
+#)
 
-client = bigquery.Client(credentials=credentials)
+#client = bigquery.Client(credentials=credentials)
+
+@st.cache_resource
+def get_bq_client():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+    return bigquery.Client(credentials=credentials)
+client = get_bq_client()
+
 
 ## Read csv file containing list of foreigners ##
 @st.cache_data(ttl=500)
