@@ -263,8 +263,11 @@ def fetch_all_data():  # fetch athlete results
 
     return all_data
 
+## Get all the data ##
 
 data = fetch_data() # fetch the entire database of results
+all_data = fetch_all_data()
+
 
 data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
