@@ -421,9 +421,14 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         
   #      df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
 
-    for row in names.itertuples():  # itertuples is faster
+   # for row in names.itertuples():  # itertuples is faster
         
-        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+   #     df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+
+
+    variation_map = dict(zip(names['VARIATION'], names['NAME']))
+    regex = '|'.join(map(re.escape, variation_map.keys()))
+    df['NAME'] = df['NAME'].str.replace(regex, lambda m: variation_map[m.group(0)], regex=True)
 
     
     df['NAME'] = df['NAME'].str.title()  # capitalize first letter
