@@ -229,7 +229,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 ## Download all athlete data from BQ
 
 @st.cache_data(ttl=400)
-def fetch_data():
+def fetch_data():  # fetch athlete results
     data = client.query_and_wait(athletes_sql).to_dataframe()
 
     data.dropna(how= "all", axis=1, inplace=True)
@@ -254,8 +254,16 @@ def fetch_data():
 
 #    map_international_events(data) # call function
 
-
     return data
+
+@st.cache_data(ttl=400)
+def fetch_all_data():  # fetch athlete results
+    
+    all_data = client.query_and_wait(all_sql).to_dataframe()
+
+    return all_data
+
+
 data = fetch_data() # fetch the entire database of results
 
 data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
@@ -302,7 +310,7 @@ benchmark_option = st.selectbox(
 
 if benchmark_option == 'None - Direct Access to All Database Records':
 
-    final_dfs, code = spreadsheet(athletes_selected)
+    final_dfs, code = spreadsheet(all_data)
 
     benchmark = pd.DataFrame()
 
