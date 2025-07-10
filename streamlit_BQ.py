@@ -224,7 +224,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 @st.cache_data(ttl=400)
 def fetch_data():  # fetch athlete results
-    data = client.query_and_wait(athletes_map_sql).to_dataframe()
+    data = client.query_and_wait(athletes_sql).to_dataframe()
 
     data.dropna(how= "all", axis=1, inplace=True)
 
