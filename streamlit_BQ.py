@@ -222,6 +222,12 @@ athletes_selected = data.loc[mask]
 
 #    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
+benchmark_option = st.selectbox(
+    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
+    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", 
+     "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
+)
+
 if benchmark_option == 'None - Direct Access to All Database Records':
     from mitosheet.streamlit.v1 import spreadsheet
     final_dfs, code = spreadsheet(all_data)
