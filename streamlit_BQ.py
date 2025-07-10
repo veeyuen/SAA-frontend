@@ -84,12 +84,6 @@ exclusions = foreign_list_casefold
     
 ### DEFINE SQL QUERIES ###
 
-seag_benchmark_sql = """
-SELECT YEAR, EVENT, SUB_EVENT, GENDER, NAME, RESULT, RANK, CATEGORY_EVENT, COMPETITION, STAGE, HEAT
-FROM `saa-analytics.benchmarks.saa_benchmarks_prod`
-WHERE YEAR='2023' AND COMPETITION='Southeast Asian Games' AND (RANK='3' OR RANK='3.0')
-"""
-
 athletes_sql="""
 SELECT NAME, RESULT, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE, DICT_RESULTS, SOURCE, REMARKS, SUB_EVENT,  DIVISION, EVENT, DATE, DISTANCE, EVENT_CLASS, UNIQUE_ID, DOB, NATIONALITY, WIND, CATEGORY_EVENT, GENDER, COMPETITION, YEAR, REGION
 FROM `saa-analytics.results.PRODUCTION` 
@@ -265,8 +259,8 @@ def fetch_all_data():  # fetch athlete results
 
 ## Get all the data ##
 
-data = fetch_data() # fetch the entire database of results
-all_data = fetch_all_data()
+data = fetch_data() # fetch the database of results for selected period
+all_data = fetch_all_data() # fetch the entire database
 
 data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
