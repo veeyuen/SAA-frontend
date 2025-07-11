@@ -396,7 +396,7 @@ else:
 
 ## Map benchmarks ##
 
-st.dataframe(athletes_selected)
+#st.dataframe(athletes_selected)
 
 if benchmark_option != 'None - Direct Access to All Database Records':
 
