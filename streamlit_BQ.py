@@ -295,7 +295,6 @@ end = np.datetime64(end_date)
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 
-st.dataframe(athletes_selected)
 ## Allow public access via mito
 
 #final_dfs, code = spreadsheet(athletes_selected)
@@ -393,6 +392,8 @@ else:
   #  athletes_selected = data.loc[combined_mask]
 
 ## Map benchmarks ##
+
+st.dataframe(athletes_selected)
 
 if benchmark_option != 'None - Direct Access to All Database Records':
 
