@@ -264,7 +264,7 @@ def fetch_all_data():  # fetch athlete results
 data = fetch_data() # fetch the database of results for selected period
 all_data = fetch_all_data() # fetch the entire database
 
-data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+#data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
 # datetime to contain UTC (timezone)
 
