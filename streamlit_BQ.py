@@ -296,6 +296,7 @@ data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for comp
 
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
+athletes_selected.reset_index(drop=True, inplace=True)
 
 ## Allow public access via mito
 
