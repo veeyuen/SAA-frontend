@@ -291,7 +291,7 @@ end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY')
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-st.write(data['DATE'])
+st.write(end)
 
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
