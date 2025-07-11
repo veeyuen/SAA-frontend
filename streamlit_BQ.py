@@ -298,6 +298,8 @@ mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 athletes_selected.reset_index(drop=True, inplace=True)
 
+st.dataframe(athletes_selected)
+
 ## Allow public access via mito
 
 #final_dfs, code = spreadsheet(athletes_selected)
