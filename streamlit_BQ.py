@@ -278,8 +278,6 @@ data['event_month'] = data['DATE'].dt.month
 
 data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
 
-st.dataframe(data)
-
 ## Convert DATE to datetime with timezone ##
 
 
@@ -297,7 +295,7 @@ end = np.datetime64(end_date)
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 
-
+st.dataframe(athletes_selected)
 ## Allow public access via mito
 
 #final_dfs, code = spreadsheet(athletes_selected)
