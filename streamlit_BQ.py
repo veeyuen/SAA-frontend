@@ -232,19 +232,19 @@ def fetch_data():  # fetch athlete results
 
     # DATE column to contain timezone - tz aware mode
 
-#    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
     # datetime to contain UTC (timezone)
 
-#    data['NOW'] = datetime.datetime.now()
-#    timezone = pytz.timezone('UTC')
-#    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+    data['NOW'] = datetime.datetime.now()
+    timezone = pytz.timezone('UTC')
+    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
 
-#    data['delta_time'] = data['NOW'] - data['DATE']
-#    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
-#    data['event_month'] = data['DATE'].dt.month
+    data['delta_time'] = data['NOW'] - data['DATE']
+    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
+    data['event_month'] = data['DATE'].dt.month
 
-#    data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+    data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
     
     data['MAPPED_EVENT']=''
 
@@ -268,15 +268,15 @@ data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=
 
 # datetime to contain UTC (timezone)
 
-data['NOW'] = datetime.datetime.now()
-timezone = pytz.timezone('UTC')
-data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+#data['NOW'] = datetime.datetime.now()
+#timezone = pytz.timezone('UTC')
+#data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
 
-data['delta_time'] = data['NOW'] - data['DATE']
-data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
-data['event_month'] = data['DATE'].dt.month
+#data['delta_time'] = data['NOW'] - data['DATE']
+#data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
+#data['event_month'] = data['DATE'].dt.month
 
-data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+#data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
 
 ## Convert DATE to datetime with timezone ##
 
