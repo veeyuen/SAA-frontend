@@ -244,7 +244,6 @@ def fetch_data():  # fetch athlete results
     data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
     data['event_month'] = data['DATE'].dt.month
 
-    data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
     
     data['MAPPED_EVENT']=''
 
@@ -291,7 +290,8 @@ end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY')
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-st.write(end)
+data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+    
 
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
