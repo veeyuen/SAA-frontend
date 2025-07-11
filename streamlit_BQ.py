@@ -426,7 +426,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
 
-    st.dataframe(df)
 
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
@@ -463,6 +462,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 # Remove foreigners
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+
+    st.dataframe(df)
 
 # Choose the best result for each event participated by every athlete
 
