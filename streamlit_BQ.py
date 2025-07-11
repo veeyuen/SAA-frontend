@@ -278,6 +278,8 @@ data['event_month'] = data['DATE'].dt.month
 
 data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
 
+st.dataframe(data)
+
 ## Convert DATE to datetime with timezone ##
 
 
