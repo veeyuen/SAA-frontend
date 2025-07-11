@@ -291,7 +291,7 @@ end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY')
 start = np.datetime64(start_date)
 end = np.datetime64(end_date)
 
-data['DATE'] = data['DATE'].astype('datetime64[ns]')  ## NEW ##
+data['DATE'] = pd.to_datetime(data['DATE'], utc=True)  ## NEW ##
 
 
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
