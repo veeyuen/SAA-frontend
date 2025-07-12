@@ -299,8 +299,6 @@ athletes_selected = data.loc[mask]
 athletes_selected.reset_index(drop=True, inplace=True)
 
 
-st.write(len(athletes_selected[athletes_selected['MAPPED_EVENT']=='']))
-
 ## Allow public access via mito
 
 #final_dfs, code = spreadsheet(athletes_selected)
@@ -426,6 +424,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
+
+    st.dataframe(df)
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
