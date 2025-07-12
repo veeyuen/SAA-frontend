@@ -426,7 +426,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
 
-
+    st.dataframe(df)
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
@@ -486,7 +486,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
 
-    st.dataframe(df_local_teams)
     # Remove foreign/national teams and nationalities efficiently
     
  #   excluded_teams = {
