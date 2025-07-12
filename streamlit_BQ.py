@@ -222,8 +222,6 @@ def fetch_benchmarks():
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
-st.dataframe(benchmarks)
-
 ## Download all athlete data from BQ
 
 @st.cache_data(ttl=400)
