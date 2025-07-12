@@ -425,7 +425,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
 
-    st.dataframe(df)
 # Name corrections
 # Read name variations from GCS name lists bucket (Still in beta)
 
@@ -462,6 +461,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
+    
+
 # Choose the best result for each event participated by every athlete
 
 #top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
@@ -484,6 +485,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
+    st.dataframe(df_local_teams)
 
     # Remove foreign/national teams and nationalities efficiently
     
