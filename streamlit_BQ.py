@@ -298,9 +298,8 @@ mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 athletes_selected.reset_index(drop=True, inplace=True)
 
-st.dataframe(athletes_selected)
 
-#st.dataframe(athletes_selected)
+st.dataframe(athletes_selected[athletes_selected['MAPPED_EVENT]=='')
 
 ## Allow public access via mito
 
