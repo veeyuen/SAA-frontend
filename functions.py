@@ -312,7 +312,7 @@ def map_international_events(athletes):
              & ((athletes['EVENT_CLASS'].str.contains('None', na=False))|(athletes['EVENT_CLASS']==np.nan)|(athletes['EVENT_CLASS']=='')) 
              & athletes['REGION'].str.contains(r'International', na=False) & (athletes['DIVISION'].str.contains(r'None', na=False)))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-   mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['EVENT_CLASS'].str.contains('0.84|0.838', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))  # this is the correct syntax
+    mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['EVENT_CLASS'].str.contains('0.84|0.838', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['DIVISION'].str.contains('None', na=False) & athletes['GENDER'].str.contains(r'Female', na=False) & athletes['REGION'].str.contains(r'International', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
