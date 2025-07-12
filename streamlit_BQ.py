@@ -484,7 +484,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
-    
+
+
+    st.dataframe(df_local_teams)
     # Remove foreign/national teams and nationalities efficiently
     
  #   excluded_teams = {
@@ -499,7 +501,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     top_performers_clean.reset_index(inplace=True, drop=True)
 
-    st.dataframe(top_performers_clean)
     
     
     # Create performance tier column
