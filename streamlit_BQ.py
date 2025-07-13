@@ -455,7 +455,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     names['NAME'] = names['NAME'].str.casefold()
     name_map = dict(zip(names['VARIATION'], names['NAME']))
     name_regex = '|'.join(map(re.escape, name_map))
-    df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
+    df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True)
+   # df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
+
 
     st.write(df['NAME'])
     
