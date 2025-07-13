@@ -82,6 +82,8 @@ foreign_list_casefold=[s.casefold() for s in foreign_list]
 
 exclusions = foreign_list_casefold
 
+st.write(exclusions)
+
 #foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
 #foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
 #foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
@@ -455,8 +457,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     name_map = dict(zip(names['VARIATION'], names['NAME']))
     name_regex = '|'.join(map(re.escape, name_map))
     df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
-
-    st.dataframe(df)
 
     
 # Remove foreigners
