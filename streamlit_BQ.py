@@ -456,12 +456,13 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     name_regex = '|'.join(map(re.escape, name_map))
     df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
 
+    st.dataframe(df)
+
     
 # Remove foreigners
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
-    st.dataframe(df)
 
 # Choose the best result for each event participated by every athlete
 
