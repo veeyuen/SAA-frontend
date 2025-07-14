@@ -462,8 +462,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
 # Remove foreigners
 
-  #  st.write(df['NAME'])
-    st.write(exclusions)
+    st.write(df['NAME'])
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
 
