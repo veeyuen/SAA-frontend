@@ -342,7 +342,7 @@ benchmark_option = st.selectbox(
 if benchmark_option == 'None - Direct Access to All Database Records':
     from mitosheet.streamlit.v1 import spreadsheet
     final_dfs, code = spreadsheet(all_data)
-    st.write(final_dfs)
+  #  st.write(final_dfs)
 else:
     # Fast lookup for benchmarks
     bench_map = {
