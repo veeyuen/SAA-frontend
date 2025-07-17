@@ -464,7 +464,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
-    st.dataframe(df)
 
 
 # Choose the best result for each event participated by every athlete
@@ -488,6 +487,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
+
+        st.dataframe(local_teams)
+
 
     # Remove foreign/national teams and nationalities efficiently
     
