@@ -488,7 +488,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
-    st.dataframe(local_teams)
+    st.dataframe(df_local_teams)
 
 
     # Remove foreign/national teams and nationalities efficiently
