@@ -503,24 +503,13 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
     df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
 
-    st.write('No Foreigners List')
-    st.write(len(df_local_teams))
-
-   # st.dataframe(df_local_teams)
-
+    
     
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
     
     top_performers_clean.reset_index(inplace=True, drop=True)
 
-    st.write('Top Performance For Each Athlete')
-    st.write(len(top_performers_clean))
 
- #   st.dataframe(top_performers_clean)
-
-
-    
-    
     # Create performance tier column
     
     top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',    
@@ -603,7 +592,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
     
     st.write('Tiered Top Level Athletes Count')
-    st.write(len(final_df))
 
    # final_df = final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
    ## 'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
