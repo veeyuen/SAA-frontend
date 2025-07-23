@@ -601,6 +601,10 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 
     final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
+
+    st.write('Tiered Top Level Athletes Count')
+    st.write(len(final_df))
+
    # final_df = final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
    ## 'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
    # 'MAPPED_EVENT', 'BENCHMARK_COMPETITION', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']]
