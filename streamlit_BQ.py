@@ -543,6 +543,10 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                         'REGION', 'SOURCE', 'REMARKS', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
                         '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER'])
 
+    st.write('Final DF No NaN Benchmarks')
+    st.write(len(final_df))
+
+
 
     if benchmark_option == '2023 SEAG Bronze - OCTC':   # Additional logic for OCTC report
 
