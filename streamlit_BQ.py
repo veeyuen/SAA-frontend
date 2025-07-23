@@ -600,8 +600,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 
 
-    final_df = final_df[final_df['TIER']!=' ']  # Choose only those record with Tier value
-
+    final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
+    
     st.write('Tiered Top Level Athletes Count')
     st.write(len(final_df))
 
