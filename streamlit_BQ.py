@@ -466,7 +466,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
     
-    st.write(len(df))
+  #  st.write(len(df))
 
 # Choose the best result for each event participated by every athlete
 
@@ -490,14 +490,12 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
-    st.write('No Foreigners List')
-    st.write(len(df_local_teams))
+   # st.write('No Foreigners List')
+   # st.write(len(df_local_teams))
 
-    st.dataframe(df_local_teams)
+   # st.dataframe(df_local_teams)
 
     
-    #st.dataframe(df_local_teams)
-
 
     # Remove foreign/national teams and nationalities efficiently
     
@@ -512,6 +510,11 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
     
     top_performers_clean.reset_index(inplace=True, drop=True)
+
+    st.write(len(top_performers_clean))
+
+   st.dataframe(top_performers_clean)
+
 
     
     
