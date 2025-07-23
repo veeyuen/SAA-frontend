@@ -467,6 +467,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     
     st.write('Foreigners List')
+    st.write(len(df))
     st.dataframe(df)
 
 
