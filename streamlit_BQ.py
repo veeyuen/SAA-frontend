@@ -483,6 +483,10 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
     df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
 
+    st.write('Only Locals')
+    st.dataframe(len(df_local_teams))
+
+    
 
     # Find out top performance for each athlete and event
     
@@ -490,7 +494,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     top_performers_clean.reset_index(inplace=True, drop=True)
 
-    
+    st.write('Top Athlete Result')
+    st.write(len(top_performers_clean))
+
 
     # Create performance tier column
     
@@ -515,7 +521,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                         '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER'])
 
     st.write('Tiered')
-    st.dataframe(df_no_na)
+    st.write(len(df_no_na))
 
    
 
