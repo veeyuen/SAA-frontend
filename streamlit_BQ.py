@@ -484,7 +484,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
 
     st.write('Only Locals')
-    st.dataframe(len(df_local_teams))
+    st.write(len(df_local_teams))
 
     
 
