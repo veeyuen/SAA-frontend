@@ -248,7 +248,9 @@ def fetch_data():  # fetch athlete results
     
     data['MAPPED_EVENT']=''
 
-    map_international_events(data) # call function
+    map_international_events(data) # call function to map relevant events
+
+    process_results(data) # convert results into seconds format
 
     return data
 
@@ -419,7 +421,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
 
-    process_results(df) # call function to convert results to standard float64 format
+#    process_results(df) # call function to convert results to standard float64 format
 
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
