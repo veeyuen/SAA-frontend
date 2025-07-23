@@ -491,6 +491,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
     st.write('No Foreigners List')
+    st.write(len(df_local_teams))
+
     st.dataframe(df_local_teams)
 
     
