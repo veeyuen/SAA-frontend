@@ -440,7 +440,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     
 
-# Iterate over dataframe and replace names
+# Iterate over dataframe and replace names using casefold then convert to capitalize first letter
 
     df['NAME'] = df['NAME'].str.casefold()  # convert everything to lower case (NEW)
 
@@ -452,7 +452,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         
         df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
-    
+    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
+
 
 # Name normalization, vectorized
     
@@ -497,6 +498,8 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     top_performers_clean.reset_index(inplace=True, drop=True)
 
+
+    
     st.write('Top Athlete Result')
     st.write(len(top_performers_clean))
 
