@@ -477,22 +477,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 # Process list of foreign names and their variations
 
-#    df_local_teams = df[(df['TEAM']!='Malaysia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='China') 
-#                           &(df['TEAM']!='South Korea')&(df['TEAM']!='Laos')&(df['TEAM']!='Thailand')&(df['TEAM']!='Myanmar') 
-#                           &(df['TEAM']!='Philippines')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                           &(df['TEAM']!='Chinese Taipei')&(df['TEAM']!='Gurkha Contingent') 
-#                           &(df['TEAM']!='Australia')&(df['TEAM']!='Piboonbumpen Thailand') 
-#                           &(df['TEAM']!='Hong Kong')&(df['TEAM']!='PERAK')&(df['TEAM']!='Sri Lanka') 
-#                           &(df['TEAM']!='Indonesia')&(df['TEAM']!='THAILAND')&(df['TEAM']!='MALAYSIA') 
-#                           &(df['TEAM']!='PHILIPPINES') & (df['TEAM']!='SOUTH KOREA')&(df['TEAM']!='Waseda') 
-#                           &(df['TEAM']!='LAOS')&(df['TEAM']!='CHINESE TAIPEI')&(df['TEAM']!='Vietnam')
-#                           &(df['TEAM']!='INDIA')&(df['TEAM']!='Hong Kong, China')&(df['TEAM']!='AIC JAPAN')
-#                           &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
-#                           &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
-
-
-    
-
     # Remove foreign/national teams and nationalities efficiently
     
     excluded_teams = {
@@ -532,10 +516,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                         'REGION', 'SOURCE', 'REMARKS', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
                         '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER'])
 
-    st.write('Final DF No NaN Benchmarks')
-    st.write(len(df_no_na))
-
-
+   
 
     if benchmark_option == '2023 SEAG Bronze - OCTC':   # Additional logic for OCTC report
 
@@ -591,7 +572,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
     
-    st.write('Tiered Top Level Athletes Count')
 
    # final_df = final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
    ## 'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
