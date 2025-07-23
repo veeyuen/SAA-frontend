@@ -452,8 +452,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         
         df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
-    st.write('Foreigners List')
-    st.write(len(df))
     
 
     # Name normalization, vectorized
@@ -466,7 +464,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 # Remove foreigners
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
-#    df = df.loc[df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
     
     st.dataframe(df)
@@ -494,6 +491,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
                            &(df['NATIONALITY']!='GBR')&(df['NATIONALITY']!='IND')&(df['NATIONALITY']!='MAS')&(df['NATIONALITY']!='INA')&(df['NATIONALITY']!='JPN')
                            &(df['NATIONALITY']!='SRI')&(df['NATIONALITY']!='THA')] 
 
+    st.write('No Foreigners List')
+    st.write(len(df_local_teams))
+    
     #st.dataframe(df_local_teams)
 
 
