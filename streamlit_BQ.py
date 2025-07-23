@@ -462,9 +462,11 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
 # Remove foreigners
 
-    df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+#    df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+    df = df.loc[df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
-    st.write('Foreigners Filtered Out')
+    
+    st.write('Foreigners List')
     st.dataframe(df)
 
 
