@@ -441,6 +441,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
 
 # Iterate over dataframe and replace names
+
+    df['NAME'] = df['NAME'].str.casefold()  # convert everything to lower case (NEW)
+
     
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
