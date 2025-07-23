@@ -483,11 +483,15 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
     df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
 
-    
+
+    # Find out top performance for each athlete and event
     
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
     
     top_performers_clean.reset_index(inplace=True, drop=True)
+
+    st.write('Top Result')
+    st.dataframe(top_performers_clean)
 
 
     # Create performance tier column
