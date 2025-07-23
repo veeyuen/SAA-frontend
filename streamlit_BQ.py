@@ -452,6 +452,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
         
         df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
+    st.write('Foreigners List')
+    st.write(len(df))
+    
 
     # Name normalization, vectorized
   #  names['VARIATION'] = names['VARIATION'].str.casefold()
@@ -466,8 +469,6 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 #    df = df.loc[df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
     
-    st.write('Foreigners List')
-    st.write(len(df))
     st.dataframe(df)
 
 
