@@ -466,7 +466,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
     
-    st.write(len(df_local_teams))
+    st.write(len(df))
 
 # Choose the best result for each event participated by every athlete
 
