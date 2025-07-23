@@ -442,35 +442,28 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
 # Iterate over dataframe and replace names
     
-   
-  #  for index, row in names.iterrows():
-        
-  #      df['NAME'] = df['NAME'].replace(regex=rf"{row['VARIATION']}", value=f"{row['NAME']}")
+    names['VARIATION'] = names['VARIATION'].str.casefold()
+    names['NAME'] = names['NAME'].str.casefold()
 
-#    names['VARIATION'] = names['VARIATION'].str.casefold()
-#    names['NAME'] = names['NAME'].str.casefold()
-
-#    for row in names.itertuples():  # itertuples is faster
+    for row in names.itertuples():  # itertuples is faster
         
-#        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
     
 
 # Name normalization, vectorized
     
-    names['VARIATION'] = names['VARIATION'].str.casefold()
-    names['NAME'] = names['NAME'].str.casefold()
-    name_map = dict(zip(names['VARIATION'], names['NAME']))
-    name_regex = '|'.join(map(re.escape, name_map))
-    df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
+   # names['VARIATION'] = names['VARIATION'].str.casefold()
+   # names['NAME'] = names['NAME'].str.casefold()
+   # name_map = dict(zip(names['VARIATION'], names['NAME']))
+   # name_regex = '|'.join(map(re.escape, name_map))
+   # df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
     
 # Remove foreigners
 
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
     
-  #  st.write(len(df))
-
 # Choose the best result for each event participated by every athlete
 
 #top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
