@@ -490,9 +490,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     
     top_performers_clean.reset_index(inplace=True, drop=True)
 
-    st.write('Top Result')
-    st.dataframe(top_performers_clean)
-
+    
 
     # Create performance tier column
     
@@ -515,6 +513,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
     df_no_na = df_no_na.reindex(columns= ['NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'RESULT_CONV', 'WIND', 'EVENT_x', 'MAPPED_EVENT', 'CATEGORY_EVENT', 'SUB_EVENT', 'DISTANCE', 'DIVISION', 'STAGE', 'AGE',  'DOB', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULTS', 'YEAR', 'DATE', 'COMPETITION',
                         'REGION', 'SOURCE', 'REMARKS', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
                         '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER'])
+
+    st.write('Tiered')
+    st.dataframe(df_no_na)
 
    
 
