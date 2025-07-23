@@ -495,7 +495,7 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     # Remove foreign/national teams and nationalities efficiently
     
-      excluded_teams = {
+    excluded_teams = {
         'Malaysia','THAILAND','China','South Korea','Laos','Myanmar','Philippines',
         'Piboonbumpen Thailand','Chinese Taipei','Gurkha Contingent','Australia','Hong Kong',
         'PERAK','Sri Lanka','Indonesia','Waseda','Vietnam','INDIA','Hong Kong, China','AIC JAPAN'
