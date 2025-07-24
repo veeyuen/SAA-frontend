@@ -17,6 +17,7 @@ from functions import convert_time, process_results, map_international_events, c
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
+
 from matplotlib import pyplot as plt
 
 from pandas.api.types import (
@@ -342,21 +343,24 @@ benchmark_option = st.selectbox(
 )
 
 if benchmark_option == 'None - Direct Access to All Database Records':
-    from mitosheet.streamlit.v1 import spreadsheet
-    final_dfs, code = spreadsheet(all_data)
-  #  st.write(final_dfs)
-
-    # Allow text search on athlete name and/or competition
     
     text_search = st.text_input("Search Results by Athlete Name or Competition", value="")
-    m1 = final_df["NAME"].str.contains(text_search)
-    m2 = final_df["COMPETITION"].str.contains(text_search)
-    df_search = final_df[m1 | m2]
+    m1 = all_data["NAME"].str.contains(text_search)
+    m2 = all_data["COMPETITION"].str.contains(text_search)
+    df_search = all_data[m1 | m2]
 
     # Show the results, if you have a text_search
     if text_search:
         st.write(df_search)
 
+    
+    
+    final_dfs, code = spreadsheet(all_data)
+  #  st.write(final_dfs)
+
+    # Allow text search on athlete name and/or competition
+    
+    
 else:
     # Fast lookup for benchmarks
     bench_map = {
