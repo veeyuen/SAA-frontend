@@ -592,5 +592,20 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     final_df=final_df.reset_index(drop=True)
 
-    
-    st.write(final_df)
+    # Use a text_input to get the keywords to filter the dataframe
+
+    text_search = st.text_input("Search Results by Athlete Name or Competition", value="")
+
+    # Filter the dataframe using masks
+    m1 = final_df["NAME"].str.contains(text_search)
+    m2 = final_df["COMPETITION"].str.contains(text_search)
+    df_search = final_df[m1 | m2]
+
+    # Show the results, if you have a text_search
+    if text_search:
+        st.write(df_search)
+
+#    st.write(final_df)
+
+
+
