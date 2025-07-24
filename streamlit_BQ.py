@@ -345,6 +345,18 @@ if benchmark_option == 'None - Direct Access to All Database Records':
     from mitosheet.streamlit.v1 import spreadsheet
     final_dfs, code = spreadsheet(all_data)
   #  st.write(final_dfs)
+
+    # Allow text search on athlete name and/or competition
+    
+    text_search = st.text_input("Search Results by Athlete Name or Competition", value="")
+    m1 = final_df["NAME"].str.contains(text_search)
+    m2 = final_df["COMPETITION"].str.contains(text_search)
+    df_search = final_df[m1 | m2]
+
+    # Show the results, if you have a text_search
+    if text_search:
+        st.write(df_search)
+
 else:
     # Fast lookup for benchmarks
     bench_map = {
@@ -594,18 +606,9 @@ if benchmark_option != 'None - Direct Access to All Database Records':
 
     # Use a text_input to get the keywords to filter the dataframe
 
-    text_search = st.text_input("Search Results by Athlete Name or Competition", value="")
 
-    # Filter the dataframe using masks
-    m1 = final_df["NAME"].str.contains(text_search)
-    m2 = final_df["COMPETITION"].str.contains(text_search)
-    df_search = final_df[m1 | m2]
-
-    # Show the results, if you have a text_search
-    if text_search:
-        st.write(df_search)
-
-#    st.write(final_df)
+    
+    st.write(final_df)
 
 
 
