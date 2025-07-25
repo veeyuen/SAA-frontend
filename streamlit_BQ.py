@@ -338,13 +338,13 @@ athletes_selected.reset_index(drop=True, inplace=True)
 
 benchmark_option = st.selectbox(
     "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", 
+    ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
      "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
 )
 
 if benchmark_option == 'None - Direct Access to All Database Records':
     
-    text_search = st.text_input("Search Results by Athlete Name or Competition", value="")
+    text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
     m1 = all_data["NAME"].str.contains(text_search)
     m2 = all_data["COMPETITION"].str.contains(text_search)
     df_search = all_data[m1 | m2]
@@ -355,7 +355,7 @@ if benchmark_option == 'None - Direct Access to All Database Records':
 
     
     
-    final_dfs, code = spreadsheet(all_data)
+#    final_dfs, code = spreadsheet(all_data)
   #  st.write(final_dfs)
 
     # Allow text search on athlete name and/or competition
