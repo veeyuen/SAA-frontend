@@ -337,7 +337,7 @@ athletes_selected.reset_index(drop=True, inplace=True)
 #    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
 benchmark_option = st.selectbox(
-    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
+    "Please Select Report Option:",
     ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
      "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
 )
