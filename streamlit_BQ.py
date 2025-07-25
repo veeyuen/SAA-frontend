@@ -342,7 +342,7 @@ benchmark_option = st.selectbox(
      "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
 )
 
-if benchmark_option == 'None - Direct Access to All Database Records':
+if benchmark_option == 'Search Database Records by Name or Competition':
     
     text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
     m1 = all_data["NAME"].str.contains(text_search)
