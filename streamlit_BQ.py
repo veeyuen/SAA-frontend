@@ -418,7 +418,7 @@ else:
 
 #st.dataframe(athletes_selected)
 
-if benchmark_option != 'None - Direct Access to All Database Records':
+if benchmark_option != 'Search Database Records by Name or Competition':
 
     df = pd.merge(
         left=athletes_selected, 
