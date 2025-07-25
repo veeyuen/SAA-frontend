@@ -342,6 +342,8 @@ benchmark_option = st.selectbox(
      "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
 )
 
+st.write(' ')
+
 if benchmark_option == 'Search Database Records by Name or Competition':
     
     text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
