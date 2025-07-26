@@ -406,7 +406,10 @@ def map_international_events(athletes):
     
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['REGION'].str.contains(r'International', na=False) & athletes['EVENT_CLASS'].str.contains(r'None', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    
+
+    mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['REGION'].str.contains(r'International', na=False) & (athletes['EVENT_CLASS'].str.contains(r'', na=False)|athletes['EVENT_CLASS'].str.contains(r'nan', na=False))) 
+    athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
+
     
     
     # Jumps
