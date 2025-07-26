@@ -300,8 +300,9 @@ st.write(' ')
 if benchmark_option == 'Search Database Records by Name or Competition':
     
     text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
-    m1 = all_data["NAME"].str.contains(text_search)
-    m2 = all_data["COMPETITION"].str.contains(text_search)
+    text = text_search.casefold()
+    m1 = all_data["NAME"].str.casefold().contains(text)
+    m2 = all_data["COMPETITION"].str.casefold().contains(text)
     df_search = all_data[m1 | m2]
 
     # Show the results, if you have a text_search
@@ -458,7 +459,6 @@ if benchmark_option != 'Search Database Records by Name or Competition':
     
 # Choose the best result for each event participated by every athlete
 
-#top_performers = no_foreigners_list.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
 
 #st.write(foreigners)
 
