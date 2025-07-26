@@ -301,13 +301,20 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
     text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
     text = text_search.casefold()
-    m1 = all_data["NAME"].str.casefold().contains(text)
-    m2 = all_data["COMPETITION"].str.casefold().contains(text)
+
+    all_data['NAME_case'] = all_data["NAME"].str.casefold()
+    all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
+
+    
+    m1 = all_data["NAME_case"].str.contains(text)
+    m2 = all_data["COMPETITION_case"].str.contains(text)
     df_search = all_data[m1 | m2]
 
     # Show the results, if you have a text_search
     if text_search:
         st.write(df_search)
+
+    all_data.drop(['NAME_case', 'COMPETITION_case'], axis=1, inplace=True)
 
     
     
