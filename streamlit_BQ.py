@@ -287,21 +287,6 @@ all_data = fetch_all_data() # fetch the entire database
 # Make sure date conversion is is valid for all rows
 
 #assert not competitors['delta_time'].isna().any()
-'''
-start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-
-start = np.datetime64(start_date)
-end = np.datetime64(end_date)
-
-data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
-data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
-    
-
-mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
-athletes_selected = data.loc[mask]
-athletes_selected.reset_index(drop=True, inplace=True)
-'''
 
 
 benchmark_option = st.selectbox(
