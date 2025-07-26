@@ -287,7 +287,7 @@ all_data = fetch_all_data() # fetch the entire database
 # Make sure date conversion is is valid for all rows
 
 #assert not competitors['delta_time'].isna().any()
-
+'''
 start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
 end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
 
@@ -301,40 +301,8 @@ data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for comp
 mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
 athletes_selected = data.loc[mask]
 athletes_selected.reset_index(drop=True, inplace=True)
+'''
 
-
-## Allow public access via mito
-
-#final_dfs, code = spreadsheet(athletes_selected)
-
-#benchmark_option = st.selectbox(
-#    "Please Select Performance Benchmark (Select 'None' to Access All Records in Database)",
-#    ("None - Direct Access to All Database Records", "2023 SEAG Bronze - SEAG Selection", "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open"),
-#)
-
-#if benchmark_option == 'None - Direct Access to All Database Records':
-
-#    final_dfs, code = spreadsheet(all_data)
-
-#    benchmark = pd.DataFrame()
-
-#elif benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option == '2023 SEAG Bronze - OCTC Selection':
-
-#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2023 SEAG Bronze']
-
-
-#elif benchmark_option == '26th Asian Athletics':
-
-#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '26th Asian Athletics']
-
-
-#elif benchmark_option == '2025 Taiwan Open':
-
-#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 Taiwan Open']
-
-#elif benchmark_option == '2025 World Athletics Champs':
-
-#    benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION']== '2025 World Athletics Champs']
 
 benchmark_option = st.selectbox(
     "Please Select Report Option:",
@@ -364,6 +332,23 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
     
 else:
+
+    # Choose start and end dates
+    
+    start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+    end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
+
+    start = np.datetime64(start_date)
+    end = np.datetime64(end_date)
+
+    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+    data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
+    
+
+    mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
+    athletes_selected = data.loc[mask]
+    athletes_selected.reset_index(drop=True, inplace=True)
+
     # Fast lookup for benchmarks
     bench_map = {
         "2023 SEAG Bronze - SEAG Selection": '2023 SEAG Bronze',
