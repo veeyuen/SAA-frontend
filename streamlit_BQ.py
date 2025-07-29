@@ -244,8 +244,12 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         m2 = all_data["COMPETITION_case"].str.contains(text)
         df_search = all_data[m2]
 
+        df_display = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
+                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+    
+
         if text_search:
-            st.write(df_search)
+            st.write(df_display)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
