@@ -300,7 +300,7 @@ st.write(' ')
 if benchmark_option == 'Search Database Records by Name or Competition':
 
     search_option = st.selectbox(
-    "Select your search option:",
+    "Select Your Search Option:",
     options=['Athlete Name', 'Competition Name'],
     )
     if search_option=='Athlete Name':
