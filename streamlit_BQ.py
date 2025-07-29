@@ -228,7 +228,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
-        df_search = all_data[m1]
+        df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
         if text_search:
             st.write(df_search)
