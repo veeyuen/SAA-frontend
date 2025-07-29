@@ -255,7 +255,7 @@ def fetch_data():  # fetch athlete results
 
     return data
 
-@st.cache_data(ttl=400)
+@st.cache_data(ttl=600)
 def fetch_all_data():  # fetch athlete results
     
     all_data = client.query_and_wait(all_sql).to_dataframe()
@@ -325,7 +325,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         
        # m1 = all_data["NAME_case"].str.contains(text)
-        df_search = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
+        df_search = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)].unique())
 
      #   df_search = all_data[m1]
 
