@@ -222,7 +222,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         st.write(name_selected)
 
       #  st.write(name_selected[0])
-        m1 = all_data["NAME"].str.contains(name_selected[0])
+        m1 = all_data["NAME"].str.contains(name_selected)
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
