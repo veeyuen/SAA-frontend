@@ -308,7 +308,22 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         text_search = st.text_input("Enter Search Keyword for Athlete Name", value="")
         text = text_search.casefold()
 
+        all_data['NAME'] = all_data['NAME'].str.casefold()  # convert everything to lower case (NEW)
+
+    
+        names['VARIATION'] = names['VARIATION'].str.casefold()
+        names['NAME'] = names['NAME'].str.casefold()
+
+        for row in names.itertuples():  # itertuples is faster
+        
+            all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+
+        
+        all_data['NAME'] = all_data['NAME'].str.title()  # capitalize first letter (NEW)
+
         all_data['NAME_case'] = all_data["NAME"].str.casefold()
+
+        
         m1 = all_data["NAME_case"].str.contains(text)
         df_search = all_data[m1]
 
