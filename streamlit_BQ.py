@@ -229,8 +229,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #  name_selected = st.multiselect('Select From List of Matches :', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
         name_selected = st.selectbox('Select From List of Matches :', combinations)
 
+        try:
       #  st.write(name_selected[0])
-        m1 = all_data["NAME"].str.contains(name_selected)
+            m1 = all_data["NAME"].str.contains(name_selected)
+        except:
+            st.write("Keyword Does Not Exist in Database")
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
