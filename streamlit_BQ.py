@@ -303,7 +303,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     "Select your search option:",
     options=['Name', 'Competition'],
     )
-    if search_option='Name':
+    if search_option=='Name':
     
         text_search = st.text_input("Enter Search Keyword for Athlete", value="")
         text = text_search.casefold()
@@ -319,7 +319,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
     
 
-    elif search_option='Competition':
+    elif search_option=='Competition':
 
         ext_search = st.text_input("Enter Search Keyword for Competition", value="")
         text = text_search.casefold()
