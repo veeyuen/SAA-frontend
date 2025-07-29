@@ -491,13 +491,6 @@ if benchmark_option != 'Search Database Records by Name or Competition':
     df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
 
 
-# Name normalization, vectorized
-    
- #   names['VARIATION'] = names['VARIATION'].str.casefold()
- #   names['NAME'] = names['NAME'].str.casefold()
- #   name_map = dict(zip(names['VARIATION'], names['NAME']))
- #   name_regex = '|'.join(map(re.escape, name_map))
- #   df['NAME'] = df['NAME'].str.casefold().replace(name_regex, lambda m: name_map[m.group(0)], regex=True).str.title()
     
 # Remove foreigners
 
@@ -599,10 +592,7 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
         rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
 
-        #final_df = rerank_filtered_octc[['NAME', 'RANK', 'TEAM', 'RESULT', 'WIND', 'EVENT_x', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULT', 'YEAR', 'COMPETITION', 'DOB', 'CATEGORY_EVENT',
-        #                                'REGION', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'DISTANCE', 'event_date_dt', 'MAPPED_EVENT', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
-        #                                '10%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']]
-
+        
         final_df = rerank_filtered_octc
 
 
@@ -620,10 +610,6 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
     final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
     
-
-   # final_df = final_df.loc[:, ['NAME', 'RANK', 'TEAM', 'RESULT', 'QUALIFICATION', 'WIND', 'DIVISION', 'STAGE', 'POINTS', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
-   ## 'DICT_RESULTS', 'COMPETITION', 'REGION', 'DOB', 'CATEGORY_EVENT', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'SESSION', 'EVENT_CLASS', 'event_date_dt',
-   # 'MAPPED_EVENT', 'BENCHMARK_COMPETITION', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']]
 
     final_df=final_df.reset_index(drop=True)
 
