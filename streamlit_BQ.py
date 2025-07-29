@@ -49,14 +49,14 @@ client = get_bq_client()
 
 
 ## Read csv file containing list of foreigners ##
-@st.cache_data(ttl=500)
+@st.cache_data(ttl=6000)
 def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
 foreigners = fetch_foreigners()  # get list of foreigners
 
-@st.cache_data(ttl=500)
+@st.cache_data(ttl=6000)
 def name_variations():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
@@ -110,7 +110,7 @@ SELECT * FROM `saa-analytics.results.PRODUCTION`
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
 
-@st.cache_data(ttl=400)
+@st.cache_data(ttl=6000)
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
@@ -119,7 +119,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
-@st.cache_data(ttl=400)
+@st.cache_data(ttl=6000)
 def fetch_data():  # fetch athlete results
     data = client.query_and_wait(athletes_sql).to_dataframe()
 
