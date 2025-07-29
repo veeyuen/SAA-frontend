@@ -301,11 +301,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
     search_option = st.selectbox(
     "Select your search option:",
-    options=['Name', 'Competition'],
+    options=['Athlete Name', 'Competition Name'],
     )
     if search_option=='Name':
     
-        text_search = st.text_input("Enter Search Keyword for Athlete", value="")
+        text_search = st.text_input("Enter Search Keyword for Athlete Name", value="")
         text = text_search.casefold()
 
         all_data['NAME_case'] = all_data["NAME"].str.casefold()
@@ -321,7 +321,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
     elif search_option=='Competition':
 
-        text_search = st.text_input("Enter Search Keyword for Competition", value="")
+        text_search = st.text_input("Enter Search Keyword for Competition Name", value="")
         text = text_search.casefold()
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
