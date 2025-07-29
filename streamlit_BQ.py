@@ -325,7 +325,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         
        # m1 = all_data["NAME_case"].str.contains(text)
-        df_search = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)].unique())
+        df_search = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique())
 
      #   df_search = all_data[m1]
 
