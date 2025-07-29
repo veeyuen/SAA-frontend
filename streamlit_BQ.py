@@ -321,7 +321,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
     elif search_option=='Competition':
 
-        ext_search = st.text_input("Enter Search Keyword for Competition", value="")
+        text_search = st.text_input("Enter Search Keyword for Competition", value="")
         text = text_search.casefold()
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
