@@ -214,7 +214,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         all_data['NAME'] = all_data['NAME'].str.title()  # capitalize first letter (NEW)
 
-      #  all_data['NAME_case'] = all_data["NAME"].str.casefold()
+        all_data['NAME_case'] = all_data["NAME"].str.casefold()
 
         combinations = all_data[all_data['NAME'].str.casefold().str.contains(text)]['NAME'].unique().tolist()
  
@@ -227,6 +227,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
+
+        df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
+                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+    
 
         if text_search:
             st.write(df_search)
@@ -244,12 +248,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         m2 = all_data["COMPETITION_case"].str.contains(text)
         df_search = all_data[m2]
 
-        df_display = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
-                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
-    
+        
 
         if text_search:
-            st.write(df_display)
+            st.write(df_sear)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
