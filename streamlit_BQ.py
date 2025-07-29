@@ -257,13 +257,24 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         text = text_search.casefold()
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
-        m2 = all_data["COMPETITION_case"].str.contains(text)
+        
+        try:
+      #  st.write(name_selected[0])
+            m2 = all_data["COMPETITION_case"].str.contains(text)
+        except:
+            st.write("Keyword Does Not Exist in Database")
+            m2 = all_data["COMPETITION_case"].notnull()
+
         df_search = all_data[m2]
+
+        df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
+                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+    
 
         
 
         if text_search:
-            st.write(df_sear)
+            st.write(df_search)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
