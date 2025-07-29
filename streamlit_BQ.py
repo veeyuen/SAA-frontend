@@ -221,10 +221,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #  name_selected = st.multiselect('Select From List of Matches :', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
         name_selected = st.multiselect('Select From List of Matches :', combinations)
 
-        st.write(name_selected)
+        st.write(name_selected[0])
 
       #  st.write(name_selected[0])
-        m1 = all_data["NAME"].str.contains(name_selected)
+        m1 = all_data["NAME"].str.contains(name_selected[0])
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
