@@ -106,113 +106,6 @@ all_sql="""
 SELECT * FROM `saa-analytics.results.PRODUCTION`
 """
 
-athletes_sql_refactored="""
-SELECT NAME, RESULT, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE, DICT_RESULTS, SOURCE, REMARKS, SUB_EVENT,  DIVISION, EVENT, DATE, DISTANCE, EVENT_CLASS, UNIQUE_ID, DOB, NATIONALITY, WIND, CATEGORY_EVENT, GENDER, COMPETITION, YEAR, REGION
-FROM `saa-analytics.results.PRODUCTION` 
-WHERE RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
-AND RESULT IS NOT NULL
-
-WITH cleaned_athletes AS (
-  SELECT
-    *,
-    -- Clean columns (example for EVENT, DISTANCE, etc.; repeat for other relevant columns)
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(EVENT, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS EVENT_CLEAN,
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(DISTANCE, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS DISTANCE_CLEAN,
-    -- repeat cleaning for EVENT_CLASS, DIVISION, REGION, GENDER, etc.
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(EVENT_CLASS, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS EVENT_CLASS_CLEAN,
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(DIVISION, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS DIVISION_CLEAN,
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGION, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS REGION_CLEAN,
-    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(GENDER, r'\xa0', ' '), r'[\x00-\x1f\x7f-\x9f]', ''), r'\r', ' '), r'\n', ' ')) AS GENDER_CLEAN
-  FROM
-    athletes
-),
-mapped_athletes AS (
-  SELECT
-    *,
-    CASE
-      -- Javelin
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Javelin') THEN 'Throw'
-      -- 100m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'100') THEN '100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Dash') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'100') THEN '100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'100 Meter Run') THEN '100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^100m$') THEN '100m'
-      -- 200m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Dash') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'200') THEN '200m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'200') THEN '200m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^200m$') THEN '200m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'200 Meter') THEN '200m'
-      -- 400m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Dash') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'400') THEN '400m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'400') THEN '400m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^400m$') THEN '400m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^400 Meter$') THEN '400m'
-      -- 800m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'800') THEN '800m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'800 Meter Run') THEN '800m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^800m$') THEN '800m'
-      -- 1000m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'1000') THEN '1000m'
-      -- 1500m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'1500') THEN '1500m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^1500m$') THEN '1500m'
-      -- 3000m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'3000') THEN '3000m'
-      -- 5000m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'5000') THEN '5000m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^5000m$') THEN '5000m'
-      -- 10,000m
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'10000') THEN '10,000m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^10000m$') THEN '10,000m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^10,000m$') THEN '10,000m'
-      -- 1 Mile
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Run') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'Mile') THEN '1 Mile'
-      -- 100m Hurdles (examples, add more for gender/division/event_class as needed)
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Hurdles$') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'100') AND REGEXP_CONTAINS(DIVISION_CLEAN, r'OPEN|Open') AND REGEXP_CONTAINS(GENDER_CLEAN, r'Female') THEN '100m Hurdles'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'100m Hurdles|100m hurdles') AND REGEXP_CONTAINS(REGION_CLEAN, r'International') AND REGEXP_CONTAINS(GENDER_CLEAN, r'Female') THEN '100m Hurdles'
-      -- 110m Hurdles
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Hurdles$') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'110') AND REGEXP_CONTAINS(DIVISION_CLEAN, r'OPEN|Open') AND REGEXP_CONTAINS(GENDER_CLEAN, r'Male') THEN '110m Hurdles'
-      -- 400m Hurdles
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'400m Hurdles') AND REGEXP_CONTAINS(EVENT_CLASS_CLEAN, r'0.914') AND REGEXP_CONTAINS(GENDER_CLEAN, r'Male') THEN '400m Hurdles'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'400m Hurdles|400m hurdles') AND REGEXP_CONTAINS(REGION_CLEAN, r'International') THEN '400m Hurdles'
-      -- 3000m Steeplechase
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'3000m Steeplechase|3000m S/C') AND REGEXP_CONTAINS(REGION_CLEAN, r'International') THEN '3000m Steeplechase'
-      -- Marathon
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Marathon$') THEN 'Marathon'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Half Marathon$') THEN 'Half Marathon'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Half marathon$') THEN 'Half Marathon'
-      -- Racewalk
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Race Walk') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'10000') THEN '10000m Racewalk'
-      -- Relays
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'4x80m Relay') THEN '4 x 80m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^4 x 100m$') THEN '4 x 100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'4x100m Relay') THEN '4 x 100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'4 X 100m Relay') THEN '4 x 100m'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Relay') AND REGEXP_CONTAINS(DISTANCE_CLEAN, r'400') THEN '4 x 400m'
-      -- Decathlon/Heptathlon
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Heptathlon$') THEN 'Heptathlon'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Decathlon$') THEN 'Decathlon'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Heptathlon') THEN 'Heptathlon'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Decathlon') THEN 'Decathlon'
-      -- Jumps/Throws (examples)
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'High Jump') THEN 'High Jump'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'^Long Jump$') THEN 'Long Jump'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Long Jump Open') THEN 'Long Jump'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Long Jump Trial') THEN 'Long Jump'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Hammer Throw|Hammer throw') AND REGEXP_CONTAINS(EVENT_CLASS_CLEAN, r'4.00kg') THEN 'Hammer Throw'
-      WHEN REGEXP_CONTAINS(EVENT_CLEAN, r'Discus Throw|Discus|Discus throw') AND REGEXP_CONTAINS(EVENT_CLASS_CLEAN, r'2kg|2.00kg') AND REGEXP_CONTAINS(GENDER_CLEAN, r'Male') THEN 'Discus Throw'
-      -- Add more rules as per your function...
-      ELSE NULL
-    END AS MAPPED_EVENT
-  FROM cleaned_athletes
-)
-
-SELECT * FROM mapped_athletes;
-
-"""
-
-
-
 ## Read all performance benchmarks csv from GCS bucket and process##
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
@@ -325,6 +218,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         
         name_selected = st.multiselect('Select From List of Matches :', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
+
+        st.write(name_selected)
 
       #  st.write(name_selected[0])
         m1 = all_data["NAME"].str.contains(name_selected[0])
