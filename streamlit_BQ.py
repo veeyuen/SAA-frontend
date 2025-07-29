@@ -214,17 +214,15 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         all_data['NAME'] = all_data['NAME'].str.title()  # capitalize first letter (NEW)
 
-        all_data['NAME_case'] = all_data["NAME"].str.casefold()
+      #  all_data['NAME_case'] = all_data["NAME"].str.casefold()
 
         combinations = all_data[all_data['NAME'].str.casefold().str.contains(text)]['NAME'].unique().tolist()
  
         #  name_selected = st.multiselect('Select From List of Matches :', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
         name_selected = st.multiselect('Select From List of Matches :', combinations)
 
-        st.write(type(name_selected[0]))
-
       #  st.write(name_selected[0])
-        m1 = all_data["NAME"].str.contains(name_selected[0])
+        m1 = all_data["NAME"].str.contains(name_selected)
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
