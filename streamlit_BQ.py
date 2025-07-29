@@ -148,7 +148,7 @@ def fetch_data():  # fetch athlete results
 
     return data
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=800)
 def fetch_all_data():  # fetch athlete results
     
     all_data = client.query_and_wait(all_sql).to_dataframe()
