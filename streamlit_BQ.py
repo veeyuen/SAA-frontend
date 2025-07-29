@@ -234,6 +234,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             m1 = all_data["NAME"].str.contains(name_selected)
         except:
             st.write("Keyword Does Not Exist in Database")
+            m1 = [:]
 
         
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
