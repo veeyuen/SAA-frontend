@@ -298,24 +298,43 @@ benchmark_option = st.selectbox(
 st.write(' ')
 
 if benchmark_option == 'Search Database Records by Name or Competition':
-    
-    text_search = st.text_input("Search Database by Athlete Name or Competition", value="")
-    text = text_search.casefold()
 
-    all_data['NAME_case'] = all_data["NAME"].str.casefold()
-    all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
+    search_option = st.selectbox(
+    "Select your search option:",
+    options=['Name', 'Competition'],
+    )
+    if search_option='Name':
+    
+        text_search = st.text_input("Enter Search Keyword for Athlete", value="")
+        text = text_search.casefold()
+
+        all_data['NAME_case'] = all_data["NAME"].str.casefold()
+        m1 = all_data["NAME_case"].str.contains(text)
+        df_search = all_data[m1]
+
+        if text_search:
+            st.write(df_search)
+
+        all_data.drop(['NAME_case'], axis=1, inplace=True)
 
     
-    m1 = all_data["NAME_case"].str.contains(text)
-    m2 = all_data["COMPETITION_case"].str.contains(text)
-    df_search = all_data[m1 | m2]
+
+    elif search_option='Competition':
+
+        ext_search = st.text_input("Enter Search Keyword for Competition", value="")
+        text = text_search.casefold()
+
+        all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
+        m2 = all_data["COMPETITION_case"].str.contains(text)
+        df_search = all_data[m2]
+
+        if text_search:
+            st.write(df_search)
+
+        all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
+
 
     # Show the results, if you have a text_search
-    if text_search:
-        st.write(df_search)
-
-    all_data.drop(['NAME_case', 'COMPETITION_case'], axis=1, inplace=True)
-
     
     
 #    final_dfs, code = spreadsheet(all_data)
