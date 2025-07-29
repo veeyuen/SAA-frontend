@@ -231,7 +231,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         if text_search:
             st.write(df_search)
 
-    #    all_data.drop(['NAME_case'], axis=1, inplace=True)
+        all_data.drop(['NAME_case'], axis=1, inplace=True)
 #
     
 
