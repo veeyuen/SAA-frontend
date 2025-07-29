@@ -324,10 +324,12 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         all_data['NAME_case'] = all_data["NAME"].str.casefold()
 
         
-       # m1 = all_data["NAME_case"].str.contains(text)
-        df_search = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique())
+        name_selected = st.multiselect('Select From Search Results:', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
+        m1 = all_data["NAME_case"].str.contains(name_selected)
 
-     #   df_search = all_data[m1]
+        
+        #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
+        df_search = all_data[m1]
 
         if text_search:
             st.write(df_search)
