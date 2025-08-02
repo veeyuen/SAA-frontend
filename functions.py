@@ -190,7 +190,9 @@ def process_results(df):
 
 #    st.write(df.columns)
     
-    mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+  #  mask = df['CATEGORY_EVENT'].str.contains(r'Jump|Throw|jump|throw|Decathlon|Heptathlon|decathlon|heptathlon', na=True)
+    mask = df['CATEGORY_EVENT'].str.lower().str.contains(r'jump|throw|decathlon|heptathlon', na=True)
+
     df[['2%', '3.50%', '5%', '10%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']] = df[['2%', '3.50%', '5%', '10%', 'RESULT_CONV', 'STANDARDISED_BENCHMARK']].apply(pd.to_numeric, errors='coerce')
 
 
