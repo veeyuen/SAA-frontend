@@ -408,11 +408,11 @@ if benchmark_option != 'Search Database Records by Name or Competition':
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
-    for row in names.itertuples():  # itertuples is faster
+ #   for row in names.itertuples():  # itertuples is faster
         
-        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+ #       df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
-    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
+ #   df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
 
 
     
