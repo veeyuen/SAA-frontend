@@ -487,7 +487,7 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
         # Rank everyone for octc selection
 
-        all_ranking_octc = final_df.sort_values(['MAPPED_EVENT','GENDER','PERF_SCALAR'], ascending=[False, False, False])
+        all_ranking_octc = df_no_na.sort_values(['MAPPED_EVENT','GENDER','PERF_SCALAR'], ascending=[False, False, False])
         all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
 
         all_ranking_octc['TIER_ADJ'] = np.where(
