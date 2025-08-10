@@ -282,7 +282,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
 
         if text_search:
-            st.write(df_search)
+        #    st.write(df_search)
+            final_dfs, code = spreadsheet(df_search)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
@@ -439,11 +440,11 @@ if benchmark_option != 'Search Database Records by Name or Competition':
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
- #   for row in names.itertuples():  # itertuples is faster
+    for row in names.itertuples():  # itertuples is faster
         
- #       df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
- #   df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
+    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
 
 
     
