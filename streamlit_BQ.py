@@ -572,9 +572,9 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
 
     
-    st.write(final_df)
+  #  st.write(final_df)
 
-  #  final_dfs, code = spreadsheet(final_df)
+    final_dfs, code = spreadsheet(final_df)
 
 
 
