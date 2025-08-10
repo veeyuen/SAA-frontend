@@ -190,11 +190,18 @@ all_data = fetch_all_data() # fetch the entire database
 #assert not competitors['delta_time'].isna().any()
 
 
+#benchmark_option = st.selectbox(
+#    "  ",
+#    ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
+#     "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
+#)
+
 benchmark_option = st.selectbox(
     "  ",
     ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
-     "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
+     "2023 SEAG Bronze - OCTC Selection")
 )
+
 
 st.write(' ')
 
@@ -288,13 +295,19 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     # Allow text search on athlete name and/or competition
     
     
-else:
+else:  # Choose date and run selection report
 
     # Choose start and end dates
     
-    start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-    end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-
+  #  start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
+  #  end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
+    if benchmark_option = '2023 SEAG Bronze - SEAG Selection':
+        start_date = '22/10/2024'
+        end_date = '5/9/2025' 
+    elif benchmark_option = '2023 SEAG Bronze - OCTC Selection':
+        start_date = '01/01/2024'
+        end_date = '31/12/2025'
+    
     start = np.datetime64(start_date)
     end = np.datetime64(end_date)
 
@@ -307,12 +320,18 @@ else:
     athletes_selected.reset_index(drop=True, inplace=True)
 
     # Fast lookup for benchmarks
+  #  bench_map = {
+  #      "2023 SEAG Bronze - SEAG Selection": '2023 SEAG Bronze',
+  ##      "2023 SEAG Bronze - OCTC Selection": '2023 SEAG Bronze',
+   #     "26th Asian Athletics": '26th Asian Athletics',
+   #     "2025 Taiwan Open": '2025 Taiwan Open'
+   # }
+
     bench_map = {
         "2023 SEAG Bronze - SEAG Selection": '2023 SEAG Bronze',
-        "2023 SEAG Bronze - OCTC Selection": '2023 SEAG Bronze',
-        "26th Asian Athletics": '26th Asian Athletics',
-        "2025 Taiwan Open": '2025 Taiwan Open'
-    }
+        "2023 SEAG Bronze - OCTC Selection": '2023 SEAG Bronze'
+            }
+    
     bench_name = bench_map.get(benchmark_option, None)
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION'] == bench_name] if bench_name else pd.DataFrame()
 
