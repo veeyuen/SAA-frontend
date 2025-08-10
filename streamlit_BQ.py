@@ -301,10 +301,10 @@ else:  # Choose date and run selection report
     
   #  start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
   #  end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
-    if benchmark_option = '2023 SEAG Bronze - SEAG Selection':
+    if benchmark_option == '2023 SEAG Bronze - SEAG Selection':
         start_date = '22/10/2024'
         end_date = '5/9/2025' 
-    elif benchmark_option = '2023 SEAG Bronze - OCTC Selection':
+    elif benchmark_option == '2023 SEAG Bronze - OCTC Selection':
         start_date = '01/01/2024'
         end_date = '31/12/2025'
     
