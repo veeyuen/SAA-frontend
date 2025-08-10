@@ -302,16 +302,24 @@ else:  # Choose date and run selection report
   #  start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
   #  end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
     if benchmark_option == '2023 SEAG Bronze - SEAG Selection':
-       # start = np.datetime64(2024,10,22)
-       # end = np.datetime64(2025,9,5)
-        start = datetime.date(2024, 10, 22)
-        start = datetime.date(2025, 9, 5)
+       # start = np.datetime64(start_date)
+       # end = np.datetime64(end_date)
+      #  start = datetime.date(2024, 10, 22)
+      #  start = datetime.date(2025, 9, 5)
+        start = '2024-10-22'
+        end = '2025-09-05'
+        start_date = pd.to_datetime(start)
+        end_date = pd.to_datetime(end)
 
+    
     elif benchmark_option == '2023 SEAG Bronze - OCTC Selection':
-       # start = np.datetime64(2024,1,1)
-       # end = np.datetime64(2025,12,31)
-        tart = datetime.date(2024, 1, 1)
-        start = datetime.date(2025, 12, 31)
+       # start = np.datetime64(start_date)
+       # end = np.datetime64(end_date)
+        start = '2024-01-01'
+        end = '2025-12-31'
+        start_date = pd.to_datetime(start)
+        end_date = pd.to_datetime(end)
+
 
     
     data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
