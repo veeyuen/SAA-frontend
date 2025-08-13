@@ -219,12 +219,12 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         all_data['NAME'] = all_data['NAME'].str.casefold()  # convert everything to lower case (NEW)
 
     
-        names['VARIATION'] = names['VARIATION'].str.casefold()
-        names['NAME'] = names['NAME'].str.casefold()
+    #    names['VARIATION'] = names['VARIATION'].str.casefold()
+    #    names['NAME'] = names['NAME'].str.casefold()
 
-        for row in names.itertuples():  # itertuples is faster
+    #    for row in names.itertuples():  # itertuples is faster
         
-            all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+    #        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
         
         all_data['NAME'] = all_data['NAME'].str.title()  # capitalize first letter (NEW)
