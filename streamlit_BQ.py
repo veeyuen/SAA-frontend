@@ -64,8 +64,6 @@ def name_variations():
     return names
 names = name_variations()
 
-st.write(names)
-
 
 # Create list of foreigners 
 
