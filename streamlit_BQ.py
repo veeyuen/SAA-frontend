@@ -153,12 +153,14 @@ def fetch_all_data():  # fetch athlete results
     
     all_data = client.query_and_wait(all_sql).to_dataframe()
 
-#    names['VARIATION'] = names['VARIATION'].str.casefold()
-#    names['NAME'] = names['NAME'].str.casefold()
+    all_data = clean_columns(all_data)  # clean name list of special characters, white spaces etc.
 
-#    for row in names.itertuples():  # itertuples is faster
+    names['VARIATION'] = names['VARIATION'].str.casefold()
+    names['NAME'] = names['NAME'].str.casefold()
+
+    for row in names.itertuples():  # itertuples is faster
         
-#        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
 
     return all_data
@@ -170,12 +172,12 @@ all_data = fetch_all_data() # fetch the entire database
 
 # Normalise all names after fetching
 
-names['VARIATION'] = names['VARIATION'].str.casefold()
-names['NAME'] = names['NAME'].str.casefold()
+#names['VARIATION'] = names['VARIATION'].str.casefold()
+#names['NAME'] = names['NAME'].str.casefold()
 
-for row in names.itertuples():  # itertuples is faster
+#for row in names.itertuples():  # itertuples is faster
         
-    all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+#    all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
 
 
 #data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
