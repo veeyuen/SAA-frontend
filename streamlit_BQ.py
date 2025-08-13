@@ -155,6 +155,8 @@ def fetch_all_data():  # fetch athlete results
 
     all_data = clean_columns(all_data)  # clean name list of special characters, white spaces etc.
 
+    all_data['NAME'] = all_data['NAME'].str.casefold()
+
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
