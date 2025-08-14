@@ -181,7 +181,7 @@ def process_results(df):
     
         metric=df.loc[rowIndex,'RESULT'] # result
     
-        if metric=='—' or result=='None' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
+        if metric=='—' or metric=='None' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
             continue
     
         df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
