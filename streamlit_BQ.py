@@ -172,43 +172,6 @@ def fetch_all_data():  # fetch athlete results
 data = fetch_data() # fetch the database of results for selected period
 all_data = fetch_all_data() # fetch the entire database
 
-# Normalise all names after fetching
-
-#names['VARIATION'] = names['VARIATION'].str.casefold()
-#names['NAME'] = names['NAME'].str.casefold()
-
-#for row in names.itertuples():  # itertuples is faster
-        
-#    all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
-
-
-#data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
-
-# datetime to contain UTC (timezone)
-
-#data['NOW'] = datetime.datetime.now()
-#timezone = pytz.timezone('UTC')
-#data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
-
-#data['delta_time'] = data['NOW'] - data['DATE']
-#data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
-#data['event_month'] = data['DATE'].dt.month
-
-#data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
-
-## Convert DATE to datetime with timezone ##
-
-
-# Make sure date conversion is is valid for all rows
-
-#assert not competitors['delta_time'].isna().any()
-
-
-#benchmark_option = st.selectbox(
-#    "  ",
-#    ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
-#     "2023 SEAG Bronze - OCTC Selection", "26th Asian Athletics", "2025 Taiwan Open")
-#)
 
 benchmark_option = st.selectbox(
     "  ",
@@ -233,13 +196,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         all_data['NAME'] = all_data['NAME'].str.casefold()  # convert everything to lower case (NEW)
 
     
-    #    names['VARIATION'] = names['VARIATION'].str.casefold()
-    #    names['NAME'] = names['NAME'].str.casefold()
-
-    #    for row in names.itertuples():  # itertuples is faster
-        
-    #        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
-
         
         all_data['NAME'] = all_data['NAME'].str.title()  # capitalize first letter (NEW)
 
@@ -264,7 +220,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
                         'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
+        
+        all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
 
+        
         if text_search:
       #      st.write(df_search)
             final_dfs, code = spreadsheet(df_search)
@@ -286,6 +245,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         except:
             st.write("Keyword Does Not Exist in Database")
             m2 = all_data["COMPETITION_case"].notnull()
+
+        all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
 
         df_search = all_data[m2]
 
