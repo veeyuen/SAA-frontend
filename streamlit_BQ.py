@@ -67,22 +67,6 @@ names = name_variations()
 
 # Create list of foreigners 
 
-#foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-#foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-#foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-#foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-
-#for1 = foreigners['V1'].dropna().tolist()
-#for2 = foreigners['V2'].dropna().tolist()
-#for3 = foreigners['V3'].dropna().tolist()
-#for4 = foreigners['V4'].dropna().tolist()
-
-#foreign_list = for1+for2+for3+for4 
-
-#foreign_list_casefold=[s.casefold() for s in foreign_list]
-
-#exclusions = foreign_list_casefold
-
 
 foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
 foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
@@ -159,6 +143,8 @@ def fetch_all_data():  # fetch athlete results
 
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
+
+    st.write(names)
 
     for row in names.itertuples():  # itertuples is faster
         
