@@ -58,7 +58,7 @@ foreigners = fetch_foreigners()  # get list of foreigners
 
 @st.cache_data(ttl=600)
 def name_variations():
-    conn = st.connection('gcs', type=FilesConnection, ttl=600)
+    conn = st.connection('gcs', type=FilesConnection, ttl=0)
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
     names = clean_columns(names)  # clean name list of special characters, white spaces etc.
     return names
