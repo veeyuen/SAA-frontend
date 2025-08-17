@@ -144,7 +144,7 @@ def fetch_all_data():  # fetch athlete results
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
-    st.write(names)
+#    st.write(names)
 
     for row in names.itertuples():  # itertuples is faster
         
