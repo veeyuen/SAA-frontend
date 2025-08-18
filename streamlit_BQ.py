@@ -103,11 +103,11 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 def fetch_data():  # fetch athlete results
     data = client.query_and_wait(athletes_sql).to_dataframe()
 
-   data.dropna(how= "all", axis=1, inplace=True)
+    data.dropna(how= "all", axis=1, inplace=True)
 
     # DATE column to contain timezone - tz aware mode
 
-   data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
     # datetime to contain UTC (timezone)
 
