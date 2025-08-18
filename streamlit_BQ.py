@@ -5,9 +5,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import datetime
-import seaborn as sns
 import db_dtypes
-import plotly.express as px
 import analytics
 import re
 import gcsfs
@@ -17,8 +15,6 @@ from functions import convert_time, process_results, map_international_events, c
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
-
-from matplotlib import pyplot as plt
 
 from pandas.api.types import (
     is_categorical_dtype,
