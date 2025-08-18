@@ -52,7 +52,7 @@ def fetch_foreigners():
     return foreigners
 foreigners = fetch_foreigners()  # get list of foreigners
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=20000)
 def name_variations():
     conn = st.connection('gcs', type=FilesConnection, ttl=0)
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
