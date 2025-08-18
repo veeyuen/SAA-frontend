@@ -151,19 +151,20 @@ def fetch_data():  # fetch athlete results
 @st.cache_data(ttl=20000)
 def fetch_all_data():  
     all_data = client.query_and_wait(all_sql).to_dataframe()
+
+    # Clean column names
     all_data = clean_columns(all_data)
 
-    # casefold early
+    # Casefold (normalize to lowercase, Unicode-safe)
     all_data['NAME'] = all_data['NAME'].str.casefold()
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
-    # Build replacement dict
-    mapping = dict(zip(names['VARIATION'], names['NAME']))
+    # Build mapping: VARIATION → NAME
+    mapping = names.set_index('VARIATION')['NAME'].to_dict()
 
-    # Use regex with multiple patterns at once
-    regex = re.compile("|".join(re.escape(k) for k in mapping.keys()))
-    all_data['NAME'] = all_data['NAME'].str.replace(regex, lambda m: mapping[m.group(0)], regex=True)
+    # Replace in one vectorized operation
+    all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
 
     return all_data
 
