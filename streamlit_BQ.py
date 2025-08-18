@@ -228,8 +228,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
-        df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
-                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+    #    df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
+    #                    'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
         
         all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
@@ -266,8 +266,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_search = all_data[m2]
 
-        df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
-                        'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+  #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
+  #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
 
         
