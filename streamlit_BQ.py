@@ -127,35 +127,6 @@ def fetch_data():  # fetch athlete results
     process_results(data) # convert results into seconds format
 
     return data
-'''
-@st.cache_data(ttl=21600)  # cache 6 hours # NEW
-def fetch_data():
-    query = """
-    SELECT 
-      NAME, DATE, COMPETITION, RESULT, WIND, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE,
-      SUB_EVENT, DIVISION, EVENT, DISTANCE, EVENT_CLASS,
-      DOB, NATIONALITY, GENDER, YEAR, REGION,
-      DATE_DIFF(CURRENT_DATE(), DATE(TIMESTAMP(DATE)), DAY) AS delta_time_conv,
-      EXTRACT(MONTH FROM DATE) AS event_month
-    FROM `saa-analytics.results.PRODUCTION`
-    WHERE RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
-      AND RESULT IS NOT NULL
-    """
-    data = client.query_and_wait(query).to_dataframe()
-
-    # Ensure datetime is UTC
-    data['DATE'] = pd.to_datetime(data['DATE'], utc=True)
-
-    # Add NOW column once
-    now = pd.Timestamp.utcnow()
-    data['NOW'] = now
-
-    # Map events (optimise inside this function!)
-    data['MAPPED_EVENT'] = ''
-    map_international_events(data)
-
-    return data
-'''
 
 @st.cache_data(ttl=800)
 def fetch_all_data():  # fetch athlete results
