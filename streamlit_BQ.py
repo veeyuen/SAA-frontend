@@ -99,35 +99,34 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
-#@st.cache_data(ttl=6000)
-#def fetch_data():  # fetch athlete results
-#    data = client.query_and_wait(athletes_sql).to_dataframe()
+@st.cache_data(ttl=6000)
+def fetch_data():  # fetch athlete results
+    data = client.query_and_wait(athletes_sql).to_dataframe()
 
-#    data.dropna(how= "all", axis=1, inplace=True)
+   data.dropna(how= "all", axis=1, inplace=True)
 
     # DATE column to contain timezone - tz aware mode
 
-#    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+   data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
     # datetime to contain UTC (timezone)
 
-#    data['NOW'] = datetime.datetime.now()
-#    timezone = pytz.timezone('UTC')
-#    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+    timezone = pytz.timezone('UTC')
+    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
 
-#    data['delta_time'] = data['NOW'] - data['DATE']
-#    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
-#    data['event_month'] = data['DATE'].dt.month
+    data['delta_time'] = data['NOW'] - data['DATE']
+    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
+    data['event_month'] = data['DATE'].dt.month
 
     
-#    data['MAPPED_EVENT']=''
+    data['MAPPED_EVENT']=''
 
 #    map_international_events(data) # call function to map relevant events
 
- #   process_results(data) # convert results into seconds format
+    process_results(data) # convert results into seconds format
 
-#    return data
-
+    return data
+'''
 @st.cache_data(ttl=21600)  # cache 6 hours # NEW
 def fetch_data():
     query = """
@@ -155,7 +154,7 @@ def fetch_data():
     map_international_events(data)
 
     return data
-
+'''
 
 @st.cache_data(ttl=800)
 def fetch_all_data():  # fetch athlete results
