@@ -185,7 +185,6 @@ def fetch_all_data():  # fetch athlete results
 ## Get all the data ##
 
 data = fetch_data() # fetch the database of results for selected period
-all_data = fetch_all_data() # fetch the entire database
 
 
 benchmark_option = st.selectbox(
@@ -294,15 +293,13 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
 else:  # Choose date and run selection report
 
+    all_data = fetch_all_data() # fetch the entire database
+
+
     # Choose start and end dates
     
-  #  start_date = st.date_input("Input Start Period (dd/mm/yyyy)", format = 'DD/MM/YYYY')
-  #  end_date = st.date_input("Input End Period (dd/mm/yyy)", format = 'DD/MM/YYYY') 
     if benchmark_option == '2023 SEAG Bronze - SEAG Selection':
-       # start = np.datetime64(start_date)
-       # end = np.datetime64(end_date)
-      #  start = datetime.date(2024, 10, 22)
-      #  start = datetime.date(2025, 9, 5)
+      
         start = '2024-10-22'
         end = '2025-09-05'
         start_date = pd.to_datetime(start)
