@@ -150,29 +150,29 @@ def fetch_data():  # fetch athlete results
 
 @st.cache_data(ttl=20000)
 def fetch_all_data():  
-   
+
     all_data = client.query_and_wait(all_sql).to_dataframe()
     all_data = clean_columns(all_data)
-
+    
     # Casefold for consistency
     all_data['NAME'] = all_data['NAME'].str.casefold()
 
-    # Prepare names table (don’t mutate global `names`)
+    # Work on a copy of names
     n = names[['VARIATION', 'NAME']].dropna().copy()
     n['VARIATION'] = n['VARIATION'].str.strip().str.casefold()
 
-    # Remove ^ and $ anchors — they’re redundant
+    # Remove ^ and $ anchors
     n['VARIATION'] = n['VARIATION'].str.replace(r'^\^', '', regex=True)
     n['VARIATION'] = n['VARIATION'].str.replace(r'\$$', '', regex=True)
 
     n['NAME'] = n['NAME'].str.casefold()
 
-    # Build mapping dictionary
-    mapping = n.set_index('VARIATION')['NAME']
+    # Drop duplicates → required for mapping
+    mapping = n.drop_duplicates(subset='VARIATION').set_index('VARIATION')['NAME']
 
     # Vectorized replacement
     all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
-
+    
     return all_data
 
 ## Get all the data ##
