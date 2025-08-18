@@ -83,7 +83,8 @@ WHERE RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
 AND RESULT IS NOT NULL"""
 
 all_sql="""
-SELECT * FROM `saa-analytics.results.PRODUCTION`
+SELECT NAME, EVENT, DATE, COMPETITION, RESULT, WIND, TEAM, AGE, GENDER, SUB_EVENT, DIVISION, DISTANCE, EVENT_CLASS, DOB, NATIONALITY
+FROM `saa-analytics.results.PRODUCTION`
 """
 
 ## Read all performance benchmarks csv from GCS bucket and process##
@@ -131,7 +132,7 @@ def fetch_data():  # fetch athlete results
 def fetch_data():
     query = """
     SELECT 
-      NAME, DATE, COMPETITION, RESULT, , WIND, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE,
+      NAME, DATE, COMPETITION, RESULT, WIND, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE,
       SUB_EVENT, DIVISION, EVENT, DISTANCE, EVENT_CLASS,
       DOB, NATIONALITY, GENDER, YEAR, REGION,
       DATE_DIFF(CURRENT_DATE(), DATE(TIMESTAMP(DATE)), DAY) AS delta_time_conv,
@@ -179,7 +180,8 @@ def fetch_all_data():  # fetch athlete results
 
 ## Get all the data ##
 
-data = fetch_data() # fetch the database of results for selected period
+all_data = fetch_all_data() # fetch the entire database
+#data = fetch_data() # fetch the database of results for selected period
 
 
 benchmark_option = st.selectbox(
@@ -288,7 +290,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
 else:  # Choose date and run selection report
 
-    all_data = fetch_all_data() # fetch the entire database
+    data = fetch_data() # fetch the database of results for selected period
 
 
     # Choose start and end dates
