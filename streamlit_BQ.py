@@ -128,24 +128,42 @@ def fetch_data():  # fetch athlete results
 
     return data
 
-@st.cache_data(ttl=20000)
-def fetch_all_data():  # fetch athlete results
+#@st.cache_data(ttl=20000)
+#def fetch_all_data():  # fetch athlete results
     
+#    all_data = client.query_and_wait(all_sql).to_dataframe()
+
+#    all_data = clean_columns(all_data)  # clean name list of special characters, white spaces etc.
+
+#    all_data['NAME'] = all_data['NAME'].str.casefold()
+
+#    names['VARIATION'] = names['VARIATION'].str.casefold()
+#    names['NAME'] = names['NAME'].str.casefold()
+
+#    for row in names.itertuples():  # itertuples is faster
+        
+#        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+
+
+#    return all_data
+
+
+@st.cache_data(ttl=20000)
+def fetch_all_data():  
     all_data = client.query_and_wait(all_sql).to_dataframe()
+    all_data = clean_columns(all_data)
 
-    all_data = clean_columns(all_data)  # clean name list of special characters, white spaces etc.
-
+    # casefold early
     all_data['NAME'] = all_data['NAME'].str.casefold()
-
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
-#    st.write(names)
+    # Build replacement dict
+    mapping = dict(zip(names['VARIATION'], names['NAME']))
 
-    for row in names.itertuples():  # itertuples is faster
-        
-        all_data['NAME'] = all_data['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
-
+    # Use regex with multiple patterns at once
+    regex = re.compile("|".join(re.escape(k) for k in mapping.keys()))
+    all_data['NAME'] = all_data['NAME'].str.replace(regex, lambda m: mapping[m.group(0)], regex=True)
 
     return all_data
 
