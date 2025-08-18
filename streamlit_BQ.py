@@ -150,29 +150,51 @@ def fetch_data():  # fetch athlete results
 
 @st.cache_data(ttl=20000)
 def fetch_all_data():  
+   
+    # 1) Pull data
     all_data = client.query_and_wait(all_sql).to_dataframe()
-
-    # Clean column names
     all_data = clean_columns(all_data)
 
-    # Casefold (normalize to lowercase, Unicode-safe)
-    all_data['NAME'] = all_data['NAME'].str.casefold()
-    names['VARIATION'] = names['VARIATION'].str.casefold()
-    names['NAME'] = names['NAME'].str.casefold()
+    # 2) Prepare columns (avoid mutating the global `names`)
+    s = all_data['NAME'].astype('string')
+    n = names[['VARIATION', 'NAME']].dropna().astype('string').copy()
 
-    # Build replacement mapping: VARIATION → NAME
-    mapping = dict(zip(names['VARIATION'], names['NAME']))
+    # Match your original normalization
+    s = s.str.casefold()
+    n['VARIATION'] = n['VARIATION'].str.casefold()
+    n['NAME'] = n['NAME'].str.casefold()
 
-    
-   # Compile one big regex with all variations
-    pattern = re.compile("|".join(re.escape(k) for k in mapping.keys()))
+    # Drop empty patterns (they’d match everything)
+    n = n[n['VARIATION'].str.len() > 0]
+    if n.empty:
+        all_data['NAME'] = s
+        return all_data
 
-    # Replace using the mapping
-    all_data['NAME'] = all_data['NAME'].str.replace(
-        pattern,
-        lambda m: mapping[m.group(0)],
-        regex=True
-    )
+    # 3) Build a single regex with named groups for each pattern (DO NOT escape)
+    group_names = [f"g{i}" for i in range(len(n))]
+    # Keep original order to preserve your “first match wins” intent
+    parts = [f"(?P<{g}>{pat})" for g, pat in zip(group_names, n['VARIATION'].tolist())]
+    try:
+        big_re = re.compile("|".join(parts))
+    except re.error as e:
+        # Fallback: preserve exact original behavior (sequential passes) if a pattern breaks the big regex
+        s_out = s
+        for pat, rep in zip(n['VARIATION'], n['NAME']):
+            s_out = s_out.str.replace(pat, rep, regex=True)
+        all_data['NAME'] = s_out
+        return all_data
+
+    # Map group → canonical replacement
+    repl_for = dict(zip(group_names, n['NAME'].tolist()))
+
+    def _repl(m: re.Match) -> str:
+        # Replace with the canonical NAME tied to the group that matched
+        return repl_for[m.lastgroup]
+
+    # 4) One-pass vectorized replacement (all occurrences)
+    s_out = s.str.replace(big_re, _repl, regex=True)
+
+    all_data['NAME'] = s_out
     
     return all_data
 
