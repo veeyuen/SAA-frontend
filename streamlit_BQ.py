@@ -160,6 +160,10 @@ def fetch_all_data():
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
+    # Build replacement mapping: VARIATION → NAME
+    mapping = dict(zip(names['VARIATION'], names['NAME']))
+
+    
    # Compile one big regex with all variations
     pattern = re.compile("|".join(re.escape(k) for k in mapping.keys()))
 
