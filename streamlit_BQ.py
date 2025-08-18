@@ -103,34 +103,63 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 
 ## Download all athlete data from BQ
 
-@st.cache_data(ttl=6000)
-def fetch_data():  # fetch athlete results
-    data = client.query_and_wait(athletes_sql).to_dataframe()
+#@st.cache_data(ttl=6000)
+#def fetch_data():  # fetch athlete results
+#    data = client.query_and_wait(athletes_sql).to_dataframe()
 
-    data.dropna(how= "all", axis=1, inplace=True)
+#    data.dropna(how= "all", axis=1, inplace=True)
 
     # DATE column to contain timezone - tz aware mode
 
-    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
+#    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
 
     # datetime to contain UTC (timezone)
 
-    data['NOW'] = datetime.datetime.now()
-    timezone = pytz.timezone('UTC')
-    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+#    data['NOW'] = datetime.datetime.now()
+#    timezone = pytz.timezone('UTC')
+#    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
 
-    data['delta_time'] = data['NOW'] - data['DATE']
-    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
-    data['event_month'] = data['DATE'].dt.month
+#    data['delta_time'] = data['NOW'] - data['DATE']
+#    data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
+#    data['event_month'] = data['DATE'].dt.month
 
     
-    data['MAPPED_EVENT']=''
+#    data['MAPPED_EVENT']=''
 
-    map_international_events(data) # call function to map relevant events
+#    map_international_events(data) # call function to map relevant events
 
  #   process_results(data) # convert results into seconds format
 
+#    return data
+
+@st.cache_data(ttl=21600)  # cache 6 hours # NEW
+def fetch_data():
+    query = """
+    SELECT 
+      NAME, DATE, COMPETITION, RESULT, , WIND, TEAM, AGE, RANK AS COMPETITION_RANK, STAGE,
+      SUB_EVENT, DIVISION, EVENT, DISTANCE, EVENT_CLASS,
+      DOB, NATIONALITY, GENDER, YEAR, REGION,
+      DATE_DIFF(CURRENT_DATE(), DATE(TIMESTAMP(DATE)), DAY) AS delta_time_conv,
+      EXTRACT(MONTH FROM DATE) AS event_month
+    FROM `saa-analytics.results.PRODUCTION`
+    WHERE RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
+      AND RESULT IS NOT NULL
+    """
+    data = client.query_and_wait(query).to_dataframe()
+
+    # Ensure datetime is UTC
+    data['DATE'] = pd.to_datetime(data['DATE'], utc=True)
+
+    # Add NOW column once
+    now = pd.Timestamp.utcnow()
+    data['NOW'] = now
+
+    # Map events (optimise inside this function!)
+    data['MAPPED_EVENT'] = ''
+    map_international_events(data)
+
     return data
+
 
 @st.cache_data(ttl=800)
 def fetch_all_data():  # fetch athlete results
