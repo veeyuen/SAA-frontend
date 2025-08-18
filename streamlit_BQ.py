@@ -160,12 +160,16 @@ def fetch_all_data():
     names['VARIATION'] = names['VARIATION'].str.casefold()
     names['NAME'] = names['NAME'].str.casefold()
 
-    # Build mapping: VARIATION → NAME
-    mapping = names.set_index('VARIATION')['NAME'].to_dict()
+   # Compile one big regex with all variations
+    pattern = re.compile("|".join(re.escape(k) for k in mapping.keys()))
 
-    # Replace in one vectorized operation
-    all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
-
+    # Replace using the mapping
+    all_data['NAME'] = all_data['NAME'].str.replace(
+        pattern,
+        lambda m: mapping[m.group(0)],
+        regex=True
+    )
+    
     return all_data
 
 ## Get all the data ##
