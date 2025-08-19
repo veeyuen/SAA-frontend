@@ -401,7 +401,8 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
     process_results(df) # call function to convert results to standard float64 format
 
-
+    st.write('TESTING')
+    st.write(df)
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
