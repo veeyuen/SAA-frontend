@@ -122,7 +122,7 @@ def fetch_data():  # fetch athlete results
     
     data['MAPPED_EVENT']=''
 
-#    map_international_events(data) # call function to map relevant events
+    map_international_events(data) # call function to map relevant events
 
  #   process_results(data) # convert results into seconds format
 
