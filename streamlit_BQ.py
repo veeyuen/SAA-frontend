@@ -334,6 +334,7 @@ else:  # Choose date and run selection report
     bench_name = bench_map.get(benchmark_option, None)
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION'] == bench_name] if bench_name else pd.DataFrame()
 
+
 ## Map relevant events to a standard description ##
 
 ## Map benchmarks ##
@@ -361,7 +362,10 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
     process_results(df) # call function to convert results to standard float64 format
 
+    
     st.write('TESTING')
+    
+    st.write(benchmark)
     st.write(df)
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
 
