@@ -15,6 +15,7 @@ from functions import convert_time, process_results, map_international_events, c
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
+st.set_page_config(layout="wide")
 
 from pandas.api.types import (
     is_categorical_dtype,
