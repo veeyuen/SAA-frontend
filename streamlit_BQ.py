@@ -183,7 +183,7 @@ def fetch_all_data():
     # Vectorized replacement
     all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
     
-    return fetch_all_data
+    return all_data
 
 ## Get all the data ##
 
