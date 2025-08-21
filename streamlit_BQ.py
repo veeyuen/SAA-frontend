@@ -165,7 +165,7 @@ def fetch_all_data():
         all_data['DATE'] = all_data['DATE'].dt.tz_localize(None)  #NEW
 
     # Convert to YYYY-MM-DD string
-    all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d") #NEW
+#    all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d") #NEW
     
     # Work on a copy of names
     n = names[['VARIATION', 'NAME']].dropna().copy()
