@@ -217,8 +217,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates  
 
-        if pd.api.types.is_datetime64tz_dtype(all_data['DATE']): # remove timezone awaerness
-            all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
+      #  if pd.api.types.is_datetime64tz_dtype(all_data['DATE']): # remove timezone awaerness
+      #      all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
 
         all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
 
