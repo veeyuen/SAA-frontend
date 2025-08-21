@@ -220,7 +220,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         if pd.api.types.is_datetime64tz_dtype(all_data['DATE']): # remove timezone awaerness
             all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
 
-    #    all_data['DATE'] = all_data['DATE'].dt.date
+        all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
 
         
         try:
