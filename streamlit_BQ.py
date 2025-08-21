@@ -215,15 +215,15 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #  name_selected = st.multiselect('Select From List of Matches :', all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME'].unique())
         name_selected = st.selectbox('Select From List of Matches :', combinations)
 
-   #     all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates  
-        all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce').dt.date
+        all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates  
+   #     all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce').dt.date
 
    
         if pd.api.types.is_datetime64tz_dtype(all_data['DATE']):  # remove tz awareness
             all_data['DATE'] = all_data['DATE'].dt.tz_localize(None)
 
     # Force to date objects (drops time + tz)
-        all_data['DATE'] = all_data['DATE'].dt.date
+   #     all_data['DATE'] = all_data['DATE'].dt.date
         
         try:
       #  st.write(name_selected[0])
