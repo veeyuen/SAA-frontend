@@ -224,7 +224,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             all_data['DATE'] = all_data['DATE'].dt.tz_localize(None)
 
     # Force to date objects (drops time + tz)
-        all_data['DATE'] = all_data['DATE'].dt.normalize()
+        all_data['DATE'] = all_data['DATE'].dt.date
         
         try:
       #  st.write(name_selected[0])
