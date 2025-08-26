@@ -19,7 +19,7 @@ def convert_time(i, string, metric):
 
     global output
     
-    l=['discus', 'throw', 'jump', 'vault', 'shot']
+    l=['discus', 'throw', 'jump', 'vault', 'shot', 'javelin']
         
     string=string.lower()
 
