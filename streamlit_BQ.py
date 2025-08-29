@@ -11,7 +11,7 @@ import re
 import gcsfs
 import pytz
 from st_files_connection import FilesConnection
-from functions import convert_time, process_results, map_international_events, clean_columns
+from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
