@@ -153,7 +153,9 @@ def fetch_data():  # fetch athlete results
 def fetch_all_data():  
 
     all_data = client.query_and_wait(all_sql).to_dataframe()
-    all_data = clean_columns(all_data)
+ #   all_data = clean_columns(all_data)
+
+    all_data=simple_map_events(all_data)
     
     # Casefold for consistency
     all_data['NAME'] = all_data['NAME'].str.casefold()
