@@ -541,7 +541,7 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
     ## NEW BLOCK END##
         
-        final_df = rerank_filtered_octc
+            final_df = rerank_filtered_octc
 
 
 
