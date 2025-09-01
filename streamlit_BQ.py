@@ -513,31 +513,31 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 ##        rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
 ## NEW BLOCK
         # 1. Sort and Rank
-        all_ranking_octc = df_no_na.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[False, False, False])
-        all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
+            all_ranking_octc = df_no_na.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[False, False, False])
+            all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
 
         # 2. Define Tier Adjustment Logic
-        def adjust_tier(row):
-        tier, rank = row['TIER'], row['Rank']
-        if tier == 'Tier 1' and rank >= 3:
-            return 'Tier 2'
-        elif tier == 'Tier 2' and rank >= 3:
-            return 'Tier 3'
-        elif tier == 'Tier 3' and rank >= 3:
-            return 'Tier 4'
-        else:
-            return tier
+            def adjust_tier(row):
+                tier, rank = row['TIER'], row['Rank']
+                if tier == 'Tier 1' and rank >= 3:
+                    return 'Tier 2'
+                elif tier == 'Tier 2' and rank >= 3:
+                    return 'Tier 3'
+                elif tier == 'Tier 3' and rank >= 3:
+                    return 'Tier 4'
+                else:
+                    return tier
 
         # Apply Tier Adjustment
-        all_ranking_octc['TIER_ADJ'] = all_ranking_octc.apply(adjust_tier, axis=1)
+            all_ranking_octc['TIER_ADJ'] = all_ranking_octc.apply(adjust_tier, axis=1)
 
         # 3. Secondary Sort and Re-Rank
-        rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
-        rerank_octc['Rank_ADJ'] = rerank_octc.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
+            rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
+            rerank_octc['Rank_ADJ'] = rerank_octc.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
 
         # 4. Filter, Clean, and Rename
-        rerank_filtered_octc = rerank_octc[~rerank_octc['TIER_ADJ'].isin([' ', 'Tier 4'])].drop(['TIER', 'Rank'], axis=1)
-        rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
+            rerank_filtered_octc = rerank_octc[~rerank_octc['TIER_ADJ'].isin([' ', 'Tier 4'])].drop(['TIER', 'Rank'], axis=1)
+            rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
 
     ## NEW BLOCK END##
         
