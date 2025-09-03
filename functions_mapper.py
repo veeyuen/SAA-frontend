@@ -103,3 +103,47 @@ mapped_athletes AS (
       ELSE MAPPED_EVENT
     END AS MAPPED_EVENT_CORRECTED
   FROM cleaned_athletes;
+
+
+  '''
+  SELECT
+  *,
+  CASE
+    -- Skip marks with illegal wind speeds (if 'w' in metric)
+    WHEN LOWER(CAST(metric AS STRING)) LIKE '%w%' THEN NULL
+
+    -- Field events (distance-based marks, remove 'm' or 'GR')
+    WHEN LOWER(CAST(event AS STRING)) LIKE '%discus%' OR LOWER(CAST(event AS STRING)) LIKE '%throw%' OR
+         LOWER(CAST(event AS STRING)) LIKE '%jump%' OR LOWER(CAST(event AS STRING)) LIKE '%vault%' OR
+         LOWER(CAST(event AS STRING)) LIKE '%shot%' THEN 
+      SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(CAST(metric AS STRING), r'(m|GR)', ''), r'\s', '') AS FLOAT64)
+
+    -- No event description
+    WHEN TRIM(CAST(event AS STRING)) = '' THEN NULL
+
+    -- HH:MM:SS[.ss] format
+    WHEN REGEXP_CONTAINS(CAST(metric AS STRING), r'^\d{1,2}:\d{2}:\d{2}(\.\d+)?$')
+      THEN
+          -- Convert to seconds: 3600*hour + 60*min + sec
+          (SPLIT(metric, ':')[SAFE_OFFSET(0)]*3600) +
+          (SPLIT(metric, ':')[SAFE_OFFSET(1)]*60) +
+          SAFE_CAST(SPLIT(metric, ':')[SAFE_OFFSET(2)] AS FLOAT64)
+
+    -- MM:SS[.ss] format
+    WHEN REGEXP_CONTAINS(CAST(metric AS STRING), r'^\d{1,2}:\d{2}(\.\d+)?$')
+      THEN
+          -- Convert to seconds: 60*min + sec
+          (SPLIT(metric, ':')[SAFE_OFFSET(0)]*60) +
+          SAFE_CAST(SPLIT(metric, ':')[SAFE_OFFSET(1)] AS FLOAT64)
+
+    -- Numeric (seconds, as float)
+    WHEN REGEXP_CONTAINS(CAST(metric AS STRING), r'^\d+(\.\d+)?$')
+      THEN SAFE_CAST(metric AS FLOAT64)
+
+    ELSE NULL
+  END AS parsed_metric
+
+FROM athletes_table
+
+'''
+                                                      
