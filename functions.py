@@ -169,22 +169,34 @@ def process_results(df):
         df[col] = df[col].str.replace('\n', ' ', regex=True)
         df[col] = df[col].str.strip()
 
-    df['RESULT_CONV'] = ''
+  #  df['RESULT_CONV'] = ''
 
-    for i in range(len(df)):
+  #  for i in range(len(df)):
     
-        result_out=''
+  #      result_out=''
         
-        rowIndex = df.index[i]
+  #      rowIndex = df.index[i]
 
-        input_string=df.loc[rowIndex,'MAPPED_EVENT']    # event description
+  #      input_string=df.loc[rowIndex,'MAPPED_EVENT']    # event description
     
-        metric=df.loc[rowIndex,'RESULT'] # result
+  #      metric=df.loc[rowIndex,'RESULT'] # result
     
-        if metric=='—' or metric=='None' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
-            continue
+  #      if metric=='—' or metric=='None' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
+  #          continue
     
-        df.loc[rowIndex, 'RESULT_CONV'] = convert_time(i, input_string, metric)
+  #      df.loc[rowIndex, 'RESULT_CONV'] = convert_time_refactored(i, input_string, metric)
+
+    # Define a filter for rows with convertible results
+    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+
+# Apply conversion vectorized using apply, skipping invalid values
+    def convert_for_row(row):
+        if row['RESULT'] in invalid_results:
+            return ''
+        return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+
+    df['RESULT_CONV'] = df.apply(convert_for_row, axis=1)
+
         
     #df[['RESULT_CONV']] = df[['RESULT_CONV']].apply(pd.to_numeric)
 
