@@ -11,7 +11,7 @@ import re
 import gcsfs
 import pytz
 from st_files_connection import FilesConnection
-from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events
+from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -396,22 +396,50 @@ if benchmark_option != 'Search Database Records by Name or Competition':
 
     
 
-# Iterate over dataframe and replace names using casefold then convert to capitalize first letter
+# Iterate over dataframe and replace names using casefold then convert to capitalize first letter (OLD BLOCK)
 
-    df['NAME'] = df['NAME'].str.casefold()  # convert everything to lower case (NEW)
-
+#    df['NAME'] = df['NAME'].str.casefold()  # convert everything to lower case (NEW)
     
-    names['VARIATION'] = names['VARIATION'].str.casefold()
-    names['NAME'] = names['NAME'].str.casefold()
+#    names['VARIATION'] = names['VARIATION'].str.casefold()
+#    names['NAME'] = names['NAME'].str.casefold()
 
-    for row in names.itertuples():  # itertuples is faster
+#    for row in names.itertuples():  # itertuples is faster
         
-        pattern = re.escape(row.VARIATION)
-      #  df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
-        df['NAME'] = df['NAME'].replace(regex=pattern, value=f"{row.NAME}")   
+#        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
+#        df['NAME'] = df['NAME'].replace(regex=pattern, value=f"{row.NAME}")   
 
-    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
+#    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
 
+# END OLD BLOCK
+
+# Iterate over dataframe and replace names using casefold then convert to capitalize first letter (NEW BLOCK)
+# Normalize dataframe
+
+    df['NAME'] = df['NAME'].apply(normalize_text)
+    names['VARIATION'] = names['VARIATION'].apply(normalize_text)
+    names['NAME'] = names['NAME'].apply(normalize_text)
+
+# Precompile all regex patterns safely
+
+    compiled_patterns = []
+    for pattern_str, replacement in zip(names['VARIATION'], names['NAME']):
+        try:
+            compiled_re = re.compile(pattern_str)
+            compiled_patterns.append( (compiled_re, replacement) )
+        except re.error as e:
+            print(f"Skipping invalid regex pattern: {pattern_str} Error: {e}")
+
+# Iterate over all patterns and apply replacements using precompiled regexes
+    for regex, replacement in compiled_patterns:
+        df['NAME'] = df['NAME'].str.replace(regex, replacement, regex=True)
+
+# Capitalize final standardized names
+    df['NAME'] = df['NAME'].str.title()
+
+# END NEW BLOCK #
+
+
+        
 
     
 # Remove foreigners
