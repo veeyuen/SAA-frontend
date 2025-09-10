@@ -848,12 +848,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     return athletes
 
 def normalize_text(s):
-    return (str(s)
-            .replace('\xa0', '')
-            .replace('\r', '')
-            .replace('\n', '')
-            .strip()
-            .casefold())
+    return (str(s).replace('\xa0', '').replace('\r', '').replace('\n', '').strip().casefold())
 
 
 
