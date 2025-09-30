@@ -61,6 +61,21 @@ def name_variations():
     return names
 names = name_variations()
 
+# Load google sheet with name variations
+
+#spreadsheet = gc.open_by_key("1zYD7ZwCAce2puHlRazCSACrKi3JH_mOL1rNi0waTBhE") 
+
+
+# Select a specific worksheet
+#worksheet = spreadsheet.worksheet("Competitions")
+
+# Get all values from the worksheet as a list of lists
+#data = worksheet.get_all_values()
+
+#df = pd.DataFrame(data)
+
+
+
 
 # Create list of foreigners 
 
