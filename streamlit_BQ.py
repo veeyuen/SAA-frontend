@@ -10,6 +10,7 @@ import analytics
 import re
 import gcsfs
 import pytz
+import gspread
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
 from google.cloud import storage
@@ -63,17 +64,19 @@ names = name_variations()
 
 # Load google sheet with name variations
 
-#spreadsheet = gc.open_by_key("1zYD7ZwCAce2puHlRazCSACrKi3JH_mOL1rNi0waTBhE") 
+@st.cache_data(ttl=20000)
+def gpsread_names():
+    spreadsheet = gc.open_by_key("1H3qeiHF1PKzoMG1aIGThvMn3UoBfIHLdLYCXYKOpAbs") 
+    # Select a specific worksheet
+    worksheet = spreadsheet.worksheet("Competitions")
+    # Get all values from the worksheet as a list of lists
+    data = worksheet.get_all_values()
+    names = pd.DataFrame(data)
+    return names
 
+#names = gspread_names()
 
-# Select a specific worksheet
-#worksheet = spreadsheet.worksheet("Competitions")
-
-# Get all values from the worksheet as a list of lists
-#data = worksheet.get_all_values()
-
-#df = pd.DataFrame(data)
-
+    
 
 
 
