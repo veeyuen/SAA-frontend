@@ -65,7 +65,7 @@ def name_variations():
 # Load google sheet with name variations
 
 @st.cache_data(ttl=20000)
-def gpsread_names():
+def gspread_names():
     spreadsheet = gc.open_by_key("1H3qeiHF1PKzoMG1aIGThvMn3UoBfIHLdLYCXYKOpAbs") 
     # Select a specific worksheet
     worksheet = spreadsheet.worksheet("Competitions")
