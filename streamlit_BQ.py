@@ -10,7 +10,7 @@ import analytics
 import re
 import gcsfs
 import pytz
-import gspread
+from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
 from google.cloud import storage
@@ -66,11 +66,10 @@ def name_variations():
 
 @st.cache_data(ttl=20000)
 def gspread_names():
-    spreadsheet = gc.open_by_key("1H3qeiHF1PKzoMG1aIGThvMn3UoBfIHLdLYCXYKOpAbs") 
+    conn = st.connection("gsheets", type=GSheetsConnection)
     # Select a specific worksheet
-    worksheet = spreadsheet.worksheet("Competitions")
+    data = conn.read()
     # Get all values from the worksheet as a list of lists
-    data = worksheet.get_all_values()
     names = pd.DataFrame(data)
     return names
 
