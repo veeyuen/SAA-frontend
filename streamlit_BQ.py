@@ -75,6 +75,8 @@ def gspread_names():
 
 names = gspread_names()
 
+st.write(names)
+
     
 
 
