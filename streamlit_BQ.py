@@ -61,6 +61,7 @@ def name_variations():
     names = clean_columns(names)  # clean name list of special characters, white spaces etc.
     return names
 names = name_variations()
+st.write(names)
 
 # Load google sheet with name variations
 
