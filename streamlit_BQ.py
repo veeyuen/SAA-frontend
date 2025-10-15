@@ -71,11 +71,11 @@ def gspread_names():
     data = conn.read()
     # Get all values from the worksheet as a list of lists
     names = pd.DataFrame(data)
+
+    st.write(names)
     return names
 
 names = gspread_names()
-
-st.write(names)
 
     
 
