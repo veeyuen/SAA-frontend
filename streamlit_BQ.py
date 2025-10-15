@@ -66,6 +66,8 @@ def name_variations():
 
 @st.cache_data(ttl=200)
 def gspread_names():
+
+    names = pd.DataFrame()
     conn = st.connection("gsheets", type=GSheetsConnection)
     # Select a specific worksheet
     data = conn.read()
