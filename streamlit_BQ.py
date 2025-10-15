@@ -60,7 +60,7 @@ def name_variations():
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
     names = clean_columns(names)  # clean name list of special characters, white spaces etc.
     return names
-#names = name_variations()
+names = name_variations()
 
 # Load google sheet with name variations
 
@@ -77,7 +77,7 @@ def gspread_names():
     st.write(names)
     return names
 
-names = gspread_names()
+#names = gspread_names()
 
     
 
