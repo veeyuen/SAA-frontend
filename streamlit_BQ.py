@@ -64,7 +64,7 @@ def name_variations():
 
 # Load google sheet with name variations
 
-@st.cache_data(ttl=20000)
+@st.cache_data(ttl=200)
 def gspread_names():
     conn = st.connection("gsheets", type=GSheetsConnection)
     # Select a specific worksheet
