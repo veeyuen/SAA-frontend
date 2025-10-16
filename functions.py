@@ -863,6 +863,23 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
 def normalize_text(s):
     return (str(s).replace('\xa0', '').replace('\r', '').replace('\n', '').strip().casefold())
 
+def normalize_time_format(t):
+    """Standardize time strings like '01:54.3' → '01:54.30'."""
+    if not isinstance(t, str):
+        return t  # leave non-strings unchanged
+        
+    # Match patterns like mm:ss.s or mm:ss.ss
+    match = re.match(r"^(\d{2}):(\d{2})\.(\d{1,2})$", t)
+    if match:
+        minutes, seconds, fraction = match.groups()
+        # Ensure exactly two digits for decimal part
+        if len(fraction) == 1:
+            fraction += "0"
+        # Return standardized string
+        return f"{minutes}:{seconds}.{fraction}"
+    return t  # Return unchanged if pattern not recognized
+
+
 
 
                             
