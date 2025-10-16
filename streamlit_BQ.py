@@ -12,7 +12,8 @@ import gcsfs
 import pytz
 from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
-from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text, normalize_time_format
+from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
+from functions import normalize_time_format
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
