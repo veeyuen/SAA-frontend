@@ -206,6 +206,11 @@ def fetch_all_data():
 
     # Vectorized replacement
     all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
+
+    # Normalize time format NEW
+
+    all_data["RESULT"] = all_data["RESULT"].apply(normalize_time_format)
+
     
     return all_data
 
