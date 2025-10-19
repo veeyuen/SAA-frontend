@@ -209,8 +209,18 @@ def fetch_all_data():
 
     # Normalize time format NEW
 
-    all_data["RESULT"] = all_data["RESULT"].apply(normalize_time_format)
+    #all_data["RESULT"] = all_data["RESULT"].apply(normalize_time_format)
 
+    # Define a filter for rows with convertible results
+    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+
+# Apply conversion vectorized using apply, skipping invalid values
+    def convert_for_row(row):
+        if row['RESULT'] in invalid_results:
+            return ''
+        return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+
+    all_data['RESULT_CONV'] = all_data.apply(convert_for_row, axis=1)
     
     return all_data
 
