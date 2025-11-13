@@ -211,7 +211,7 @@ def fetch_all_data():   # for database access
 
     all_data["RESULT"] = all_data["RESULT"].apply(normalize_time_format)
 
-    all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
+ #   all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
 
     # Define a filter for rows with convertible results
@@ -283,12 +283,9 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
-    #    df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
-    #                    'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
+        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
     
         
-        
-
         
         if text_search:
       #      st.write(df_search)
