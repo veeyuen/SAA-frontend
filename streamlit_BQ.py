@@ -124,7 +124,7 @@ benchmarks = fetch_benchmarks()  # fetch benchmarks
 ## Download all athlete data from BQ
 
 @st.cache_data(ttl=6000)
-def fetch_data():  # fetch athlete results for database view
+def fetch_data():  # for reports
     data = client.query_and_wait(athletes_sql).to_dataframe()
 
     data.dropna(how= "all", axis=1, inplace=True)
@@ -146,8 +146,6 @@ def fetch_data():  # fetch athlete results for database view
     data['MAPPED_EVENT']=''
 
     map_international_events(data) # call function to map relevant events
-
-    data = data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
  #   process_results(data) # convert results into seconds format
 
@@ -174,7 +172,7 @@ def fetch_data():  # fetch athlete results for database view
 
 
 @st.cache_data(ttl=20000)
-def fetch_all_data():   # for OCTC and SEAG reports
+def fetch_all_data():   # for database access
 
     all_data = client.query_and_wait(all_sql).to_dataframe()
  #   all_data = clean_columns(all_data)
@@ -212,6 +210,9 @@ def fetch_all_data():   # for OCTC and SEAG reports
     # Normalize time format NEW
 
     all_data["RESULT"] = all_data["RESULT"].apply(normalize_time_format)
+
+    all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
+
 
     # Define a filter for rows with convertible results
  #   invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
