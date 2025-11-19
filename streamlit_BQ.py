@@ -327,14 +327,14 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 ## List Results BY Event##
 
-#elif benchmark_option == 'List Results By Event':
+elif benchmark_option == 'List Results By Event':
 
-#    events_list = all_data[all_data['EVENT'].str.casefold().str.contains(text)]['NAME'].unique().tolist()
+    events_list = all_data[all_data['EVENT'].str.casefold().str.contains(text)]['NAME'].unique().tolist()
 
-#    list_option = st.selectbox(
-#    "Select Event:",
-#    options = events_list,
-#    )
+    list_option = st.selectbox(
+    "Select Event:",
+    options = events_list,
+    )
     
 
 
