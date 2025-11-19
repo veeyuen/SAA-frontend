@@ -335,8 +335,10 @@ elif benchmark_option == 'List Results By Event':
     "Select Event:",
     options = events_list,
     )
-    
 
+    searched_event = all_data[all_data['EVENT'].str.casefold()==list_option]
+
+    final_dfs, code = spreadsheet(searched_event)
 
     # Show the results, if you have a text_search
     
