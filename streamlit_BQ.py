@@ -235,7 +235,7 @@ all_data = fetch_all_data() # fetch the entire database
 
 benchmark_option = st.selectbox(
     "  ",
-    ("Search Database Records by Name or Competition", "2023 SEAG Bronze - SEAG Selection", 
+    ("Search Database Records by Name or Competition", "List Results By Event", "2023 SEAG Bronze - SEAG Selection", 
      "2023 SEAG Bronze - OCTC Selection")
 )
 
@@ -319,14 +319,21 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
   #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
-
-        
-
         if text_search:
         #    st.write(df_search)
             final_dfs, code = spreadsheet(df_search)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
+
+elif benchmark_option == 'List Results By Event':
+
+    events_list = all_data[all_data['EVENT'].str.casefold().str.contains(text)]['NAME'].unique().tolist()
+
+    list_option = st.selectbox(
+    "Select Event:",
+    options = events_list,
+    )
+    
 
 
     # Show the results, if you have a text_search
