@@ -346,6 +346,9 @@ elif benchmark_option == 'List Results By Event':
         return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
 
     searched_event['RESULT'] = searched_event.apply(convert_for_row, axis=1)
+    
+    searched_event['RESULT'] = searched_event['RESULT'].replace('', np.nan)
+
 
     if list_option in ['100m', '200m', '100m hurdles']:
 
