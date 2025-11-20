@@ -342,20 +342,20 @@ elif benchmark_option == 'List Results By Event':
 
     invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
-   # def convert_for_row(row):
-   #     if row['RESULT'] in invalid_results:
-   #         return ''
-   #     return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
-
-  
     def convert_for_row(row):
         if row['RESULT'] in invalid_results:
-            return np.nan
-        result = convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
-        if result == '' or result is None:
-            st.write(f"FAILED PARSE: EVENT={row['EVENT']} RESULT={row['RESULT']}")
-            return np.nan
-        return result
+            return ''
+        return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+
+  
+   # def convert_for_row(row):
+   #     if row['RESULT'] in invalid_results:
+   #         return np.nan
+   #     result = convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+   #     if result == '' or result is None:
+   #         st.write(f"FAILED PARSE: EVENT={row['EVENT']} RESULT={row['RESULT']}")
+   #         return np.nan
+   #     return result
 
 
     searched_event['RESULT_CONV'] = searched_event.apply(convert_for_row, axis=1)
