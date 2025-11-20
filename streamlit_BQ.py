@@ -338,7 +338,7 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event = all_data[all_data['EVENT'].str.casefold()==list_option]
 
-    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
     def convert_for_row(row):
         if row['RESULT'] in invalid_results:
