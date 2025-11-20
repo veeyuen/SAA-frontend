@@ -350,10 +350,9 @@ elif benchmark_option == 'List Results By Event':
     searched_event['RESULT'] = searched_event['RESULT'].replace('', np.nan)
 
 
-    if list_option in ['100m', '200m', '100m hurdles']:
+    if list_option in ['1500m', '5000m', '10000m', '10,000m']:
 
-        searched_event['RESULT'] = searched_event['RESULT'].astype(float)
-
+        pass
     
 
 
