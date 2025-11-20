@@ -350,9 +350,10 @@ elif benchmark_option == 'List Results By Event':
     searched_event['RESULT'] = searched_event['RESULT'].replace('', np.nan)
 
 
-    if list_option in ['1500m', '5000m', '10000m', '10,000m']:
-
-        pass
+    if searched_event=='800m' or searched_event=='10,000m' or searched_event=='5000m' or searched_event=='3000m Steeplechase' or searched_event=='1500m':
+   
+        searched_event['RESULT'] = searched_event['RESULT'].dt.strftime("%M:%S.%f")
+        
     
 
 
