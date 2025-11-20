@@ -368,10 +368,10 @@ elif benchmark_option == 'List Results By Event':
         minutes, secs = divmod(seconds, 60)
         return f"{int(minutes):02d}:{secs:05.2f}"
     
- #   if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
+    if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
    
     
- #       searched_event['RESULT_CONV'] = searched_event['RESULT_CONV'].apply(seconds_to_mmss)        
+        searched_event['RESULT_TIMES'] = searched_event['RESULT_CONV'].apply(seconds_to_mmss)        
     
 
 
