@@ -646,7 +646,9 @@ def convert_time_refactored(i, string, metric):
         if any(s in string for s in l):
             # Remove unit if present
             metric_clean = metric_str.replace('m', '').replace('GR', '')
-            return float(metric_clean)
+         #   return float(metric_clean)
+            return round(float(metric_str), 2)
+
 
         # No event description
         if string == '':
@@ -658,7 +660,9 @@ def convert_time_refactored(i, string, metric):
 
         # Simple time as float (no colon)
         if count_colon == 0:
-            return float(metric_str)
+       #     return float(metric_str)
+            return round(float(metric_str), 2)
+
 
         # Convert time formats with two colons (like XX:XX:XX, XX:XX.XX)
         if count_colon == 2:
