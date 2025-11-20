@@ -347,6 +347,8 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event['RESULT'] = searched_event.apply(convert_for_row, axis=1)
 
+    
+
 
     final_dfs, code = spreadsheet(searched_event)
 
