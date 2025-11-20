@@ -347,6 +347,10 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event['RESULT'] = searched_event.apply(convert_for_row, axis=1)
 
+    if list_option in ['100m', '200m', '100m hurdles']:
+
+        searched_event['RESULT'] = searched_event['RESULT'].astype(float)
+
     
 
 
