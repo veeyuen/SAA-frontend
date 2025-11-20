@@ -345,9 +345,9 @@ elif benchmark_option == 'List Results By Event':
             return ''
         return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
 
-    searched_event['RESULT'] = searched_event.apply(convert_for_row, axis=1)
+    searched_event['RESULT_CONV'] = searched_event.apply(convert_for_row, axis=1)
     
-    searched_event['RESULT'] = searched_event['RESULT'].replace('', np.nan)
+    searched_event['RESULT_CONV'] = searched_event['RESULT'].replace('', np.nan)
 
     def seconds_to_mmss(seconds):
         if pd.isna(seconds):
@@ -358,7 +358,7 @@ elif benchmark_option == 'List Results By Event':
     if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
    
     
-        searched_event['RESULT'] = searched_event['RESULT'].apply(seconds_to_mmss)        
+        searched_event['RESULT_CONV'] = searched_event['RESULT'].apply(seconds_to_mmss)        
     
 
 
