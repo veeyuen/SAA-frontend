@@ -636,11 +636,7 @@ def convert_time_refactored(i, string, metric):
     string = str(string).lower()
     metric_str = str(metric)
     output = ''
-    
-    if 'w' in metric_str.lower:
-        st.write(f"Skipping due to 'w' in metric: {metric_str}")
-        return ''
-        
+         
     
     try:
         # Skip marks with illegal wind speeds
