@@ -407,7 +407,7 @@ else:  # Choose date and run selection report
 
 ## Merge benchmarks ##
 
-if benchmark_option != 'Search Database Records by Name or Competition' or benchmark_option != 'List Results By Event':
+if benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option == '2023 SEAG Bronze - OCTC Selection':
 
     df = pd.merge(
         left=athletes_selected, 
