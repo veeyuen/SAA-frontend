@@ -647,7 +647,7 @@ def convert_time_refactored(i, string, metric):
             # Remove unit if present
             metric_clean = metric_str.replace('m', '').replace('GR', '')
          #   return float(metric_clean)
-            return round(float(metric_str), 2)
+            return round(float(metric_clean), 2)
 
 
         # No event description
