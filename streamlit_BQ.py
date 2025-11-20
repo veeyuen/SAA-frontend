@@ -352,7 +352,7 @@ elif benchmark_option == 'List Results By Event':
 
     if searched_event=='800m' or searched_event=='10,000m' or searched_event=='5000m' or searched_event=='3000m Steeplechase' or searched_event=='1500m':
    
-        searched_event['RESULT'] = searched_event['RESULT'].dt.strftime("%M:%S.%f")
+        searched_event['RESULT'] = pd.to_timedelta(searched_event['RESULT'], unit='s').dt.strftime("%M:%S.%f").str[:-4]
         
     
 
