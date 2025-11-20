@@ -338,12 +338,14 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event = all_data[all_data['EVENT'].str.casefold()==list_option]
 
-     def convert_for_row(row):
+    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+
+    def convert_for_row(row):
         if row['RESULT'] in invalid_results:
             return ''
-        return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+        return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
 
-    #df['RESULT_CONV'] = df.apply(convert_for_row, axis=1)
+    searched_event['RESULT'] = searched_event.apply(convert_for_row, axis=1)
 
 
     final_dfs, code = spreadsheet(searched_event)
