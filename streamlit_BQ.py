@@ -405,7 +405,9 @@ else:  # Choose date and run selection report
 
 #st.dataframe(athletes_selected)
 
-if benchmark_option != 'Search Database Records by Name or Competition':
+## Merge benchmarks ##
+
+if benchmark_option != 'Search Database Records by Name or Competition' or benchmark_option != 'List Results By Event':
 
     df = pd.merge(
         left=athletes_selected, 
