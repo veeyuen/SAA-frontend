@@ -877,6 +877,43 @@ def normalize_time_format(t):
         return f"{minutes}:{seconds}.{fraction}"
     return t  # Return unchanged if pattern not recognized
 
+def convert_time_format(time_str):
+    """
+    Convert time from 'HH:MM:SS.mmmmmm' to 'MM:SS.mm' format.
+    Also formats float values to ensure 2 decimal places (e.g., 9.1 -> 9.10).
+    
+    Args:
+        time_str: Time string in format 'HH:MM:SS.mmmmmm' or float value
+    
+    Returns:
+        Converted time string in format 'MM:SS.mm' or formatted float with 2 decimals
+    """
+    if pd.isna(time_str):
+        return time_str
+    
+    time_str = str(time_str)
+    
+    # Match pattern HH:MM:SS.mmmmmm (with flexible microseconds)
+    pattern = r'^(\d{2}):(\d{2}):(\d{2})\.(\d+)$'
+    match = re.match(pattern, time_str)
+    
+    if match:
+        hours, minutes, seconds, microseconds = match.groups()
+        # Take only first 2 digits of microseconds (centiseconds)
+        centiseconds = microseconds[:2].ljust(2, '0')
+        return f"{minutes}:{seconds}.{centiseconds}"
+    
+    # Check if it's a float value (e.g., 9.1, 12.34)
+    try:
+        float_val = float(time_str)
+        return f"{float_val:.2f}"
+    except ValueError:
+        pass
+    
+    # Return original if pattern doesn't match and not a float
+    return time_str
+
+
 
 
 
