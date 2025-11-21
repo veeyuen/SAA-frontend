@@ -740,6 +740,8 @@ def process_results_refactored(df):
     return df
 
 
+
+
 def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     # Columns we care about
     str_cols = ['EVENT', 'DISTANCE']
@@ -766,12 +768,12 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     event_rules = {
         r'(Dash|Run).*\b60\b|60 Meter Run|^60m$': '60m',
         r'(Dash|Run).*\b80\b|80 Meter Run|^80m$': '80m',
-        r'(Dash|Run).*\b100\b|100 Meter Run|^100m$': '100m',
+        r'(Dash|Run).*\b100\b(?!0)|100 Meter Run\b|^100m$',
         r'(Dash|Run).*\b200\b|^200m$|200\sMeter': '200m',
         r'(Dash|Run).*\b300\b|^300m$|300\sMeter': '300m',
         r'(Dash|Run).*\b400\b|^400m$|400\sMeter': '400m',
         r'(Run.*800|800 Meter Run|^800m$)': '800m',
-        r'Run.*1000': '1000m',
+        r'(Run.*1000|1000m)\b',
         r'(Run.*1500|^1500m$)': '1500m',
         r'(Run.*1500|^1600m$)': '1600m',
         r'(Run.*3000|^3000m$)': '3000m',
