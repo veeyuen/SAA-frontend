@@ -358,9 +358,9 @@ elif benchmark_option == 'List Results By Event':
    #     return result
 
 
-    searched_event['RESULT_CONV'] = searched_event.apply(convert_for_row, axis=1)
+    searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
     
-    searched_event['RESULT_CONV'] = searched_event['RESULT_CONV'].replace('', np.nan)
+    searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
 
     def seconds_to_mmss(seconds):
         if pd.isna(seconds):
