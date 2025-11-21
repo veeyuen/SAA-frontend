@@ -819,7 +819,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         
         # Steeple
         {"conditions": {"EVENT": r'(3000m S/C|3000m SC)'}, "map_to": "3000m Steeplechase"},
-        {"conditions": {"EVENT": r'Steeplechase|S/C|SC', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
+        {"conditions": {"EVENT": r'(Steeplechase|S/C|SC)', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
     ]
 
     for rule in distance_rules:
