@@ -804,9 +804,12 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'3000'}, "map_to": "3000m"},
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'5000'}, "map_to": "5000m"},
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'10000'}, "map_to": "10,000m"},
+        {"conditions": {"EVENT": r'10000m'}, "map_to": "10,000m"},  ##
+
+        
         # Walks
-        {"conditions": {"EVENT": r'1500m Racewalk'}, "map_to": "1500m Racewalk"},
-        {"conditions": {"EVENT": r'3000m Racewalk'}, "map_to": "3000m Racewalk"},
+        {"conditions": {"EVENT": r'1500m Race walk'}, "map_to": "1500m Racewalk"},
+        {"conditions": {"EVENT": r'3000m Race walk'}, "map_to": "3000m Racewalk"},
         {"conditions": {"EVENT": r'5000m Race Walk'}, "map_to": "5000m Racewalk"},
         {"conditions": {"EVENT": r'Race Walk', "DISTANCE": r'10000'}, "map_to": "10000m Racewalk"},
         
@@ -815,8 +818,8 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'Relay', "DISTANCE": r'1600'}, "map_to": "4 x 400m"},
         
         # Steeple
-        {"conditions": {"EVENT": r'3000m S/C'}, "map_to": "3000m Steeplechase"},
-        {"conditions": {"EVENT": r'Steeplechase|S/C', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
+        {"conditions": {"EVENT": r'(3000m S/C|3000m SC)'}, "map_to": "3000m Steeplechase"},
+        {"conditions": {"EVENT": r'Steeplechase|S/C|SC', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
     ]
 
     for rule in distance_rules:
