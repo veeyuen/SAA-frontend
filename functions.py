@@ -811,6 +811,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'1500m Race walk'}, "map_to": "1500m Racewalk"},
         {"conditions": {"EVENT": r'(3000m Race walk|3km Racewalk|3km Race Walk)'}, "map_to": "3000m Racewalk"},
         {"conditions": {"EVENT": r'5000m Race Walk'}, "map_to": "5000m Racewalk"},
+        {"conditions": {"EVENT": r'(10km Race Walk|10km Racewalk)'}, "map_to": "10000m Racewalk"},
         {"conditions": {"EVENT": r'Race Walk', "DISTANCE": r'10000'}, "map_to": "10000m Racewalk"},
         
         # Relays
