@@ -364,7 +364,8 @@ elif benchmark_option == 'List Results By Event':
     
     searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
 
-    searched_event = searched_event.sort_values(by='RESULT_FLOAT', ascending=True, na_position='last')
+    searched_event = searched_event[searched_event['RESULT_FLOAT'].notna()]
+ #   searched_event = searched_event.sort_values(by='RESULT_FLOAT', ascending=True, na_position='last')
 
 
     def seconds_to_mmss(seconds):
