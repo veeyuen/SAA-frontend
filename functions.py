@@ -776,7 +776,8 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         r'(Run.*1500|^1600m$)': '1600m',
         r'(Run.*3000|^3000m$)': '3000m',
         r'(Run.*5000|^5000m$)': '5000m',
-        r'(Run.*10000|^10000m$|^10,000m$)': '10,000m',
+   #     r'(Run.*10000|^10000m$|^10,000m$)': '10,000m', # old
+        r'(Run.*10,000|Run.*10000|^10,000m$|^10000m$|10km|10 km|10,000 m)': '10,000m', # new
         r'Run.*Mile': '1 Mile',
     }
 
@@ -822,6 +823,21 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'(3000m S/C|3000m SC)'}, "map_to": "3000m Steeplechase"},
         {"conditions": {"EVENT": r'(Steeplechase|S/C|SC)', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
     ]
+
+    # In event_rules (with case insensitive, add more patterns)
+    # BELOW NEW #
+    # In distance_rules, unify to one rule
+    distance_rules.append({
+    "conditions": {"EVENT": r'Run|10,000|10000|10km|10 km', "DISTANCE": r'10,000|10000|10km|10 km'},
+    "map_to": "10,000m"
+    })
+
+# Also unify racewalk naming if preferred
+    distance_rules.append({
+    "conditions": {"EVENT": r'Race Walk|Racewalk', "DISTANCE": r'10,000|10000|10km|10 km'},
+    "map_to": "10,000m Racewalk"
+    })
+    # END NEW #
 
     for rule in distance_rules:
         cond = pd.Series(True, index=athletes.index)
