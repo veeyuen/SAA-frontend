@@ -369,14 +369,30 @@ elif benchmark_option == 'List Results By Event':
             return ''
         minutes, secs = divmod(seconds, 60)
         return f"{int(minutes):02d}:{secs:05.2f}"
+
+    def parse_time_to_timedelta(t):
+    t = str(t)
+    # Replace the last '.' (fractional seconds) with ':'
+    # This changes '12:34.56' -> '12:34:56'
+    if '.' in t:
+        parts = t.rsplit('.', 1)
+        t_mod = parts[0] + ':' + parts[1]
+    else:
+        t_mod = t
+
+    try:
+        # Try parsing the modified string as HH:MM:SS
+        td = pd.to_timedelta(t_mod)
+        return td
+    except Exception:
+        return pd.NaT  # Return Not A Time for failures
     
     if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
    
     
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
-        searched_event['RESULT_TIMES'] = pd.to_timedelta(searched_event['RESULT_TIMES'])
-    
+        searched_event['timedelta'] = searched_event['RESULT_TIMES'].apply(parse_time_to_timedelta)    
 
 
     final_dfs, code = spreadsheet(searched_event)
