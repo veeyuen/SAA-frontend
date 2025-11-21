@@ -340,6 +340,8 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event = clean_columns(searched_event)
 
+    searched_event['DATE'] = pd.to_datetime(searched_event['DATE'], format='%Y-%m-%d')
+
     invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
     def convert_for_row(row):
