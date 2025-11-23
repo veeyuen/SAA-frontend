@@ -292,7 +292,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         def convert_for_row(row):
             if row['RESULT'] in invalid_results:
                 return ''
-            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+            return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
 
         df_search['RESULT_CONV'] = df_search.apply(convert_for_row, axis=1)
 
