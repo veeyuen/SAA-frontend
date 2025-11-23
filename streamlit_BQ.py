@@ -370,9 +370,7 @@ elif benchmark_option == 'List Results By Event':
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     def seconds_to_mmss(seconds):
-    """
-    Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
-    """
+    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
         if pd.isna(seconds):
             return ''
     
