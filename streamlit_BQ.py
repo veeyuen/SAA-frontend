@@ -412,11 +412,12 @@ elif benchmark_option == 'List Results By Event':
             return pd.NaT
     
         try:
+        # 2. Convert the float directly to Timedelta by specifying the unit='s' (seconds)
             td = pd.to_timedelta(seconds_float, unit='s')
             return td
         except Exception:
+        # 3. Fallback for any unexpected non-numeric error (highly unlikely if dtype is float)
             return pd.NaT
-    
 
     if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m' or list_option=='10000m racewalk':
    
