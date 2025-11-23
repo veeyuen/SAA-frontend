@@ -370,21 +370,28 @@ elif benchmark_option == 'List Results By Event':
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     def seconds_to_mmss(seconds):
+    """
+    Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
+    """
         if pd.isna(seconds):
             return ''
     
-    # 1. Check if the time is 1 hour (3600s) or more
-        if seconds >= 3600:
-            hours, remainder = divmod(seconds, 3600)
-            minutes, secs = divmod(remainder, 60)
-        # Format as HH:MM:SS.ss (e.g., 01:09:34.48)
-            return f"{int(hours):02d}:{int(minutes):02d}:{secs:05.2f}"
-        else:
-        # Standard MM:SS.ss format
-            minutes, secs = divmod(seconds, 60)
-        # Format as MM:SS.ss (e.g., 69:34.48 would now
-            return f"{int(minutes):02d}:{secs:05.2f}"
+    # 1. Calculate Hours, Minutes, and remaining Seconds
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
     
+    # Ensure all components are integers for clean formatting, except for secs
+        hours = int(hours)
+        minutes = int(minutes)
+    
+    # 2. Format the time string: HH:MM:SS.ss
+    # :02d ensures two digits with a leading zero (e.g., 00, 09, 10)
+    # :05.2f ensures two decimal places and pads with leading zeros if needed
+    # for a total width of 5 (e.g., 5.29 -> 05.29 is not guaranteed, but 5.29 is consistent)
+    # For secs, we just want the two decimal places and minimal padding.
+    
+        return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
+
     def parse_time_to_timedelta(t):
         t = str(t)
     # Replace the last '.' (fractional seconds) with ':'
