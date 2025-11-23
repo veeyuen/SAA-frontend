@@ -407,6 +407,19 @@ elif benchmark_option == 'List Results By Event':
         except Exception:
             return pd.NaT  # Return Not A Time for failures
 
+    def parse_seconds_to_timedelta(seconds_float):
+#    Converts a float representing total seconds directly into a Timedelta object.
+#    This is the safest and most reliable method.
+        if pd.isna(seconds_float):
+            return pd.NaT
+    
+        try:
+        # Crucial change: Pass the float directly and specify the unit as 'seconds'
+            td = pd.to_timedelta(seconds_float, unit='s')
+            return td
+        except Exception:
+            return pd.NaT
+
     
 
     if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m' or list_option=='10000m racewalk':
@@ -414,7 +427,7 @@ elif benchmark_option == 'List Results By Event':
     
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
-        searched_event['timedelta'] = searched_event['RESULT_TIMES'].apply(parse_time_to_timedelta)    
+        searched_event['timedelta'] = searched_event['RESULT_TIMES'].apply(parse_seconds_to_timedelta)    
 
 
     final_dfs, code = spreadsheet(searched_event)
