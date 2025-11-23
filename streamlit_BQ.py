@@ -364,29 +364,51 @@ elif benchmark_option == 'List Results By Event':
  #   searched_event = searched_event.sort_values(by='RESULT_FLOAT', ascending=True, na_position='last')
 
 
+    #def seconds_to_mmss(seconds):
+    #    if pd.isna(seconds):
+    #        return ''
+    #    minutes, secs = divmod(seconds, 60)
+    #    return f"{int(minutes):02d}:{secs:05.2f}"
     def seconds_to_mmss(seconds):
-        if pd.isna(seconds):
-            return ''
+    if pd.isna(seconds):
+        return ''
+    
+    # 1. Check if the time is 1 hour (3600s) or more
+    if seconds >= 3600:
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+        # Format as HH:MM:SS.ss (e.g., 01:09:34.48)
+        return f"{int(hours):02d}:{int(minutes):02d}:{secs:05.2f}"
+    else:
+        # Standard MM:SS.ss format
         minutes, secs = divmod(seconds, 60)
+        # Format as MM:SS.ss (e.g., 69:34.48 would now
         return f"{int(minutes):02d}:{secs:05.2f}"
-
-    def parse_time_to_timedelta(t):
+    
+   # def parse_time_to_timedelta(t):
         t = str(t)
     # Replace the last '.' (fractional seconds) with ':'
     # This changes '12:34.56' -> '12:34:56'
-        if '.' in t:
-            parts = t.rsplit('.', 1)
-            t_mod = parts[0] + ':' + parts[1]
-        else:
-            t_mod = t
+   #     if '.' in t:
+   #         parts = t.rsplit('.', 1)
+   #         t_mod = parts[0] + ':' + parts[1]
+   #     else:
+   #         t_mod = t
 
-        try:
+    #    try:
         # Try parsing the modified string as HH:MM:SS
-            td = pd.to_timedelta(t_mod)
-            return td
-        except Exception:
-            return pd.NaT  # Return Not A Time for failures
-    
+    #        td = pd.to_timedelta(t_mod)
+    #        return td
+    #    except Exception:
+    #        return pd.NaT  # Return Not A Time for failures
+
+    def parse_seconds_to_timedelta(seconds):
+        if pd.isna(seconds):
+            return pd.NaT
+    # Directly convert the float (total seconds) into a timedelta
+        return pd.to_timedelta(seconds, unit='s')
+
+
     if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m' or list_option=='10000m racewalk':
    
     
