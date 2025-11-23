@@ -773,7 +773,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         r'(Dash|Run).*\b300\b|^300m$|300\sMeter': '300m',
         r'(Dash|Run).*\b400\b|^400m$|400\sMeter': '400m',
         r'(Run.*800|800 Meter Run|^800m$)': '800m',
-        r'(Run.*1000|1000m)\b',
+        r'(Run.*1000|1000m)\b': '1000m',
         r'(Run.*1500|^1500m$)': '1500m',
         r'(Run.*1500|^1600m$)': '1600m',
         r'(Run.*3000|^3000m$)': '3000m',
