@@ -939,6 +939,36 @@ def convert_time_format(time_str):
     # Return original if pattern doesn't match and not a float
     return time_str
 
+def format_seconds_to_time_string(total_seconds, is_long_event=False):
+    """
+    Converts a float representing total seconds into a formatted time string.
+    """
+    if not isinstance(total_seconds, (int, float)):
+        return '' # Or handle error
+
+    total_seconds = round(total_seconds, 2) # Round to hundredths for safety
+
+    if is_long_event:
+        # Format as HH:MM:SS (or M:SS:XX if less than an hour)
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        seconds = total_seconds % 60
+        
+        if hours > 0:
+            return f"{hours:02d}:{minutes:02d}:{seconds:05.2f}"
+        else:
+            return f"{minutes:02d}:{seconds:05.2f}" # MM:SS.XX
+
+    else:
+        # Format as SS.XX (or M:SS.XX if over 60 seconds)
+        minutes = int(total_seconds // 60)
+        seconds = total_seconds % 60
+
+        if minutes > 0:
+            return f"{minutes}:{seconds:05.2f}" # M:SS.XX
+        else:
+            return f"{seconds:.2f}" # SS.XX (standard for sprints)
+
 
 
                         
