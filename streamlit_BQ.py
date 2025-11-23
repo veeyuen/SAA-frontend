@@ -284,40 +284,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
-        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
-
-        def seconds_to_mmss(seconds):
-            if pd.isna(seconds):
-                return ''
-            minutes, secs = divmod(seconds, 60)
-            return f"{int(minutes):02d}:{secs:05.2f}"
-
-        def parse_time_to_timedelta(t):
-            t = str(t)
-    # Replace the last '.' (fractional seconds) with ':'
-    # This changes '12:34.56' -> '12:34:56'
-            if '.' in t:
-                parts = t.rsplit('.', 1)
-                t_mod = parts[0] + ':' + parts[1]
-            else:
-                t_mod = t
-
-            try:
-        # Try parsing the modified string as HH:MM:SS
-                td = pd.to_timedelta(t_mod)
-                return td
-            except Exception:
-                return pd.NaT  # Return Not A Time for failures
-    
-        if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
-   
-    
-            df_search['RESULT_TIMES'] = df_search['RESULT_FLOAT'].apply(seconds_to_mmss)  
-
-            df_search['timedelta'] = df_search['RESULT_TIMES'].apply(parse_time_to_timedelta)    
-
-    
-        
+        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]       
         
         if text_search:
       #      st.write(df_search)
