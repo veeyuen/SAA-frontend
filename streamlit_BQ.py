@@ -386,7 +386,7 @@ elif benchmark_option == 'List Results By Event':
             return f"{int(minutes):02d}:{secs:05.2f}"
     
    # def parse_time_to_timedelta(t):
-        t = str(t)
+   #     t = str(t)
     # Replace the last '.' (fractional seconds) with ':'
     # This changes '12:34.56' -> '12:34:56'
    #     if '.' in t:
@@ -402,7 +402,7 @@ elif benchmark_option == 'List Results By Event':
     #    except Exception:
     #        return pd.NaT  # Return Not A Time for failures
 
-    def parse_seconds_to_timedelta(seconds):
+    def parse_time_to_timedelta(seconds):
         if pd.isna(seconds):
             return pd.NaT
     # Directly convert the float (total seconds) into a timedelta
