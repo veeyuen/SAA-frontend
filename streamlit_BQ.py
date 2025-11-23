@@ -424,7 +424,9 @@ elif benchmark_option == 'List Results By Event':
     
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
-        searched_event['timedelta'] = searched_event['RESULT_TIMES'].apply(parse_seconds_to_timedelta)    
+       # searched_event['timedelta'] = searched_event['RESULT_TIMES'].apply(parse_seconds_to_timedelta)
+        searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_TIMES'])
+
 
 
     final_dfs, code = spreadsheet(searched_event)
