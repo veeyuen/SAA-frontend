@@ -14,7 +14,7 @@ import math
 from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
-from functions import normalize_time_format, convert_time_refactored, convert_time_format, format_seconds_to_time_string
+from functions import normalize_time_format, convert_time_refactored, convert_time_format
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -286,16 +286,35 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
-        invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
-
-# Apply conversion vectorized using apply, skipping invalid values
-        def convert_for_row(row):
-            if row['RESULT'] in invalid_results:
+        def seconds_to_mmss(seconds):
+            if pd.isna(seconds):
                 return ''
-            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+            minutes, secs = divmod(seconds, 60)
+            return f"{int(minutes):02d}:{secs:05.2f}"
 
-        df_search['RESULT_CONV'] = df_search.apply(convert_for_row, axis=1)
-        df_search['RESULT_CONV'] = df_search.apply(format_seconds_to_time_string, axis=1)
+        def parse_time_to_timedelta(t):
+            t = str(t)
+    # Replace the last '.' (fractional seconds) with ':'
+    # This changes '12:34.56' -> '12:34:56'
+            if '.' in t:
+                parts = t.rsplit('.', 1)
+                t_mod = parts[0] + ':' + parts[1]
+            else:
+                t_mod = t
+
+            try:
+        # Try parsing the modified string as HH:MM:SS
+                td = pd.to_timedelta(t_mod)
+                return td
+            except Exception:
+                return pd.NaT  # Return Not A Time for failures
+    
+        if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m Steeplechase' or list_option=='1500m':
+   
+    
+            df_search['RESULT_TIMES'] = df_search['RESULT_FLOAT'].apply(seconds_to_mmss)  
+
+            df_search['timedelta'] = df_search['RESULT_TIMES'].apply(parse_time_to_timedelta)    
 
     
         
