@@ -346,7 +346,7 @@ elif benchmark_option == 'List Results By Event':
     def convert_for_row(row):
         if row['RESULT'] in invalid_results:
             return ''
-        return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+        return convert_time_refactored_2(row.name, row['EVENT'], row['RESULT'])
 
   
    # def convert_for_row(row):
