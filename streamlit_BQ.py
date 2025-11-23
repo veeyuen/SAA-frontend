@@ -285,6 +285,17 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
+
+        invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
+
+# Apply conversion vectorized using apply, skipping invalid values
+        def convert_for_row(row):
+            if row['RESULT'] in invalid_results:
+                return ''
+            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+
+        df_search['RESULT_CONV'] = df_search.apply(convert_for_row, axis=1)
+
     
         
         
