@@ -717,6 +717,7 @@ def convert_time_refactored(i, string, metric):
         return ''
 
     return output
+   # return format_seconds_to_time_string(total_seconds, is_long_event=False) # Example usage
 
 def process_results_refactored(df):
     
