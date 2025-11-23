@@ -387,7 +387,7 @@ elif benchmark_option == 'List Results By Event':
         except Exception:
             return pd.NaT  # Return Not A Time for failures
     
-    if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m':
+    if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m' or list_option=='10000m racewalk':
    
     
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
