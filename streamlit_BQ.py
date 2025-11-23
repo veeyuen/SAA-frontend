@@ -295,6 +295,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
         df_search['RESULT_CONV'] = df_search.apply(convert_for_row, axis=1)
+        df_search['RESULT_CONV'] = df_search.apply(format_seconds_to_time_string, axis=1)
 
     
         
