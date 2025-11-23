@@ -370,20 +370,20 @@ elif benchmark_option == 'List Results By Event':
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     def seconds_to_mmss(seconds):
-    if pd.isna(seconds):
-        return ''
+        if pd.isna(seconds):
+            return ''
     
     # 1. Check if the time is 1 hour (3600s) or more
-    if seconds >= 3600:
-        hours, remainder = divmod(seconds, 3600)
-        minutes, secs = divmod(remainder, 60)
+        if seconds >= 3600:
+            hours, remainder = divmod(seconds, 3600)
+            minutes, secs = divmod(remainder, 60)
         # Format as HH:MM:SS.ss (e.g., 01:09:34.48)
-        return f"{int(hours):02d}:{int(minutes):02d}:{secs:05.2f}"
-    else:
+            return f"{int(hours):02d}:{int(minutes):02d}:{secs:05.2f}"
+        else:
         # Standard MM:SS.ss format
-        minutes, secs = divmod(seconds, 60)
+            minutes, secs = divmod(seconds, 60)
         # Format as MM:SS.ss (e.g., 69:34.48 would now
-        return f"{int(minutes):02d}:{secs:05.2f}"
+            return f"{int(minutes):02d}:{secs:05.2f}"
     
    # def parse_time_to_timedelta(t):
         t = str(t)
