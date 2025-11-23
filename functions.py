@@ -940,45 +940,115 @@ def convert_time_format(time_str):
     # Return original if pattern doesn't match and not a float
     return time_str
 
-def format_seconds_to_time_string(total_seconds, is_long_event=False):
+def convert_time_refactored_2(i, string, metric):
     """
-    Converts a float representing total seconds into a formatted time string.
+    Convert various metric formats (distance, time) to a float value (primarily seconds for times).
+    Optimized for speed: no global variables, no print statements, no unnecessary conversions.
+    
+    Args:
+        i (int): Index (unused, kept for compatibility).
+        string (str): Event description.
+        metric (str, float, or datetime): The result metric.
+    
+    Returns:
+        float or empty string: Converted metric as float (seconds/meters), or '' if not convertible.
     """
-    if not isinstance(total_seconds, (int, float)):
-        return '' # Or handle error
-
-    total_seconds = round(total_seconds, 2) # Round to hundredths for safety
-
-    if is_long_event:
-        # Format as HH:MM:SS (or M:SS:XX if less than an hour)
-        hours = int(total_seconds // 3600)
-        minutes = int((total_seconds % 3600) // 60)
-        seconds = total_seconds % 60
+    l = ['discus', 'throw', 'jump', 'vault', 'shot']
+    sprint_events = ['100m', '200m', '400m']
+    
+    string = str(string).lower()
+    metric_str = str(metric)
+    output = ''
+    
+    try:
+        # Skip marks with illegal wind speeds
+        if isinstance(metric_str, str) and 'w' in metric_str.lower():
+            return ''
         
-        if hours > 0:
-            return f"{hours:02d}:{minutes:02d}:{seconds:05.2f}"
-        else:
-            return f"{minutes:02d}:{seconds:05.2f}" # MM:SS.XX
-
-    else:
-        # Format as SS.XX (or M:SS.XX if over 60 seconds)
-        minutes = int(total_seconds // 60)
-        seconds = total_seconds % 60
-
-        if minutes > 0:
-            return f"{minutes}:{seconds:05.2f}" # M:SS.XX
-        else:
-            return f"{seconds:.2f}" # SS.XX (standard for sprints)
-
-
-
-                        
-             
-
-
-
-
-
+        # Field events (distances)
+        if any(s in string for s in l):
+            # Remove unit if present
+            metric_clean = metric_str.replace('m', '').replace('GR', '')
+            return round(float(metric_clean), 2)
+        
+        # No event description
+        if string == '':
+            return ''
+        
+        # Time events
+        count_colon = metric_str.count(':')
+        count_dot = metric_str.count('.')
+        
+        # Simple time as float (no colon)
+        if count_colon == 0:
+            return round(float(metric_str), 2)
+        
+        # Sprint events (100m, 200m, 400m): Handle 00:MM.SS or MM.SS format as seconds
+        if any(sprint in string for sprint in sprint_events):
+            if count_colon == 1 and count_dot == 1:
+                # Format: 00:09.16 or 09.16
+                parts = metric_str.split(':')
+                if len(parts) == 2:
+                    # Check if first part is "00" (ignore it) or actual minutes
+                    first_part = parts[0]
+                    second_part = parts[1]
+                    
+                    if first_part == '00':
+                        # It's 00:SS.ss format, just return the seconds part
+                        return float(second_part)
+                    else:
+                        # It's MM:SS.ss format, convert normally
+                        return float(int(first_part) * 60 + float(second_part))
+        
+        # Convert time formats with two colons (like XX:XX:XX, XX:XX.XX)
+        if count_colon == 2:
+            # For 10,000m, 5000m, and 1500m, replace the 6th character with '.' for format XX:XX.XX
+            if ('10,000m' in string or '5000m' in string or '1500m' in string):
+                if len(metric_str) == 7:  # X:XX:XX (1500m special case)
+                    idx = 4
+                    metric_mod = '0' + metric_str[:idx] + '.' + metric_str[idx+1:]
+                else:
+                    idx = 5
+                    metric_mod = metric_str[:idx] + '.' + metric_str[idx+1:]
+                m, s = metric_mod.split(':')[-2:]
+                return float((int(m) * 60) + float(s))
+            
+            # Standard HH:MM:SS
+            h, m, s = metric_str.split(':')
+            return float(int(h) * 3600 + int(m) * 60 + float(s))
+        
+        # Handle datetime.time/datetime.datetime objects
+        if isinstance(metric, (datetime.time, datetime.datetime)):
+            t = str(metric)
+            h, m, s = t.split(':')
+            return float(int(h) * 3600 + int(m) * 60 + float(s))
+        
+        # MM:SS.sss format
+        if count_colon == 1 and count_dot >= 1:
+            m, s = metric_str.split(':')
+            return float(int(m) * 60 + float(s))
+        
+        # HH.MM.SS (rare) or MM:SS:SS
+        if count_colon == 1 and count_dot == 2:
+            # Replace first dot with colon
+            metric_mod = metric_str.replace('.', ':', 1)
+            h, m, s = metric_mod.split(':')
+            return float(int(h) * 3600 + int(m) * 60 + float(s))
+        
+        # HH:MM:SS (no dots)
+        if count_colon == 2 and count_dot == 0:
+            h, m, s = metric_str.split(':')
+            return float(int(h) * 3600 + int(m) * 60 + float(s))
+        
+        # MM:SS (no dots)
+        if count_colon == 1 and count_dot == 0:
+            m, s = metric_str.split(':')
+            return float(int(m) * 60 + int(s))
+            
+    except Exception:
+        return ''
+    
+    return output
 
                             
                  
