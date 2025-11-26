@@ -304,7 +304,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         def convert_for_row(row):
             if row['RESULT'] in invalid_results:
                 return ''
-            return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
   
    # def convert_for_row(row):
