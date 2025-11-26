@@ -305,7 +305,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 # 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
 # This replaces the original .apply() within the if block.
-        df_search.loc[mask, 'RESULT'] = (df_search.loc[mask, 'RESULT'].apply(seconds_to_mmss))
+   #     df_search.loc[mask, 'RESULT'] = (df_search.loc[mask, 'RESULT'].apply(seconds_to_mmss))
 
 # 4. Convert the new column to timedelta
 # This operation is already vectorised (applied to the whole column/Series at once).
