@@ -281,14 +281,47 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
-        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]       
+        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
+## NEW BLOCK ##
+        def seconds_to_mmss(seconds):
+    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
+            if pd.isna(seconds):
+                return ''
+    
+    # 1. Calculate Hours, Minutes, and remaining Seconds
+            hours, remainder = divmod(seconds, 3600)
+            minutes, secs = divmod(remainder, 60)
+    
+            hours = int(hours)
+            minutes = int(minutes)
+    
+            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
+
+        distance_events = ['800m', '10,000m', '5000m', '3000m steeplechase', '1500m', '10000m racewalk']
+
+# 2. Create the boolean mask using .isin()
+# Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
+        mask = df_search['MAPPED_EVENT'].isin(distance_events)
+
+# 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
+# This replaces the original .apply() within the if block.
+        df_search.loc[mask, 'RESULT'] = (df_search.loc[mask, 'RESULT'].apply(seconds_to_mmss))
+
+# 4. Convert the new column to timedelta
+# This operation is already vectorised (applied to the whole column/Series at once).
+  #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
+
+
+    ## END NEW BLOCK ##      
+
         
         if text_search:
       #      st.write(df_search)
             final_dfs, code = spreadsheet(df_search)
 
         all_data.drop(['NAME_case'], axis=1, inplace=True)
-#
+
+        
     
 
     elif search_option=='Competition Name':
