@@ -297,7 +297,31 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
             return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
 
-        distance_events = ['800m', '10,000m', '5000m', '3000m steeplechase', '1500m', '10000m racewalk']
+        distance_events = ['800m', '10,000m', '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk']
+
+        invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
+
+        def convert_for_row(row):
+            if row['RESULT'] in invalid_results:
+                return ''
+            return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+
+  
+   # def convert_for_row(row):
+   #     if row['RESULT'] in invalid_results:
+   #         return np.nan
+   #     result = convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
+   #     if result == '' or result is None:
+   #         st.write(f"FAILED PARSE: EVENT={row['EVENT']} RESULT={row['RESULT']}")
+   #         return np.nan
+   #     return result
+
+
+        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
+    
+        df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
+
+        df_search = df_search[df_search['RESULT_FLOAT'].notna()]
 
 # 2. Create the boolean mask using .isin()
 # Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
@@ -305,7 +329,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 # 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
 # This replaces the original .apply() within the if block.
-   #     df_search.loc[mask, 'RESULT'] = (df_search.loc[mask, 'RESULT'].apply(seconds_to_mmss))
+        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
 
 # 4. Convert the new column to timedelta
 # This operation is already vectorised (applied to the whole column/Series at once).
