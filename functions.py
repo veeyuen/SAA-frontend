@@ -171,23 +171,7 @@ def process_results(df):
         df[col] = df[col].str.replace('\n', ' ', regex=True)
         df[col] = df[col].str.strip()
 
-  #  df['RESULT_CONV'] = ''
-
-  #  for i in range(len(df)):
-    
-  #      result_out=''
-        
-  #      rowIndex = df.index[i]
-
-  #      input_string=df.loc[rowIndex,'MAPPED_EVENT']    # event description
-    
-  #      metric=df.loc[rowIndex,'RESULT'] # result
-    
-  #      if metric=='—' or metric=='None' or metric=='DQ' or metric=='SCR' or metric=='FS' or metric=='DNQ' or metric=='DNS' or metric=='NH' or metric=='NM' or metric=='FOUL' or metric=='DNF' or metric=='SR' :
-  #          continue
-    
-  #      df.loc[rowIndex, 'RESULT_CONV'] = convert_time_refactored(i, input_string, metric)
-
+ 
     # Define a filter for rows with convertible results
     invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
 
@@ -744,7 +728,7 @@ def process_results_refactored(df):
 
 
 
-
+'''
 def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     # Columns we care about
     str_cols = ['EVENT', 'DISTANCE']
@@ -761,8 +745,6 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         )
 
     # Initialize mapped column
- #   if 'MAPPED_EVENT' not in athletes:
-  #      athletes['MAPPED_EVENT'] = np.nan
 
    
     # ----------------------
@@ -882,6 +864,137 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
             else:
                 cond &= False
         athletes.loc[cond, 'EVENT'] = rule["map_to"]
+
+   
+    return athletes
+'''
+
+def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
+    # Columns we care about
+    str_cols = ['EVENT', 'DISTANCE']
+    existing_cols = [c for c in str_cols if c in athletes.columns]
+
+    # Clean text columns
+    regex_cleanup = re.compile(r'[\xa0\r\n]|[\x00-\x1f\x7f-\x9f]')
+    for col in existing_cols:
+        athletes[col] = (
+            athletes[col]
+            .astype(str)
+            .str.replace(regex_cleanup, ' ', regex=True)
+            .str.strip()
+        )
+
+    # Initialize mapped column - UNCOMMENT THIS
+    if 'MAPPED_EVENT' not in athletes.columns:
+        athletes['MAPPED_EVENT'] = np.nan
+
+   
+    # ----------------------
+    # EVENT-only rules (regex on EVENT)
+    # ----------------------
+    event_rules = {
+        r'(Dash|Run).*\b60\b|60 Meter Run|^60m$': '60m',
+        r'(Dash|Run).*\b80\b|80 Meter Run|^80m$': '80m',
+        r'(Dash|Run).*\b100\b(?!0)|100 Meter Run\b|^100m$': '100m',
+        r'(Dash|Run).*\b200\b|^200m$|200\sMeter': '200m',
+        r'(Dash|Run).*\b300\b|^300m$|300\sMeter': '300m',
+        r'(Dash|Run).*\b400\b|^400m$|400\sMeter': '400m',
+        r'(Run.*800|800 Meter Run|^800m$)': '800m',
+        r'(Run.*1000|1000m)\b': '1000m',
+        r'(Run.*1500|^1500m$)': '1500m',
+        r'(Run.*1500|^1600m$)': '1600m',
+        r'(Run.*3000|^3000m$)': '3000m',
+        r'(Run.*5000|^5000m$)': '5000m',
+        r'(Run.*10,000|Run.*10000|^10,000m$|^10000m$|10km|10 km|10,000 m)': '10,000m',
+        r'Run.*Mile': '1 Mile',
+    }
+
+    for pattern, mapped in event_rules.items():
+        athletes.loc[athletes['EVENT'].str.contains(pattern, na=False), 'MAPPED_EVENT'] = mapped
+
+    # ----------------------
+    # EVENT + DISTANCE rules - CHANGE 'EVENT' TO 'MAPPED_EVENT'
+    # ----------------------
+    distance_rules = [
+        # Short sprints
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'60'}, "map_to": "60m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'80'}, "map_to": "80m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'100'}, "map_to": "100m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'150'}, "map_to": "150m"},   
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'200'}, "map_to": "200m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'300'}, "map_to": "300m"},
+        
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'400'}, "map_to": "400m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'800'}, "map_to": "800m"},  # This should now work
+        # Middle/long
+        {"conditions": {"EVENT": r'Run', "DISTANCE": r'1500'}, "map_to": "1500m"},
+        {"conditions": {"EVENT": r'Run', "DISTANCE": r'1600'}, "map_to": "1600m"},
+        
+        {"conditions": {"EVENT": r'Run', "DISTANCE": r'3000'}, "map_to": "3000m"},
+        {"conditions": {"EVENT": r'Run', "DISTANCE": r'5000'}, "map_to": "5000m"},
+        {"conditions": {"EVENT": r'Run', "DISTANCE": r'10000'}, "map_to": "10,000m"},
+        {"conditions": {"EVENT": r'10000m'}, "map_to": "10,000m"},
+
+        
+        # Walks
+        {"conditions": {"EVENT": r'1500m Race walk'}, "map_to": "1500m Racewalk"},
+        {"conditions": {"EVENT": r'(3000m Race walk|3km Racewalk|3km Race Walk)'}, "map_to": "3000m Racewalk"},
+        {"conditions": {"EVENT": r'5000m Race Walk'}, "map_to": "5000m Racewalk"},
+        {"conditions": {"EVENT": r'(10km Race Walk|10km Racewalk|10,000m Racewalk)'}, "map_to": "10000m Racewalk"},
+        {"conditions": {"EVENT": r'Race Walk', "DISTANCE": r'10000'}, "map_to": "10000m Racewalk"},
+        
+        # Relays
+        {"conditions": {"EVENT": r'Relay', "DISTANCE": r'400'}, "map_to": "4 x 100m"},
+        {"conditions": {"EVENT": r'Relay', "DISTANCE": r'1600'}, "map_to": "4 x 400m"},
+        
+        # Steeple
+        {"conditions": {"EVENT": r'(3000m S/C|3000m SC)'}, "map_to": "3000m Steeplechase"},
+        {"conditions": {"EVENT": r'(Steeplechase|S/C|SC)', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
+    ]
+
+    distance_rules.append({
+        "conditions": {"EVENT": r'Run|10,000|10000|10km|10 km', "DISTANCE": r'10,000|10000|10km|10 km'},
+        "map_to": "10,000m"
+    })
+
+    distance_rules.append({
+        "conditions": {"EVENT": r'Race Walk|Racewalk', "DISTANCE": r'10,000|10000|10km|10 km'},
+        "map_to": "10,000m Racewalk"
+    })
+
+    for rule in distance_rules:
+        cond = pd.Series(True, index=athletes.index)
+        for col, pat in rule["conditions"].items():
+            if col in athletes.columns:
+                cond &= athletes[col].str.contains(pat, na=False)
+            else:
+                cond &= False
+        # CHANGE THIS LINE: use 'MAPPED_EVENT' instead of 'EVENT'
+        athletes.loc[cond, 'MAPPED_EVENT'] = rule["map_to"]
+
+    # ----------------------
+    # Hurdles (EVENT + GENDER + EVENT_CLASS)
+    # ----------------------
+    hurdles_rules = [
+        {"conditions": {"EVENT": r'(100m Hurdles|100m hurdles)'}, "map_to": "100m Hurdles"},
+        {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'100'}, "map_to": "100m Hurdles"},
+        {"conditions": {"EVENT": r'(110m Hurdles|110m hurdles)'}, "map_to": "110m Hurdles"},
+        {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'110'}, "map_to": "110m Hurdles"},
+        {"conditions": {"EVENT": r'(200m Hurdles|200m hurdles)'}, "map_to": "200m Hurdles"},
+        {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'200'}, "map_to": "200m Hurdles"},
+        {"conditions": {"EVENT": r'(400m Hurdles|400m hurdles)'}, "map_to": "400m Hurdles"},
+        {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'400'}, "map_to": "400m Hurdles"},
+    ]
+
+    for rule in hurdles_rules:
+        cond = pd.Series(True, index=athletes.index)
+        for col, pat in rule["conditions"].items():
+            if col in athletes.columns:
+                cond &= athletes[col].str.contains(pat, na=False)
+            else:
+                cond &= False
+        # CHANGE THIS LINE: use 'MAPPED_EVENT' instead of 'EVENT'
+        athletes.loc[cond, 'MAPPED_EVENT'] = rule["map_to"]
 
    
     return athletes
