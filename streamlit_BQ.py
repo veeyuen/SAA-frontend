@@ -297,7 +297,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
             return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
 
-        distance_events = ['400m', '800m', '10,000m', '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk']
+        distance_events = ['400m', '800m', '10,000m', '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk', '1 Mile']
 
         invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
