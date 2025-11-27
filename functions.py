@@ -279,8 +279,8 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m'
     
     
-    mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'800', na=True))
-    athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
+    mask800 = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'800', na=True))
+    athletes.loc[mask800, 'MAPPED_EVENT'] = '800m'
     mask = athletes['EVENT'].str.contains(r'800 Meter Run', na=True)
     athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
     mask = athletes['EVENT'].str.contains(r'^800m$', na=True)
@@ -288,8 +288,6 @@ def map_international_events(athletes):
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'1000', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '1000m'
 
-    mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'800', na=True))
-    athletes.loc[mask, 'MAPPED_EVENT'] = '800m'
     
     
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'1500', na=True))
