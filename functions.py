@@ -802,7 +802,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'300'}, "map_to": "300m"},
         
         {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'400'}, "map_to": "400m"},
-        {"conditions": {"EVENT": r'Run', "DISTANCE": r'800'}, "map_to": "800m"},
+        {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'800'}, "map_to": "800m"},
         # Middle/long
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'1500'}, "map_to": "1500m"},
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'1600'}, "map_to": "1600m"},
