@@ -962,6 +962,10 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         "map_to": "10,000m Racewalk"
     })
 
+    # Add this debugging code before the distance_rules loop to see what's happening
+    st.write("Sample 800m rows before mapping:")
+    st.write(athletes[athletes['DISTANCE'].str.contains('800', na=False)][['EVENT', 'DISTANCE']].head())
+    
     for rule in distance_rules:
         cond = pd.Series(True, index=athletes.index)
         for col, pat in rule["conditions"].items():
