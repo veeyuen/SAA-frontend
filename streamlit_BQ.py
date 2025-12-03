@@ -325,9 +325,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
 
-        df_search = df_search[df_search['RESULT_FLOAT'].notna()]
-
-        st.dataframe(df_search)
+      #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
 
 
 # 2. Create the boolean mask using .isin()
