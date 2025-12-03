@@ -324,10 +324,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
         df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
-        st.dataframe(df_search)
-
 
         df_search = df_search[df_search['RESULT_FLOAT'].notna()]
+
+        st.dataframe(df_search)
+
 
 # 2. Create the boolean mask using .isin()
 # Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
