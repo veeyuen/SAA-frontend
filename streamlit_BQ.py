@@ -320,11 +320,12 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
 
-        st.dataframe(df_search)
-
         df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
     
         df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
+
+        st.dataframe(df_search)
+
 
         df_search = df_search[df_search['RESULT_FLOAT'].notna()]
 
