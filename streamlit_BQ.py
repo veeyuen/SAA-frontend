@@ -179,6 +179,9 @@ def fetch_all_data():   # for database access
  #   all_data = clean_columns(all_data)
 
     all_data=simple_map_events(all_data)
+
+    st.dataframe(all_data)
+
     
     # Casefold for consistency
     all_data['NAME'] = all_data['NAME'].str.casefold()
@@ -230,7 +233,6 @@ def fetch_all_data():   # for database access
 all_data = fetch_all_data() # fetch the entire database
 #data = fetch_data() # fetch the database of results for selected period
 
-st.dataframe(all_data)
 
 
 benchmark_option = st.selectbox(
