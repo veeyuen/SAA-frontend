@@ -209,9 +209,6 @@ def fetch_all_data():   # for database access
     # Vectorized replacement
     all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
 
-    st.dataframe(all_data)
-
-
 
  #   all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
@@ -226,6 +223,9 @@ def fetch_all_data():   # for database access
         return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
     all_data['RESULT_CONV'] = all_data.apply(convert_for_row, axis=1)
+
+    st.dataframe(all_data)
+
     
     return all_data
 
