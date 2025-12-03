@@ -231,10 +231,6 @@ def fetch_all_data():   # for database access
 all_data = fetch_all_data() # fetch the entire database
 #data = fetch_data() # fetch the database of results for selected period
 
-st.dataframe(all_data)
-
-
-
 
 benchmark_option = st.selectbox(
     "  ",
@@ -359,6 +355,9 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         text_search = st.text_input("Enter Search Keyword for Competition Name", value="")
         text = text_search.casefold()
+
+        st.dataframe(all_data)
+
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
         
