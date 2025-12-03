@@ -223,9 +223,6 @@ def fetch_all_data():   # for database access
         return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
     all_data['RESULT_CONV'] = all_data.apply(convert_for_row, axis=1)
-
-    st.dataframe(all_data)
-
     
     return all_data
 
@@ -233,6 +230,9 @@ def fetch_all_data():   # for database access
 
 all_data = fetch_all_data() # fetch the entire database
 #data = fetch_data() # fetch the database of results for selected period
+
+st.dataframe(all_data)
+
 
 
 
