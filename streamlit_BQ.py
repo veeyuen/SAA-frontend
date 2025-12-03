@@ -180,8 +180,6 @@ def fetch_all_data():   # for database access
 
     all_data=simple_map_events(all_data)
 
-    st.dataframe(all_data)
-
     
     # Casefold for consistency
     all_data['NAME'] = all_data['NAME'].str.casefold()
@@ -194,6 +192,9 @@ def fetch_all_data():   # for database access
 
     # Convert to YYYY-MM-DD string
     all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
+
+    st.dataframe(all_data)
+
     
     # Work on a copy of names
     n = names[['VARIATION', 'NAME']].dropna().copy()
