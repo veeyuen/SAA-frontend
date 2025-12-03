@@ -192,9 +192,6 @@ def fetch_all_data():   # for database access
 
     # Convert to YYYY-MM-DD string
     all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
-
-    st.dataframe(all_data)
-
     
     # Work on a copy of names
     n = names[['VARIATION', 'NAME']].dropna().copy()
@@ -211,6 +208,9 @@ def fetch_all_data():   # for database access
 
     # Vectorized replacement
     all_data['NAME'] = all_data['NAME'].map(mapping).fillna(all_data['NAME'])
+
+    st.dataframe(all_data)
+
 
 
  #   all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
