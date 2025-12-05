@@ -785,7 +785,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     # ----------------------
     # EVENT + DISTANCE rules
     # ----------------------
-    distance_rules = [
+    timed_rules = [
         # Short sprints
         {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'\b60\b'}, "map_to": "60m"},
         {"conditions": {"EVENT": r'(Dash|Run)', "DISTANCE": r'\b80\b'}, "map_to": "80m"},
@@ -820,17 +820,17 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'(Steeplechase|S/C|SC)', "DISTANCE": r'3000'}, "map_to": "3000m Steeplechase"},
     ]
 
-    distance_rules.append({
+    timed_rules.append({
         "conditions": {"EVENT": r'Run|10,000|10000|10km|10 km', "DISTANCE": r'10,000|10000|10km|10 km'},
         "map_to": "10,000m"
     })
 
-    distance_rules.append({
+    timed_rules.append({
         "conditions": {"EVENT": r'Race Walk|Racewalk', "DISTANCE": r'10,000|10000|10km|10 km'},
         "map_to": "10,000m Racewalk"
     })
 
-    for rule in distance_rules:
+    for rule in timed_rules:
         cond = pd.Series(True, index=athletes.index)
         for col, pat in rule["conditions"].items():
             if col in athletes.columns:
@@ -992,6 +992,25 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
                 cond &= False
         athletes.loc[cond, 'MAPPED_EVENT'] = rule["map_to"]
 
+    # ----------------------
+    # EVENT-only rules (regex on EVENT) - Field Events (THROWS & JUMPS)
+    # ----------------------
+    field_event_rules = {
+        # Throws
+        r'Discus\s*Throw': 'Discus Throw',
+        r'Shot\s*Put': 'Shot Put',
+        r'Javelin\s*Throw': 'Javelin Throw',
+        r'Hammer\s*Throw': 'Hammer Throw',
+
+        # Jumps
+        r'Long\s*Jump': 'Long Jump',
+        r'Triple\s*Jump': 'Triple Jump',
+        r'High\s*Jump': 'High Jump',
+        r'Pole\s*Vault': 'Pole Vault',
+    }
+    
+    for pattern, mapped in field_event_rules.items():
+        athletes.loc[athletes['EVENT'].str.contains(pattern, na=False, case=False), 'MAPPED_EVENT'] = mapped
    
     return athletes
 
