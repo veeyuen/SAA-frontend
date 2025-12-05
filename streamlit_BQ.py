@@ -75,6 +75,7 @@ def gspread_names():
     data = conn.read()
     # Get all values from the worksheet as a list of lists
     names = pd.DataFrame(data)
+    names = clean_columns(names)  # clean name list of special characters, white spaces etc.
 
     return names
 
