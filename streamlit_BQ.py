@@ -300,6 +300,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
 
         distance_events = ['100m', '200m', '400m', '800m', '10,000m', '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk', '1 Mile']
+        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put']
 
         invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
@@ -332,10 +333,14 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # 2. Create the boolean mask using .isin()
 # Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
+        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
+
 
 # 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
 # This replaces the original .apply() within the if block.
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
+        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
+
 
 # 4. Convert the new column to timedelta
 # This operation is already vectorised (applied to the whole column/Series at once).
