@@ -403,6 +403,21 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
 
+        def seconds_to_mmss(seconds):
+    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
+            if pd.isna(seconds):
+                return ''
+    
+    # 1. Calculate Hours, Minutes, and remaining Seconds
+            hours, remainder = divmod(seconds, 3600)
+            minutes, secs = divmod(remainder, 60)
+    
+            hours = int(hours)
+            minutes = int(minutes)
+    
+            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
+
+
         # NEW
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
