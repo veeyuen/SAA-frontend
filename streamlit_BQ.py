@@ -311,15 +311,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
   
-   # def convert_for_row(row):
-   #     if row['RESULT'] in invalid_results:
-   #         return np.nan
-   #     result = convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
-   #     if result == '' or result is None:
-   #         st.write(f"FAILED PARSE: EVENT={row['EVENT']} RESULT={row['RESULT']}")
-   #         return np.nan
-   #     return result
-
     # 1. Create Mask for Results containing 'w' (illegal wind speed indicator)
         mask_result_has_w = df_search['RESULT'].astype(str).str.contains('w', case=False, na=False)
 
@@ -364,8 +355,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
 
 
-    ## END NEW BLOCK ##      
-
         
         if text_search:
       #      st.write(df_search)
@@ -406,6 +395,19 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             final_dfs, code = spreadsheet(df_search)
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
+
+        distance_events = ['100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '5000m', 
+                           '3000m Steeplechase', '1500m', '10000m Racewalk', '1 Mile']
+        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw']
+
+        mask = df_search['MAPPED_EVENT'].isin(distance_events)
+        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
+
+        # NEW
+        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
+        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
+        # END NEW
+
 
 ## List Results BY Event##
 
