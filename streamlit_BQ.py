@@ -319,6 +319,13 @@ if benchmark_option == 'Search Database Records by Name or Competition':
    #         return np.nan
    #     return result
 
+        # 1. Create the mask: Check if the 'RESULT' string contains 'w' (case-insensitive).
+        # We use .astype(str) to handle mixed types and na=False to treat NaN/missing values as False.
+        mask_illegal_wind = athletes['RESULT'].astype(str).str.contains('w', case=False, na=False)
+
+        # 2. Apply the mask: Set the 'WIND' column to 'Illegal' for those rows.
+        athletes.loc[mask_illegal_wind, 'WIND'] = 'Illegal'
+
 
         df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
 
