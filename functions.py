@@ -637,7 +637,10 @@ def convert_time_refactored(i, string, metric):
     try:
         # Skip marks with illegal wind speeds
         if isinstance(metric_str, str) and 'w' in metric_str.lower():
-            return ''
+            # Remove 'w' (case-insensitive) and any leading/trailing whitespace
+            metric_str = metric_str.lower().replace('w', '').strip()  # NEW
+            return float(metric_str)  # NEW
+       #     return ''
 
         # Field events (distances)
         if any(s in string for s in l):
