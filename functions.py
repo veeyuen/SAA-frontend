@@ -782,7 +782,12 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         r'(Run.*5000|^5000m$)': '5000m',
         r'(Run.*10,000|Run.*10000|^10,000m$|^10000m$|10km|10 km|10,000 m)': '10,000m',
         r'(Run.*Mile|Mile Run|^Mile$|^1 Mile$)': '1 Mile',  # Enhanced Mile mapping
-    }
+
+        # NEW RELAY RULES
+        r'4\s*[xX]\s*100m|4x100\s*Relay|400m\s*Relay': '4 x 100m',
+        r'4\s*[xX]\s*400m|4x400\s*Relay|1600m\s*Relay': '4 x 400m',
+        r'4\s*[xX]\s*200m|4x200\s*Relay|800m\s*Relay': '4 x 200m',
+        }
 
     for pattern, mapped in event_rules.items():
         athletes.loc[athletes['EVENT'].str.contains(pattern, na=False, case=False), 'MAPPED_EVENT'] = mapped
