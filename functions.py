@@ -658,7 +658,11 @@ def convert_time_refactored(i, string, metric):
         if count_colon == 0:
             return float(metric_str)
 
-
+        # HH:MM:SS.sss format (2 colons, 1 or more dots) - FIX
+        if count_colon == 2 and count_dot >= 1:
+            h, m, s_with_ms = metric_str.split(':')
+            return float(int(h) * 3600 + int(m) * 60 + float(s_with_ms))
+        
         # Convert time formats with two colons (like XX:XX:XX, XX:XX.XX)
         if count_colon == 2:
             # For 10,000m and 5000m, replace the 6th character with '.' for format XX:XX.XX
