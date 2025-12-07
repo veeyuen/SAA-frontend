@@ -319,13 +319,22 @@ if benchmark_option == 'Search Database Records by Name or Competition':
    #         return np.nan
    #     return result
 
-        # 1. Create the mask: Check if the 'RESULT' string contains 'w' (case-insensitive).
-        # We use .astype(str) to handle mixed types and na=False to treat NaN/missing values as False.
-        mask_illegal_wind = athletes['RESULT'].astype(str).str.contains('w', case=False, na=False)
+    # 1. Create Mask for Results containing 'w' (illegal wind speed indicator)
+        mask_result_has_w = athletes['RESULT'].astype(str).str.contains('w', case=False, na=False)
 
-        # 2. Apply the mask: Set the 'WIND' column to 'Illegal' for those rows.
-        athletes.loc[mask_illegal_wind, 'WIND'] = 'Illegal'
+    # 2. Create Mask for Missing/Empty Wind Field
+    # This robustly captures NaN, empty string (''), and strings containing only whitespace (' ')
+        mask_wind_is_missing = (
+        athletes['WIND'].isna() 
+        | (athletes['WIND'].astype(str).str.strip() == '')
+        | (athletes['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
+        )
 
+    # 3. Combine the masks: Only update the WIND field if the result has 'w' AND the WIND field is missing.
+        final_mask = mask_result_has_w & mask_wind_is_missing
+
+    # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
+        athletes.loc[final_mask, 'WIND'] = 'Illegal'
 
         df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
 
