@@ -403,8 +403,19 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
 
+
         def seconds_to_mmss(seconds):
     #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
+    
+    # Robustly convert to float, catching non-numeric strings
+            try:
+        # np.float64() handles most numeric types and converts strings if possible
+                seconds = np.float64(seconds) 
+            except (ValueError, TypeError):
+        # If conversion fails (e.g., seconds was 'abc'), treat as missing
+                return ''
+    
+    # Check for NaN/missing values after conversion
             if pd.isna(seconds):
                 return ''
     
@@ -415,8 +426,16 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             hours = int(hours)
             minutes = int(minutes)
     
-            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
-
+    # 2. Format the time string: HH:MM:SS.ss
+    # If hours is 0, display only MM:SS.ss for cleaner look (optional, but standard for track)
+            if hours == 0:
+        # Total minutes: (hours * 60) + minutes
+                total_minutes = int(seconds / 60)
+                remaining_secs = seconds % 60
+            return f"{total_minutes:02d}:{remaining_secs:05.2f}"
+    
+    # Return full HH:MM:SS.ss format for longer events
+        
 
         # NEW
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
