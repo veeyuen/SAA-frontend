@@ -846,6 +846,18 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         "map_to": "10,000m Racewalk"
     })
 
+    distance_rules.append({
+        "conditions": {"EVENT": r'Race Walk|Racewalk', "DISTANCE": r'5000|5km|5 km'},
+        "map_to": "5000m Racewalk"
+    })
+
+    distance_rules.append({
+        "conditions": {"EVENT": r'Race Walk|Racewalk', "DISTANCE": r'3000|3km|3 km'},
+        "map_to": "3000m Racewalk"
+    })
+
+
+    
     for rule in distance_rules:
         cond = pd.Series(True, index=athletes.index)
         for col, pat in rule["conditions"].items():
