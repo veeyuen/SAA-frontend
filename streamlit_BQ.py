@@ -404,8 +404,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
 
         # NEW
-        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
-        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
+        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
+        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
         # END NEW
 
 
