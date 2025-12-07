@@ -668,6 +668,14 @@ def convert_time_refactored(i, string, metric):
         
         # Convert time formats with two colons (like XX:XX:XX, XX:XX.XX)
         if count_colon == 2:
+
+            # Check if this is a standard HH:MM:SS (no decimal point)
+            if count_dot == 0:  # NEW section to capture HH:MM:SS with no decimal point
+                h, m, s = metric_str.split(':')
+                return float(
+                    int(h) * 3600 + int(m) * 60 + float(s)
+                )
+                
             # For 10,000m and 5000m, replace the 6th character with '.' for format XX:XX.XX
             if ('10,000m' in string or '5000m' in string or '1500m' in string):
                 if len(metric_str) == 7:  # X:XX:XX (1500m special case)
