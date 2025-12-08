@@ -1275,23 +1275,6 @@ Converts total seconds (float) into a standardized time string format: MM:SS.ss 
                 # Return MM:SS.ss format
         return f"{total_minutes:02d}:{remaining_secs:05.2f}"
 
-'''
-        
-        def seconds_to_mmss(seconds):
-    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
-            if pd.isna(seconds):
-                return ''
-    
-    # 1. Calculate Hours, Minutes, and remaining Seconds
-            hours, remainder = divmod(seconds, 3600)
-            minutes, secs = divmod(remainder, 60)
-    
-            hours = int(hours)
-            minutes = int(minutes)
-    
-            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
-'''
-
 
 
 
