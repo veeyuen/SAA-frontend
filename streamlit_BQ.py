@@ -390,10 +390,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
   #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
-        if text_search:
-        #    st.write(df_search)
-            final_dfs, code = spreadsheet(df_search)
-
+        
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
         distance_events = ['100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '5000m', 
@@ -454,6 +451,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
         # END NEW
+
+        if text_search:
+        #    st.write(df_search)
+            final_dfs, code = spreadsheet(df_search)
+
 
 
 ## List Results BY Event##
