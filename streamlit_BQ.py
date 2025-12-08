@@ -395,6 +395,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_search = all_data[m2]
 
+        st.write(df_search)
+
   #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
   #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
     
