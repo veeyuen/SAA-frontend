@@ -1234,9 +1234,6 @@ def convert_time_refactored_simp(i, string, metric):
     return output
 
 def seconds_to_mmss(seconds):
-"""
-Converts total seconds (float) into a standardized time string format: MM:SS.ss or HH:MM:SS.ss.
-"""
             
 # Robustly check and convert the input to a float
     try:
