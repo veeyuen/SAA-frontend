@@ -406,48 +406,48 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         
 
-        def seconds_to_mmss(seconds):
+    def seconds_to_mmss(seconds):
     """
     Converts total seconds (float) into a standardized time string format: MM:SS.ss or HH:MM:SS.ss.
     """
     
     # Robustly check and convert the input to a float
-            try:
+        try:
             # Use np.float64 to handle various numeric types and convert valid strings
-                seconds = np.float64(seconds)
-            except (ValueError, TypeError):
-                return ''
+            seconds = np.float64(seconds)
+        except (ValueError, TypeError):
+            return ''
         
         # Check for NaN/missing values after conversion
-            if pd.isna(seconds) or seconds < 0:
-                return ''
+        if pd.isna(seconds) or seconds < 0:
+            return ''
     
         # 1. Check if the time is 1 hour (3600 seconds) or longer
-            if seconds >= 3600:
+        if seconds >= 3600:
             # Use HH:MM:SS.ss format for longer events
             
             # Standard divmod calculation for hours, minutes, and remaining seconds
-                hours, remainder = divmod(seconds, 3600)
-                minutes, secs = divmod(remainder, 60)
+            hours, remainder = divmod(seconds, 3600)
+            minutes, secs = divmod(remainder, 60)
             
             # Ensure hours and minutes are integers for formatting
-                hours = int(hours)
-                minutes = int(minutes)
+            hours = int(hours)
+            minutes = int(minutes)
             
             # Return full HH:MM:SS.ss format
-                return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
+            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
         
-            else:
+        else:
             # Use MM:SS.ss format for events under 1 hour.
             # This requires calculating the total minutes (which may be > 59)
             
             # Total minutes (e.g., 59 for 59:00.00)
-                total_minutes = int(seconds / 60)
+            total_minutes = int(seconds / 60)
             # Remaining seconds (with decimals)
-                remaining_secs = seconds % 60
+            remaining_secs = seconds % 60
             
             # Return MM:SS.ss format
-                return f"{total_minutes:02d}:{remaining_secs:05.2f}"
+            return f"{total_minutes:02d}:{remaining_secs:05.2f}"
     # Return full HH:MM:SS.ss format for longer events
         
 
