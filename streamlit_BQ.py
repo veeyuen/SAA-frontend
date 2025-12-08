@@ -566,10 +566,13 @@ elif benchmark_option == 'List Results By Event':
     
         return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
 
+    distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
+                           '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
+                          'Sprint Medley Relay', '5km Racewalk']
 
-   
-    if list_option=='800m' or list_option=='10,000m' or list_option=='5000m' or list_option=='3000m steeplechase' or list_option=='1500m' or list_option=='10000m racewalk':
-   
+# 2. Rewrite the conditional statement
+    if list_option in distance_events:
+      
     
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
