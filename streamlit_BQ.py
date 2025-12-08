@@ -285,8 +285,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
-        st.dataframe(df_search)
-
         distance_events = [
             '60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m',
             '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
@@ -382,6 +380,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
+
+        st.dataframe(all_data)
         
         try:
       #  st.write(name_selected[0])
