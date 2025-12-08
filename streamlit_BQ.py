@@ -461,7 +461,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         # it's an exact match, not a partial match within a result string.
         pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
 
-        mask_non_numeric = df['RESULT'].astype(str).str.strip().str.contains(
+        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
         pattern, 
         case=False, 
         regex=True, 
