@@ -299,7 +299,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
             return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
 
-        distance_events = ['100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
+        distance_events = ['60m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase']
         field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw']
 
@@ -408,7 +408,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
-        distance_events = ['100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
+        distance_events = ['60m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase']
 
         field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw']
