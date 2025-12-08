@@ -639,14 +639,19 @@ def convert_time_refactored(i, string, metric):
         if isinstance(metric_str, str) and 'w' in metric_str.lower():
             # Remove 'w' (case-insensitive) and any leading/trailing whitespace
             metric_str = metric_str.lower().replace('w', '').strip()  # NEW
-            return float(metric_str)  # NEW
+
+            result_float = float(metric_str)
+    
+            return f"{result_float:.2f}"
+       #     return float(metric_str)  # NEW
        #     return ''
 
         # Field events (distances)
         if any(s in string for s in l):
             # Remove unit if present
             metric_clean = metric_str.replace('m', '').replace('GR', '')
-            return float(metric_clean)
+            result_clean = float(metric_clean)
+            return f"{result_clean:.2f}"
 
 
         # No event description
@@ -659,7 +664,12 @@ def convert_time_refactored(i, string, metric):
 
         # Simple time as float (no colon)
         if count_colon == 0:
-            return float(metric_str)
+
+            result_metric = float(metric_str)
+            return f"{result_metric:.2f}"
+
+
+        #    return float(metric_str)
 
         # HH:MM:SS.sss format (2 colons, 1 or more dots) - FIX
         if count_colon == 2 and count_dot >= 1:
