@@ -359,11 +359,14 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # This operation is already vectorised (applied to the whole column/Series at once).
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
 
+        
+        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+
 
         
         if text_search:
       #      st.write(df_search)
-            final_dfs, code = spreadsheet(df_search)
+            final_dfs, code = spreadsheet(df_final)
 
         all_data.drop(['NAME_case'], axis=1, inplace=True)
 
