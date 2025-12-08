@@ -519,8 +519,8 @@ elif benchmark_option == 'List Results By Event':
 
     df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
-    df_final['NAME'] = df_final['NAME'].title() # capitalize each word
-
+    df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
+    
     final_dfs, code = spreadsheet(df_final)
 
     # Show the results, if you have a text_search
