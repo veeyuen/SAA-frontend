@@ -349,7 +349,22 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
 
+         pattern = r'^(' + '|'.join(invalid_results) + r')$'
 
+        # NEW
+        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
+        pattern, 
+        case=False, 
+        regex=True, 
+        na=False
+        )
+
+# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
+# For simplicity, we copy the original RESULT string, which includes the case 
+# used in the data ('DNF' vs 'dnf').
+        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
+
+        # END NEW
 # 4. Convert the new column to timedelta
 # This operation is already vectorised (applied to the whole column/Series at once).
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
@@ -451,7 +466,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
 
-        # NEW
+        
         non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
         
         # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete) 
@@ -473,7 +488,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # used in the data ('DNF' vs 'dnf').
         df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
 
-        # END NEW
 
         if text_search:
         #    st.write(df_search)
