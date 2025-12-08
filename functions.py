@@ -795,13 +795,19 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         r'(Run.*800|800 Meter Run|^800m$)': '800m',
         r'(Run.*1000|1000m)\b': '1000m',
         r'(Run.*1500|^1500m$)': '1500m',
-        r'(Run.*1500|^1600m$)': '1600m',
+        r'(Run.*1600|^1600m$)': '1600m',
         r'(Run.*3000|^3000m$)': '3000m',
         r'(Run.*5000|^5000m$)': '5000m',
         r'(Run.*10,000|Run.*10000|^10,000m$|^10000m$|10km|10 km|10,000 m)': '10,000m',
         r'(Run.*Mile|Mile Run|^Mile$|^1 Mile$)': '1 Mile',  # Enhanced Mile mapping
 
-        # NEW RELAY RULES
+        # NEW: Half Marathon
+        r'Half\s*Marathon|21\.0975\s*km|21\s*km': 'Half Marathon', 
+        
+        # NEW: Marathon
+        r'Marathon|42\.195\s*km|42\s*km': 'Marathon',
+
+        # RELAY RULES
         r'4\s*[xX]\s*100m|4x100\s*Relay|400m\s*Relay': '4 x 100m',
         r'4\s*[xX]\s*400m|4x400\s*Relay|1600m\s*Relay': '4 x 400m',
         r'4\s*[xX]\s*200m|4x200\s*Relay|800m\s*Relay': '4 x 200m',
