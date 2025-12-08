@@ -1115,7 +1115,45 @@ def convert_time_refactored_2(i, string, metric):
     return output
 
     
+#def seconds_to_mmss(seconds):
+#    # Robustly check and convert the input to a float
+#    try:
+#        seconds = np.float64(seconds)
+#    except (ValueError, TypeError):
+#        return ''
+            
+#    # Check for NaN/missing values after conversion
+#    if pd.isna(seconds) or seconds < 0:
+#        return ''
+        
+#    # 1. Check if the time is 1 hour (3600 seconds) or longer
+#    if seconds >= 3600:
+#    # Use HH:MM:SS.ss format for longer events
+#    # Standard divmod calculation for hours, minutes, and remaining seconds
+#        hours, remainder = divmod(seconds, 3600)
+#        minutes, secs = divmod(remainder, 60)
+                
+#    # Ensure hours and minutes are integers for formatting
+#        hours = int(hours)
+#        minutes = int(minutes)
+                
+#    # Return full HH:MM:SS.ss format
+#        return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
+            
+#    else:
+#                # Use MM:SS.ss format for events under 1 hour.
+#                # This requires calculating the total minutes (which may be > 59)
+                
+#                # Total minutes (e.g., 59 for 59:00.00)
+#        total_minutes = int(seconds / 60)
+#                # Remaining seconds (with decimals)
+#        remaining_secs = seconds % 60
+                
+#                # Return MM:SS.ss format
+#        return f"{total_minutes:02d}:{remaining_secs:05.2f}"
+
 def seconds_to_mmss(seconds):
+    
     # Robustly check and convert the input to a float
     try:
         seconds = np.float64(seconds)
@@ -1126,31 +1164,19 @@ def seconds_to_mmss(seconds):
     if pd.isna(seconds) or seconds < 0:
         return ''
         
-    # 1. Check if the time is 1 hour (3600 seconds) or longer
-    if seconds >= 3600:
-    # Use HH:MM:SS.ss format for longer events
-    # Standard divmod calculation for hours, minutes, and remaining seconds
-        hours, remainder = divmod(seconds, 3600)
-        minutes, secs = divmod(remainder, 60)
+    # 1. Standard calculation applied universally:
+    # Hours will be 0 if the total time is less than 3600 seconds (1 hour)
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
                 
     # Ensure hours and minutes are integers for formatting
-        hours = int(hours)
-        minutes = int(minutes)
+    hours = int(hours)
+    minutes = int(minutes)
                 
-    # Return full HH:MM:SS.ss format
-        return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
-            
-    else:
-                # Use MM:SS.ss format for events under 1 hour.
-                # This requires calculating the total minutes (which may be > 59)
-                
-                # Total minutes (e.g., 59 for 59:00.00)
-        total_minutes = int(seconds / 60)
-                # Remaining seconds (with decimals)
-        remaining_secs = seconds % 60
-                
-                # Return MM:SS.ss format
-        return f"{total_minutes:02d}:{remaining_secs:05.2f}"
+    # 2. Return full HH:MM:SS.ss format consistently
+    # :02d ensures two digits (e.g., 00)
+    # :05.2f ensures SS.ss format (e.g., 05.23)
+    return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
 
 
 
