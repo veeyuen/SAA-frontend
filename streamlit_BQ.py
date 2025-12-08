@@ -471,7 +471,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
 # For simplicity, we copy the original RESULT string, which includes the case 
 # used in the data ('DNF' vs 'dnf').
-        df_search.loc[mask_non_numeric, 'RESULT_C'] = df['RESULT']
+        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
 
         # END NEW
 
