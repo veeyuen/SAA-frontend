@@ -546,26 +546,50 @@ elif benchmark_option == 'List Results By Event':
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     def seconds_to_mmss(seconds):
-    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
-        if pd.isna(seconds):
+            """
+            Converts total seconds (float) into a standardized time string format: MM:SS.ss or HH:MM:SS.ss.
+            """
+            
+            # Robustly check and convert the input to a float
+        try:
+                # Use np.float64 to handle various numeric types and convert valid strings
+            seconds = np.float64(seconds)
+        except (ValueError, TypeError):
             return ''
-    
-    # 1. Calculate Hours, Minutes, and remaining Seconds
-        hours, remainder = divmod(seconds, 3600)
-        minutes, secs = divmod(remainder, 60)
-    
-    # Ensure all components are integers for clean formatting, except for secs
-        hours = int(hours)
-        minutes = int(minutes)
-    
-    # 2. Format the time string: HH:MM:SS.ss
-    # :02d ensures two digits with a leading zero (e.g., 00, 09, 10)
-    # :05.2f ensures two decimal places and pads with leading zeros if needed
-    # for a total width of 5 (e.g., 5.29 -> 05.29 is not guaranteed, but 5.29 is consistent)
-    # For secs, we just want the two decimal places and minimal padding.
-    
-        return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
+            
+            # Check for NaN/missing values after conversion
+        if pd.isna(seconds) or seconds < 0:
+            return ''
+        
+            # 1. Check if the time is 1 hour (3600 seconds) or longer
+        if seconds >= 3600:
+                # Use HH:MM:SS.ss format for longer events
+                
+                # Standard divmod calculation for hours, minutes, and remaining seconds
+            hours, remainder = divmod(seconds, 3600)
+            minutes, secs = divmod(remainder, 60)
+                
+                # Ensure hours and minutes are integers for formatting
+            hours = int(hours)
+            minutes = int(minutes)
+                
+                # Return full HH:MM:SS.ss format
+            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
+            
+        else:
+                # Use MM:SS.ss format for events under 1 hour.
+                # This requires calculating the total minutes (which may be > 59)
+                
+                # Total minutes (e.g., 59 for 59:00.00)
+            total_minutes = int(seconds / 60)
+                # Remaining seconds (with decimals)
+            remaining_secs = seconds % 60
+                
+                # Return MM:SS.ss format
+            return f"{total_minutes:02d}:{remaining_secs:05.2f}"
 
+
+    
     distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                           'Sprint Medley Relay', '5km Racewalk']
