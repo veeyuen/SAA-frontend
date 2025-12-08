@@ -14,7 +14,7 @@ import math
 from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
-from functions import normalize_time_format, convert_time_refactored, convert_time_format, convert_time_refactored_2
+from functions import normalize_time_format, convert_time_refactored, convert_time_format, seconds_to_mmss
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -284,7 +284,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
-## NEW BLOCK ##
+'''
+        
         def seconds_to_mmss(seconds):
     #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
             if pd.isna(seconds):
@@ -298,7 +299,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             minutes = int(minutes)
     
             return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
-
+'''
         distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                           'Sprint Medley Relay', '5km Racewalk']
@@ -418,7 +419,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
 
-
+'''
         def seconds_to_mmss(seconds):
             """
             Converts total seconds (float) into a standardized time string format: MM:SS.ss or HH:MM:SS.ss.
@@ -461,6 +462,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
                 
                 # Return MM:SS.ss format
                 return f"{total_minutes:02d}:{remaining_secs:05.2f}"
+'''
 
     # Return full HH:MM:SS.ss format for longer events
         
@@ -545,46 +547,6 @@ elif benchmark_option == 'List Results By Event':
     #        return ''
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
-    def seconds_to_mmss(seconds):   
-            # Robustly check and convert the input to a float
-        try:
-                # Use np.float64 to handle various numeric types and convert valid strings
-            seconds = np.float64(seconds)
-        except (ValueError, TypeError):
-            return ''
-            
-            # Check for NaN/missing values after conversion
-        if pd.isna(seconds) or seconds < 0:
-            return ''
-        
-            # 1. Check if the time is 1 hour (3600 seconds) or longer
-        if seconds >= 3600:
-                # Use HH:MM:SS.ss format for longer events
-                
-                # Standard divmod calculation for hours, minutes, and remaining seconds
-            hours, remainder = divmod(seconds, 3600)
-            minutes, secs = divmod(remainder, 60)
-                
-                # Ensure hours and minutes are integers for formatting
-            hours = int(hours)
-            minutes = int(minutes)
-                
-                # Return full HH:MM:SS.ss format
-            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
-            
-        else:
-                # Use MM:SS.ss format for events under 1 hour.
-                # This requires calculating the total minutes (which may be > 59)
-                
-                # Total minutes (e.g., 59 for 59:00.00)
-            total_minutes = int(seconds / 60)
-                # Remaining seconds (with decimals)
-            remaining_secs = seconds % 60
-                
-                # Return MM:SS.ss format
-            return f"{total_minutes:02d}:{remaining_secs:05.2f}"
-
-
     
     distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
