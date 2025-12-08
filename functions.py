@@ -837,6 +837,10 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'\b5000\b'}, "map_to": "5000m"},
         {"conditions": {"EVENT": r'Run', "DISTANCE": r'10000'}, "map_to": "10,000m"},
         {"conditions": {"EVENT": r'10000m'}, "map_to": "10,000m"},
+
+        # Road
+
+        {"conditions": {"EVENT": r'5km, Road'}, "map_to": "5km, Road"},
         
         # Mile - NEW
         {"conditions": {"EVENT": r'(Run|Mile)', "DISTANCE": r'(Mile|1609|1 Mile)'}, "map_to": "1 Mile"},
