@@ -500,7 +500,8 @@ elif benchmark_option == 'List Results By Event':
                         'Sprint Medley Relay', '5km Racewalk']
 
 # 2. Rewrite the conditional statement
-    if list_option in distance_events:
+    #if list_option in distance_events:
+    if list_option in [event.lower() for event in distance_events]:
 
         searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
     
