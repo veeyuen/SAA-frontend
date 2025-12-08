@@ -1234,29 +1234,28 @@ def convert_time_refactored_simp(i, string, metric):
     return output
 
 def seconds_to_mmss(seconds):
-    
-# Robustly check and convert the input to a float
+    # Robustly check and convert the input to a float
     try:
         seconds = np.float64(seconds)
     except (ValueError, TypeError):
         return ''
             
-# Check for NaN/missing values after conversion
+    # Check for NaN/missing values after conversion
     if pd.isna(seconds) or seconds < 0:
         return ''
         
-# 1. Check if the time is 1 hour (3600 seconds) or longer
+    # 1. Check if the time is 1 hour (3600 seconds) or longer
     if seconds >= 3600:
-# Use HH:MM:SS.ss format for longer events
-# Standard divmod calculation for hours, minutes, and remaining seconds
+    # Use HH:MM:SS.ss format for longer events
+    # Standard divmod calculation for hours, minutes, and remaining seconds
         hours, remainder = divmod(seconds, 3600)
         minutes, secs = divmod(remainder, 60)
                 
-# Ensure hours and minutes are integers for formatting
+    # Ensure hours and minutes are integers for formatting
         hours = int(hours)
         minutes = int(minutes)
                 
-# Return full HH:MM:SS.ss format
+    # Return full HH:MM:SS.ss format
         return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
             
     else:
