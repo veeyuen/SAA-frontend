@@ -380,8 +380,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 
         all_data['COMPETITION_case'] = all_data["COMPETITION"].str.casefold()
-
-        st.dataframe(all_data)
         
         try:
       #  st.write(name_selected[0])
@@ -390,7 +388,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             st.write("Keyword Does Not Exist in Database")
             m2 = all_data["COMPETITION_case"].notnull()
 
-        all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
+     #   all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
 
         if pd.api.types.is_datetime64tz_dtype(all_data['DATE']):  # remove timezone awareness
             all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
