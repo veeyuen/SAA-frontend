@@ -446,7 +446,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 elif benchmark_option == 'List Results By Event':
 
-    events_list = all_data['EVENT'].str.casefold().unique().tolist()
+    events_list = all_data['MAPPED_EVENT'].str.casefold().unique().tolist()
 
   #  events_list = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
   #                  '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
@@ -457,7 +457,7 @@ elif benchmark_option == 'List Results By Event':
     options = events_list,
     )
 
-    searched_event = all_data[all_data['EVENT'].str.casefold()==list_option]
+    searched_event = all_data[all_data['MAPPED_EVENT'].str.casefold()==list_option]
 
     searched_event = clean_columns(searched_event)
 
