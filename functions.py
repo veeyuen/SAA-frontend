@@ -844,7 +844,7 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         # Walks
         {"conditions": {"EVENT": r'1500m Race walk'}, "map_to": "1500m Racewalk"},
         {"conditions": {"EVENT": r'(3000m Race walk|3km Racewalk|3km Race Walk)'}, "map_to": "3000m Racewalk"},
-        {"conditions": {"EVENT": r'5000m Race Walk'}, "map_to": "5000m Racewalk"},
+        {"conditions": {"EVENT": r'(5000m Race Walk|5km Racewalk)'}, "map_to": "5000m Racewalk"},
         {"conditions": {"EVENT": r'(10km Race Walk|10km Racewalk|10,000m Racewalk)'}, "map_to": "10000m Racewalk"},
         {"conditions": {"EVENT": r'(20km Race Walk|20km Racewalk|20,000m Racewalk)'}, "map_to": "20km Racewalk"},
         {"conditions": {"EVENT": r'Race Walk', "DISTANCE": r'10000'}, "map_to": "10000m Racewalk"},
@@ -896,6 +896,8 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     # Hurdles
     # ----------------------
     hurdles_rules = [
+        {"conditions": {"EVENT": r'(60m Hurdles|60m hurdles)'}, "map_to": "60m Hurdles"},
+        {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'\b60\b'}, "map_to": "60m Hurdles"},
         {"conditions": {"EVENT": r'(100m Hurdles|100m hurdles)'}, "map_to": "100m Hurdles"},
         {"conditions": {"EVENT": r'^Hurdles$', "DISTANCE": r'\b100\b'}, "map_to": "100m Hurdles"},
         {"conditions": {"EVENT": r'(110m Hurdles|110m hurdles)'}, "map_to": "110m Hurdles"},
@@ -920,9 +922,9 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
     # ----------------------
     field_event_rules = {
         # Throws
-        r'Discus\s*Throw': 'Discus Throw',
+        r'Discus\s*Throw|Discus$': 'Discus Throw',
         r'Shot\s*Put': 'Shot Put',
-        r'Javelin\s*Throw': 'Javelin Throw',
+        r'Javelin\s*Throw|Javelin$': 'Javelin Throw',
         r'Hammer\s*Throw': 'Hammer Throw',
 
         # Jumps
