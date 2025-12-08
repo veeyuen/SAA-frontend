@@ -549,8 +549,8 @@ elif benchmark_option == 'List Results By Event':
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     
     distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m', 
-                           '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-                          'Sprint Medley Relay', '5km Racewalk']
+                        '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
+                        'Sprint Medley Relay', '5km Racewalk']
 
 # 2. Rewrite the conditional statement
     if list_option in distance_events:
