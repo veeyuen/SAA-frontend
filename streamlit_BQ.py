@@ -513,13 +513,16 @@ elif benchmark_option == 'List Results By Event':
     
         searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
 
-        searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
+        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
   #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
 
+    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
 
-    final_dfs, code = spreadsheet(searched_event)
+
+
+    final_dfs, code = spreadsheet(df_final)
 
     # Show the results, if you have a text_search
     
