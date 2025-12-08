@@ -349,7 +349,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
 
-         pattern = r'^(' + '|'.join(invalid_results) + r')$'
+        pattern = r'^(' + '|'.join(invalid_results) + r')$'
 
         # NEW
         mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
