@@ -501,8 +501,11 @@ elif benchmark_option == 'List Results By Event':
 
 # 2. Rewrite the conditional statement
     if list_option in distance_events:
-      
+
+        searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
     
+        searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
+
         searched_event['RESULT_TIMES'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
 
         searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
