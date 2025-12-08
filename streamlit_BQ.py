@@ -467,7 +467,7 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event = clean_columns(searched_event)
 
-    searched_event['DATE'] = pd.to_datetime(searched_event['DATE'], format='%Y-%m-%d')
+ #   searched_event['DATE'] = pd.to_datetime(searched_event['DATE'], format='%Y-%m-%d') # convert to datetime to enable searching
 
     invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
