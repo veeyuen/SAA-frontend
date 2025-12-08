@@ -454,7 +454,7 @@ elif benchmark_option == 'List Results By Event':
 
     list_option = st.selectbox(
     "Select Event:",
-    options = events_list,
+    options = events_list.str.casefold(),
     )
 
     searched_event = all_data[all_data['EVENT'].str.casefold()==list_option]
