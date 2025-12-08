@@ -284,22 +284,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
-'''
-        
-        def seconds_to_mmss(seconds):
-    #Converts total seconds (float) into a standardized time string format: HH:MM:SS.ss
-            if pd.isna(seconds):
-                return ''
-    
-    # 1. Calculate Hours, Minutes, and remaining Seconds
-            hours, remainder = divmod(seconds, 3600)
-            minutes, secs = divmod(remainder, 60)
-    
-            hours = int(hours)
-            minutes = int(minutes)
-    
-            return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"    
-'''
+
         distance_events = [
             '60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m',
             '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
