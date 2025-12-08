@@ -932,6 +932,11 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
         r'Triple\s*Jump': 'Triple Jump',
         r'High\s*Jump': 'High Jump',
         r'Pole\s*Vault': 'Pole Vault',
+
+        # Decathlon/Heptathlon
+        r'Decathlon': 'Decathlon',
+        r'Heptathlon': 'Heptathlon',
+        
     }
     
     for pattern, mapped in field_event_rules.items():
