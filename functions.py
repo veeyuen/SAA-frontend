@@ -1234,10 +1234,9 @@ def convert_time_refactored_simp(i, string, metric):
     return output
 
 def seconds_to_mmss(seconds):
-            
+    
 # Robustly check and convert the input to a float
     try:
-                # Use np.float64 to handle various numeric types and convert valid strings
         seconds = np.float64(seconds)
     except (ValueError, TypeError):
         return ''
