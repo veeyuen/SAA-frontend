@@ -448,9 +448,31 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     # Return full HH:MM:SS.ss format for longer events
         
 
-        # NEW
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
+
+        # NEW
+        non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
+        
+        # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete) 
+        # as they are also common non-numeric outcomes. You can customize this list.
+        # 2. Create the mask: Check if the RESULT column (case-insensitive) matches any of the defined strings
+        # We use regex with '|' (OR operator) and wrap the match with '^' and '$' to ensure 
+        # it's an exact match, not a partial match within a result string.
+        pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
+
+        mask_non_numeric = df['RESULT'].astype(str).str.strip().str.contains(
+        pattern, 
+        case=False, 
+        regex=True, 
+        na=False
+        )
+
+# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
+# For simplicity, we copy the original RESULT string, which includes the case 
+# used in the data ('DNF' vs 'dnf').
+        df_search.loc[mask_non_numeric, 'RESULT_C'] = df['RESULT']
+
         # END NEW
 
         if text_search:
