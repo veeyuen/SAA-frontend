@@ -440,7 +440,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
-
+        df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
 
         if text_search:
         #    st.write(df_search)
