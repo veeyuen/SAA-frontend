@@ -286,7 +286,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
         distance_events = [
-            '60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '2400m','3000m', '5000m',
+            '60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '2400m','3000m', '5000m',
             '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
             'Sprint Medley Relay', '5km Racewalk'
                 ]
@@ -401,7 +401,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
-        distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m', 
+        distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m', 
                            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                           'Sprint Medley Relay', '5km Racewalk']
 
@@ -501,7 +501,7 @@ elif benchmark_option == 'List Results By Event':
     #    minutes, secs = divmod(seconds, 60)
     #    return f"{int(minutes):02d}:{secs:05.2f}"
     
-    distance_events = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m', 
+    distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m', 
                         '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                         'Sprint Medley Relay', '5km Racewalk']
 
