@@ -418,8 +418,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
 
+        st.dataframe(df_search)
+
         
-        non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
+        non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'] 
         
         # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete) 
         # as they are also common non-numeric outcomes. You can customize this list.
