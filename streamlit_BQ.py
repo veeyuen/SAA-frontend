@@ -496,7 +496,7 @@ elif benchmark_option == 'List Results By Event':
     
     searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
 
-    searched_event = searched_event[searched_event['RESULT_FLOAT'].notna()]
+ #   searched_event = searched_event[searched_event['RESULT_FLOAT'].notna()]
  #   searched_event = searched_event.sort_values(by='RESULT_FLOAT', ascending=True, na_position='last')
 
 
@@ -509,6 +509,8 @@ elif benchmark_option == 'List Results By Event':
     distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '300m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m', 
                         '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                         'Sprint Medley Relay', '5km Racewalk', '200m Hurdles', '5000m Racewalk', '10,000m Racewalk']
+
+    st.dataframe(searched_event)
 
 # 2. Rewrite the conditional statement
     #if list_option in distance_events:
