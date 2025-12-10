@@ -549,8 +549,6 @@ elif benchmark_option == 'List Results By Event':
 
     searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
 
-    st.dataframe(searched_event)
-
 
   #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
 
