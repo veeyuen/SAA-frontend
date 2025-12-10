@@ -443,6 +443,9 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
         df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
+        
+        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
+
 
         if text_search:
         #    st.write(df_search)
@@ -526,6 +529,9 @@ elif benchmark_option == 'List Results By Event':
     df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
     df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
+
+    df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
+
     
     final_dfs, code = spreadsheet(df_final)
 
