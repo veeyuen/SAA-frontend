@@ -510,8 +510,6 @@ elif benchmark_option == 'List Results By Event':
                         '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
                         'Sprint Medley Relay', '5km Racewalk', '200m Hurdles', '5000m Racewalk', '10,000m Racewalk']
 
-    st.dataframe(searched_event)
-
 # 2. Rewrite the conditional statement
     #if list_option in distance_events:
     if list_option in [event.lower() for event in distance_events]:
