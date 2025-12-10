@@ -513,7 +513,11 @@ elif benchmark_option == 'List Results By Event':
     
         searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
 
-        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)  
+        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)
+
+    else:
+
+        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT']
 
   #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
 
