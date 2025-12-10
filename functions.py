@@ -1179,6 +1179,20 @@ def seconds_to_mmss(seconds):
     # :05.2f ensures SS.ss format (e.g., 05.23)
     return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
 
+def map_nwi(df):
+
+    mask_wind_is_missing = (
+        df['WIND'].isna() 
+        | (df['WIND'].astype(str).str.strip() == '')
+        | (df['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
+        )
+
+
+    # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
+        df.loc[mask_wind_is_missing, 'WIND'] = 'NWI'
+
+    return df
+
 
 
 
