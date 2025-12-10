@@ -515,7 +515,7 @@ elif benchmark_option == 'List Results By Event':
 # 2. Rewrite the conditional statement
     #if list_option in distance_events:
 
-    non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
+    non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'] 
         
         # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete) 
         # as they are also common non-numeric outcomes. You can customize this list.
@@ -532,6 +532,8 @@ elif benchmark_option == 'List Results By Event':
         )
 
     searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
+
+    st.dataframe(searched_event)
 
 
 
