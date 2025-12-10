@@ -440,7 +440,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # used in the data ('DNF' vs 'dnf').
         df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
 
-        df_search['RESULT_CONV'] = df_search['RESULT_CONV'].astype(float)
+        df_search['RESULT_CONV'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
 
         df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_CONV', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
