@@ -418,8 +418,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
 
-        st.dataframe(df_search)
-
         
         non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'] 
         
