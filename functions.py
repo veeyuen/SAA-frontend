@@ -1180,19 +1180,27 @@ def seconds_to_mmss(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:05.2f}"
 
 def map_nwi(df):
+    
+    # Access the 'WIND' column as a Series
+    wind_series = df['WIND']
+    
+    # 1. Check for standard null values (NaN or None)
+    mask_isna = pd.isna(wind_series)
+    
+    # 2. Check for empty strings or explicit text placeholders
+    # We must convert to string *before* using .str methods
+    wind_str = wind_series.astype(str).str.strip().str.lower()
+    
+    mask_empty_str = (wind_str == '')
+    mask_placeholders = wind_str.isin(['nan', 'none', '-'])
+    
+    # Combine all masks using the bitwise OR operator |
+    mask_wind_is_missing = mask_isna | mask_empty_str | mask_placeholders
 
-    mask_wind_is_missing = (
-        pd.isna(df['WIND']) # Use pd.isna() to check for NaN/None regardless of type
-        # Convert to string for checking empty strings or explicit text placeholders
-        | (df['WIND'].astype(str).str.strip() == '') 
-        | (df['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
-    )
-
-    # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
+    # 4. Apply the mask: Set the 'WIND' field to 'NWI'
     df.loc[mask_wind_is_missing, 'WIND'] = 'NWI'
 
     return df
-
 
 
 
