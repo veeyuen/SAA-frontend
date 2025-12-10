@@ -532,6 +532,23 @@ elif benchmark_option == 'List Results By Event':
 
     df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
+    non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
+        
+        # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete) 
+        # as they are also common non-numeric outcomes. You can customize this list.
+        # 2. Create the mask: Check if the RESULT column (case-insensitive) matches any of the defined strings
+        # We use regex with '|' (OR operator) and wrap the match with '^' and '$' to ensure 
+        # it's an exact match, not a partial match within a result string.
+    pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
+
+    mask_non_numeric = df_final['RESULT'].astype(str).str.strip().str.contains(
+    pattern, 
+    case=False, 
+    regex=True, 
+    na=False
+    )
+
+
     
     final_dfs, code = spreadsheet(df_final)
 
