@@ -524,18 +524,6 @@ elif benchmark_option == 'List Results By Event':
         # it's an exact match, not a partial match within a result string.
     pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
 
-    mask_non_numeric = searched_event['RESULT'].astype(str).str.strip().str.contains(
-        pattern, 
-        case=False, 
-        regex=True, 
-        na=False
-        )
-
-    searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
-
-    st.dataframe(searched_event)
-
-
 
     
     if list_option in [event.lower() for event in distance_events]:
@@ -552,6 +540,16 @@ elif benchmark_option == 'List Results By Event':
 
         searched_event['RESULT_C'] = searched_event['RESULT_FLOAT']
 
+    mask_non_numeric = searched_event['RESULT'].astype(str).str.strip().str.contains(
+        pattern, 
+        case=False, 
+        regex=True, 
+        na=False
+        )
+
+    searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
+
+    st.dataframe(searched_event)
 
 
   #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
