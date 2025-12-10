@@ -512,25 +512,6 @@ elif benchmark_option == 'List Results By Event':
 
 # 2. Rewrite the conditional statement
     #if list_option in distance_events:
-    if list_option in [event.lower() for event in distance_events]:
-
-        searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
-    
-        searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
-
-        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)
-
-    else:
-
-        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT']
-
-  #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
-
-    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-    df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
-
-    df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
     non_numeric_results = ['DNF', 'DNS', 'DQ', 'NM', 'NH', 'DNC'] 
         
@@ -541,13 +522,43 @@ elif benchmark_option == 'List Results By Event':
         # it's an exact match, not a partial match within a result string.
     pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
 
-    mask_non_numeric = df_final['RESULT_C'].astype(str).str.strip().str.contains(
-    pattern, 
-    case=False, 
-    regex=True, 
-    na=False
-    )
+    mask_non_numeric = searched_event['RESULT'].astype(str).str.strip().str.contains(
+        pattern, 
+        case=False, 
+        regex=True, 
+        na=False
+        )
 
+    searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
+
+
+
+    
+    if list_option in [event.lower() for event in distance_events]:
+
+        searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
+    
+        searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
+
+        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)
+
+        
+
+    else:
+
+        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT']
+
+
+
+  #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
+
+    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+
+    df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
+
+    df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
+
+    
 
     
     final_dfs, code = spreadsheet(df_final)
