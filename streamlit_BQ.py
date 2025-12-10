@@ -291,7 +291,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             'Sprint Medley Relay', '5km Racewalk', '200m Hurdles'
                 ]
 
-        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
+        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'Long Jump (Zone)', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
 
         invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
 
