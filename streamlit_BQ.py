@@ -360,7 +360,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
 
         
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
         df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
@@ -442,7 +442,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # used in the data ('DNF' vs 'dnf').
         df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
 
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
         df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
         
@@ -552,7 +552,7 @@ elif benchmark_option == 'List Results By Event':
 
   #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
 
-    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
     df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
 
