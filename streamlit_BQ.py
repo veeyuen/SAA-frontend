@@ -362,8 +362,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         
         df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
-        df_final['WIND'] = df_final.apply(map_nwi, axis=1)
-
+        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
 
         
