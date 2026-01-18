@@ -327,11 +327,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
         df_search.loc[final_mask, 'WIND'] = 'Illegal'
 
-     #   df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
+        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
 
-     #   df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
+        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
     
-     #   df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
+        df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
        
       #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
