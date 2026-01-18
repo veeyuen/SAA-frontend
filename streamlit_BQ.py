@@ -223,7 +223,14 @@ def fetch_all_data():   # for database access
             return ''
         return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
 
+    def status_col(row):
+        if row['RESULT'] in invalid_results:
+            return row['RESULT']
+    
+
     all_data['RESULT_CONV'] = all_data.apply(convert_for_row, axis=1)
+
+    all_data['STATUS'] = all_data.apply(status_col, axis=1)
     
     return all_data
 
