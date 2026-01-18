@@ -327,20 +327,13 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
         df_search.loc[final_mask, 'WIND'] = 'Illegal'
 
-        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
+     #   df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
 
-        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
+     #   df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
     
-        df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
+     #   df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
-        # Vectorized - fastest and most reliable
-        df_search['TIME_HHMMSS'] = (
-            pd.to_timedelta(df_search['RESULT_FLOAT'], unit='s')
-            .astype(str)
-            .str.replace('0 days ', '')
-            .str[:-3]
-        )
-
+       
       #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
 
 
@@ -376,7 +369,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
 
         
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'TIME_HHMMSS', 'STATUS', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'STATUS', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
         df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
