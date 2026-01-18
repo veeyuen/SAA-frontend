@@ -376,7 +376,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
   #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
 
         
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'STATUS', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
+        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'TIME_HHMMSS', 'STATUS', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
 
         df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
 
