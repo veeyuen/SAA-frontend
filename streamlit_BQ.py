@@ -333,6 +333,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
         df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
+        df_search['TIME_HHMMSS'] = pd.to_timedelta(df_search['RESULT_FLOAT'], unit='s').dt.strftime('%H:%M:%S.%f')[:-3]
+
 
       #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
 
