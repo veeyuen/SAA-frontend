@@ -333,13 +333,13 @@ if benchmark_option == 'Search Database Records by Name or Competition':
     
         df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
 
-        def format_seconds(seconds):
-            if pd.isna(seconds):
-                return None
-            td = pd.to_timedelta(seconds, unit='s')
-            return f"{td:%H:%M:%S.%f}"[:-3]
-
-        df_search['TIME_HHMMSS'] = df_search['RESULT_FLOAT'].apply(format_seconds)
+        # Vectorized - fastest and most reliable
+        df_search['TIME_HHMMSS'] = (
+            pd.to_timedelta(df_search['RESULT_FLOAT'], unit='s')
+            .astype(str)
+            .str.replace('0 days ', '')
+            .str[:-3]
+        )
 
       #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
 
