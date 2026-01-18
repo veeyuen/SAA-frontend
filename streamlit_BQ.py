@@ -292,7 +292,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
         df_search = all_data[m1].sort_values(by='DATE', ascending=False)
 
-        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
+        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB', 'STATUS']]
 
         distance_events = [
             '60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '2400m','3000m', '5000m',
