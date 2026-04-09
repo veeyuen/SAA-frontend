@@ -777,9 +777,17 @@ def simple_map_events(athletes: pd.DataFrame) -> pd.DataFrame:
             .str.strip()
         )
 
-    # Initialize mapped column
+    # Initialize mapped column (OLD)
+   # if 'MAPPED_EVENT' not in athletes.columns:
+   #     athletes['MAPPED_EVENT'] = np.nan
+
+    # Initialize mapped column as string dtype.
+    # Newer pandas versions can raise when a float64 column later receives
+    # string labels like '60m'.
     if 'MAPPED_EVENT' not in athletes.columns:
-        athletes['MAPPED_EVENT'] = np.nan
+        athletes['MAPPED_EVENT'] = pd.Series(pd.NA, index=athletes.index, dtype='string')
+    else:
+        athletes['MAPPED_EVENT'] = athletes['MAPPED_EVENT'].astype('string')
 
    
     # ----------------------
