@@ -9,7 +9,7 @@ import db_dtypes
 import analytics
 import re
 import gcsfs
-import pytz
+#import pytz
 import math
 from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
@@ -137,9 +137,10 @@ def fetch_data():  # for reports
 
     # datetime to contain UTC (timezone)
 
-    timezone = pytz.timezone('UTC')
-    data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
-
+    #timezone = pytz.timezone('UTC')
+    #data['NOW'] = datetime.datetime.now().replace(tzinfo=timezone)
+    data['NOW'] = datetime.datetime.now(datetime.timezone.utc)
+    
     data['delta_time'] = data['NOW'] - data['DATE']
     data['delta_time_conv'] = pd.to_numeric(data['delta_time'].dt.days, downcast='integer')
     data['event_month'] = data['DATE'].dt.month
