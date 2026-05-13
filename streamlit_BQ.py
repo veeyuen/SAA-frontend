@@ -346,6 +346,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 # 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
 # This replaces the original .apply() within the if block.
+        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object')  ## NEW
+
         df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
         df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
 
@@ -535,7 +537,9 @@ elif benchmark_option == 'List Results By Event':
     pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
 
 
-    
+
+    searched_event['RESULT_C'] = pd.Series(index=searched_event.index, dtype='object') # NEW
+
     if list_option in [event.lower() for event in distance_events]:
 
         searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
