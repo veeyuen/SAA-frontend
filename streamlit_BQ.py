@@ -604,8 +604,8 @@ else:  # Choose date and run selection report
     elif benchmark_option == '2023 SEAG Bronze - OCTC Selection':
        # start = np.datetime64(start_date)
        # end = np.datetime64(end_date)
-        start = '2024-01-01'
-        end = '2025-12-31'
+        start = '2025-01-01'
+        end = '2026-12-31'
         start_date = pd.to_datetime(start)
         end_date = pd.to_datetime(end)
 
