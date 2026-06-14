@@ -295,24 +295,12 @@ def map_international_events(athletes):
     mask = (athletes['EVENT'].str.contains(r'Run', na=True) & athletes['DISTANCE'].str.contains(r'Mile', na=True))
     athletes.loc[mask, 'MAPPED_EVENT'] = '1 Mile'
     
-    #mask = athletes['EVENT'].str.contains(r'10\,000m', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '10000m'
-    
+
     
     
     # Hurdles
     
-    #mask = athletes['EVENT'].str.contains(r'100\sMeter\sHurdles\s\(0\.838m\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
-    #mask = athletes['EVENT'].str.contains(r'100m\sHurdles\s\(0\.838m\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
-    
-    
-    ##mask = athletes['EVENT'].str.contains(r'110m\sHurdles\s\(0\.914m\)', na=True)
-    ##athletes.loc[mask, 'MAPPED_EVENT'] = '110m hurdles'
-    ##mask = athletes['EVENT'].str.contains(r'110m\sHurdles\s\(1\.067m\)', na=True)
-    ##athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-    
+
     
     mask = (athletes['EVENT'].str.contains(r'100m Hurdles|100m hurdles', na=False) & athletes['EVENT_CLASS'].str.contains('0.84|0.838|83.8|83.8Centimeter|0.840|84|Trial', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))  # this is the correct syntax
     athletes.loc[mask, 'MAPPED_EVENT'] = '100m Hurdles'
@@ -334,11 +322,6 @@ def map_international_events(athletes):
     
     
     
-    #mask = (athletes['EVENT'].str.contains(r'110m Hurdles|110m hurdles', na=False) & (athletes['EVENT_CLASS'].isna() | # 1. Check for True NaN/NaT values
-    # (athletes['EVENT_CLASS'].astype(str).str.strip() == '') | # 2. Check for empty string or only whitespace
-    # (athletes['EVENT_CLASS'].astype(str).str.lower().str.contains(r'none|nan', na=False)) # 3. Check for string representations
-    #) & athletes['GENDER'].str.contains(r'Male', na=False) & athletes['REGION'].str.contains(r'International', na=False))  # this is the correct syntax
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
     
     mask = (
         athletes['EVENT'].str.contains(r'110m Hurdles|110m hurdles', na=False) & 
@@ -360,42 +343,11 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
     
     
-    #mask = (athletes['EVENT'].str.contains(r'110m Hurdles|110m hurdles', na=False) & athletes['REGION'].str.contains(r'International', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-    
-    
-    # Using np.where instead
-    # 110m hurdles 1.067m male
-    # 100m hurdles 0.838m female
-    # 400m hurdles 0.914m male
-    # 400m hurdles 0.762m female
-    
-    #athletes['MAPPED_EVENT'] = np.where(((athletes['EVENT']=='110m hurdles|110m Hurdles') & ((athletes['EVENT_CLASS']=='')|athletes['EVENT_CLASS']=='None') & (athletes['REGION']=='International')), '110m Hurdles', ' ')   
-                                    
-    
-    
-    #mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'110', na=False) & athletes['EVENT_CLASS'].str.contains(' ', na=True))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '110m Hurdles'
-    
-    
-    
-    
-    
-    
-    
-    #mask = (athletes['EVENT'].str.contains(r'^400m\sHurdles$', na=False) & athletes['EVENT_CLASS'].str.contains(r'', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-    #mask = athletes['EVENT'].str.contains(r'400m\sHurdles\s\(0.840m\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = ' '
-    mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762|76.2cm|76.2', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
+        mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762|76.2cm|76.2', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     
     
-    #mask = athletes['EVENT'].str.contains(r'400\sMeter\sHurdles\s\(0\.914m\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-    #mask = athletes['EVENT'].str.contains(r'400m\sHurdles\s\(0\.914m\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-    mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
+        mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'^Hurdles$', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['DIVISION'].str.contains(r'Open|Invitational', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
@@ -404,11 +356,7 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     
     
-    #mask = athletes['EVENT'].str.contains(r'^400\sMeter\sHurdles\s\(0\.762m\)$', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-    ##mask = athletes['EVENT'].str.contains(r'^400m\sHurdles\s\(0\.762m\)$', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
-    mask = (athletes['EVENT'].str.contains(r'Hurdles', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762', na=False)& athletes['GENDER'].str.contains(r'Female', na=False))
+        mask = (athletes['EVENT'].str.contains(r'Hurdles', na=False) & athletes['DISTANCE'].str.contains(r'400', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762', na=False)& athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
     mask = (athletes['EVENT'].str.contains(r'400m Hurdles', na=False) & athletes['EVENT_CLASS'].str.contains(r'0.762m|76.2Centimeter|76.2|762', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '400m Hurdles'
@@ -422,15 +370,7 @@ def map_international_events(athletes):
     # Throws
     
     
-    #mask = ((athletes['EVENT'].str.contains(r'Javelin\sThrow\s\(600g\)', na=True, regex=True)) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
-    #mask = ((athletes['EVENT'].str.contains(r'Javelin\sThrow\s600g', na=True, regex=True)) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
-    #mask = ((athletes['EVENT'].str.contains(r'Javelin\sThrow\s600g\)', na=True, regex=True)) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
-    #mask = athletes['EVENT'].str.contains(r'Javelin\sThrow\s\(800g\)', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
-    
+        
     mask = (athletes['EVENT'].str.contains(r'Javelin Throw|Javelin throw|Javelin', na=False) & athletes['EVENT_CLASS'].str.contains(r'600', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Javelin Throw'
     mask = (athletes['EVENT'].str.contains(r'Javelin Throw|Javelin throw|Javelin', na=False) & athletes['EVENT_CLASS'].str.contains(r'800', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
@@ -450,19 +390,7 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     
     
-    #mask = athletes['EVENT'].str.contains(r'Women\sShot\sPut\s4kg\sOpen', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-    #mask = athletes['EVENT'].str.contains(r'Men\sShot\sPut\s4kg\sOPEN', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot put'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'Women\sShot\sPut\s\(4kg\)', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-    #mask = athletes['EVENT'].str.contains(r'Shot\sPut\s\(7\.26kg\)', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-    #mask = athletes['EVENT'].str.contains(r'Shot\sPut\s7\.26kg\sOpen', na=True, regex=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
-    mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['GENDER']=='Male') & (athletes['EVENT_CLASS'].str.contains(r'7.26', na=False)))# there are some additional characters after Put
+        mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['GENDER']=='Male') & (athletes['EVENT_CLASS'].str.contains(r'7.26', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['GENDER']=='Female') & (athletes['EVENT_CLASS'].str.contains(r'4', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
@@ -470,8 +398,6 @@ def map_international_events(athletes):
     mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['DIVISION'].str.contains(r'OPEN|Open', na=False)))# there are some additional characters after Put
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     
-    #mask = (athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & (athletes['REGION'].str.contains(r'International', na=False)) & athletes['EVENT_CLASS'].str.contains(r'None|nan', na=False))# there are some additional characters after Put
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     
     mask = (
         athletes['EVENT'].str.contains(r'Shot Put|Shot put', na=False) & 
@@ -482,13 +408,7 @@ def map_international_events(athletes):
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Shot Put'
     
     
-    
-    
-    #mask = (athletes['EVENT'].str.contains(r'Hammer\sThrow\s\(4kg\)', na=True) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
-    #mask = athletes['EVENT'].str.contains(r'Hammer\sThrow\s\(7\.26kg\)', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
-    mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'7.26', na=False))
+        mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'7.26', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
     mask = (athletes['EVENT'].str.contains(r'Hammer Throw|Hammer throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'4', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Hammer Throw'
@@ -497,25 +417,12 @@ def map_international_events(athletes):
     
     
     
-    #mask = ((athletes['EVENT'].str.contains(r'Discus\sThrow\s\(1kg\)', na=False)) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    
-    #mask = ((athletes['EVENT'].str.contains(r'Discus\s\(1\.00kg\)', na=False))  & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'Discus\sThrow\s\(2kg\)', na=False)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    #mask = ((athletes['EVENT'].str.contains(r'Discus\sThrow\s\(1kg\)', na=False)) & (athletes['GENDER']=='Female'))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus|Discus throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'2|Trial', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
+        mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus|Discus throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'2|Trial', na=False) & athletes['GENDER'].str.contains(r'Male', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus|Discus throw', na=False) & athletes['EVENT_CLASS'].str.contains(r'1|Trial', na=False) & athletes['GENDER'].str.contains(r'Female', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
     
-    #mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['REGION'].str.contains(r'International', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
-    mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
+        mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['DIVISION'].str.contains(r'OPEN|Open', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
     mask = (athletes['EVENT'].str.contains(r'Discus Throw|Discus throw', na=False) & athletes['DIVISION'].str.contains(r'None', na=False) & athletes['EVENT_CLASS'].str.contains(r'None', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = 'Discus Throw'
@@ -553,13 +460,7 @@ def map_international_events(athletes):
     
     # Steeplechase
     
-    #mask = athletes['EVENT'].str.contains(r'2000m S/C', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    #mask = athletes['EVENT'].str.contains(r'2000m steeplechase', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    #mask = athletes['EVENT'].str.contains(r'2000 Meter Steeplechase', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '2000m Steeplechase'
-    mask = (athletes['EVENT'].str.contains(r'3000m Steeplechase|3000m S\/C', na=True) & athletes['REGION'].str.contains(r'International', na=False))
+        mask = (athletes['EVENT'].str.contains(r'3000m Steeplechase|3000m S\/C', na=True) & athletes['REGION'].str.contains(r'International', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
     mask = (athletes['EVENT'].str.contains(r'Steeplechase|S\/C', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False)  & athletes['EVENT_CLASS'].str.contains(r'0.914', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Steeplechase'
@@ -581,27 +482,7 @@ def map_international_events(athletes):
     
     # Walk
     
-    #mask = athletes['EVENT'].str.contains(r'1500m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'1500 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'1500', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '1500m Race Walk'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'3000m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'3000 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    #mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'3000', na=False))
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '3000m Race Walk'
-    
-    
-    #mask = athletes['EVENT'].str.contains(r'5000 Meter Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
-    #mask = athletes['EVENT'].str.contains(r'5000m Race Walk', na=True)
-    #athletes.loc[mask, 'MAPPED_EVENT'] = '5000m Race Walk'
-    mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'10000', na=False))
+        mask = (athletes['EVENT'].str.contains(r'Race Walk', na=False) & athletes['DISTANCE'].str.contains(r'10000', na=False))
     athletes.loc[mask, 'MAPPED_EVENT'] = '10000m Racewalk'
     
     
@@ -756,77 +637,66 @@ def clean_columns(df):
     return df
 
 def convert_time_refactored(i, string, metric):
-    """
-    Convert various metric formats (distance, time) to a float value (primarily seconds for times).
-    Optimized for speed: no global variables, no print statements, no unnecessary conversions.
-
-    Args:
-        i (int): Index (unused, kept for compatibility).
-        string (str): Event description.
-        metric (str, float, or datetime): The result metric.
-
-    Returns:
-        float or empty string: Converted metric as float (seconds/meters), or '' if not convertible.
-    """
+    import datetime  # if not already imported above
+    
     l = ['discus', 'throw', 'jump', 'vault', 'shot']
+    sprint_events = ['100m', '200m', '400m']
+    
     string = str(string).lower()
     metric_str = str(metric)
     output = ''
-         
     
     try:
         # Skip marks with illegal wind speeds
         if isinstance(metric_str, str) and 'w' in metric_str.lower():
-            # Remove 'w' (case-insensitive) and any leading/trailing whitespace
-            metric_str = metric_str.lower().replace('w', '').strip()  # NEW
-
-            result_float = float(metric_str)
-    
-            return f"{result_float:.2f}"
-       #     return float(metric_str)  # NEW
-       #     return ''
-
+            return ''
+        
         # Field events (distances)
         if any(s in string for s in l):
-            # Remove unit if present
             metric_clean = metric_str.replace('m', '').replace('GR', '')
-            result_clean = float(metric_clean)
-            return f"{result_clean:.2f}"
-
-
-        # No event description
+            return round(float(metric_clean), 2)
+        
         if string == '':
             return ''
-
-        # Time events
+        
         count_colon = metric_str.count(':')
         count_dot = metric_str.count('.')
-
+        
         # Simple time as float (no colon)
         if count_colon == 0:
-
-            result_metric = float(metric_str)
-            return f"{result_metric:.2f}"
-
-
-        #    return float(metric_str)
-
-        # HH:MM:SS.sss format (2 colons, 1 or more dots) - FIX
-        if count_colon == 2 and count_dot >= 1:
-            h, m, s_with_ms = metric_str.split(':')
-            return float(int(h) * 3600 + int(m) * 60 + float(s_with_ms))
+            return round(float(metric_str), 2)
         
-        # Convert time formats with two colons (like XX:XX:XX, XX:XX.XX)
-        if count_colon == 2:
+        # Sprint events
+        if any(sprint in string for sprint in sprint_events):
+            if count_colon == 1 and count_dot == 1:
+                parts = metric_str.split(':')
+                if len(parts) == 2:
+                    first_part, second_part = parts
+                    if first_part == '00':
+                        return float(second_part)
+                    else:
+                        return float(int(first_part) * 60 + float(second_part))
 
-            # Check if this is a standard HH:MM:SS (no decimal point)
-            if count_dot == 0:  # NEW section to capture HH:MM:SS with no decimal point
+        # ---------- NEW: marathon “MM:SS.ss” fixer ----------
+        # Marathon events sometimes wrongly stored as MM:SS.ss instead of HH:MM:SS.ss
+        # e.g. "2:27.33" meaning 2h 27m 33s, but delivered as "2:27.33"
+        if ('marathon' in string or '20 km racewalk' in string or '50 km racewalk' in string):
+            if count_colon == 1 and count_dot == 1:
+                # Interpret "MM:SS.ss" as "HH:MM:SS.ss" with HH = floor(MM / 60) or from context.
+                # If your data encodes marathon as "2:27.33" (2h27m33s), treat first part as hours:
+                h_str, ms_str = metric_str.split(':')
+                h = int(h_str)               # hours
+                m = int(ms_str.split('.')[0])  # minutes (before dot)
+                s = float('0.' + ms_str.split('.')[1]) * 60  # fractional seconds
+                return float(h * 3600 + m * 60 + s)
+        # ---------------------------------------------------
+
+        # Two colons
+        if count_colon == 2:
+            if count_dot == 0:
                 h, m, s = metric_str.split(':')
-                return float(
-                    int(h) * 3600 + int(m) * 60 + float(s)
-                )
-                
-            # For 10,000m and 5000m, replace the 6th character with '.' for format XX:XX.XX
+                return float(int(h) * 3600 + int(m) * 60 + float(s))
+
             if ('10,000m' in string or '5000m' in string or '1500m' in string):
                 if len(metric_str) == 7:  # X:XX:XX (1500m special case)
                     idx = 4
@@ -835,47 +705,41 @@ def convert_time_refactored(i, string, metric):
                     idx = 5
                     metric_mod = metric_str[:idx] + '.' + metric_str[idx+1:]
                 m, s = metric_mod.split(':')[-2:]
-                return float(
-                    (int(m) * 60) + float(s)
-                )
+                return float((int(m) * 60) + float(s))
 
-            # Standard HH:MM:SS
             h, m, s = metric_str.split(':')
-            return float(
-                int(h) * 3600 + int(m) * 60 + float(s)
-            )
-
-        # Handle datetime.time/datetime.datetime objects
+            return float(int(h) * 3600 + int(m) * 60 + float(s))
+        
+        # datetime
         if isinstance(metric, (datetime.time, datetime.datetime)):
             t = str(metric)
             h, m, s = t.split(':')
             return float(int(h) * 3600 + int(m) * 60 + float(s))
-
-        # MM:SS.sss format
+        
+        # MM:SS.sss
         if count_colon == 1 and count_dot >= 1:
             m, s = metric_str.split(':')
             return float(int(m) * 60 + float(s))
-
-        # HH.MM.SS (rare) or MM:SS:SS
+        
+        # HH.MM.SS or similar
         if count_colon == 1 and count_dot == 2:
-            # Replace first dot with colon
             metric_mod = metric_str.replace('.', ':', 1)
             h, m, s = metric_mod.split(':')
             return float(int(h) * 3600 + int(m) * 60 + float(s))
-
+        
         # HH:MM:SS (no dots)
         if count_colon == 2 and count_dot == 0:
             h, m, s = metric_str.split(':')
             return float(int(h) * 3600 + int(m) * 60 + float(s))
-
+        
         # MM:SS (no dots)
         if count_colon == 1 and count_dot == 0:
             m, s = metric_str.split(':')
             return float(int(m) * 60 + int(s))
-
+            
     except Exception:
         return ''
-
+    
     return output
    # return format_seconds_to_time_string(total_seconds, is_long_event=False) # Example usage
 
