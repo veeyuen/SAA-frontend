@@ -1209,6 +1209,17 @@ def map_nwi(df):
 
     return df
 
+def is_blank_or_null(series):
+    """Catches None, NaN, <NA>, blank strings, and string representations"""
+    return (
+        series.isna() |                                          # Catches NaN, None, <NA>, NaT
+        (series == '') |
+        (series.astype(str).str.strip() == '') |                 # Empty/whitespace
+        (series.astype(str).str.strip() == '<NA>') |             # String '<NA>' if converted
+        series.astype(str).str.lower().str.strip().isin(['none', 'nan', 'null', 'n/a', 'na'])
+    )
+
+
 
                             
                  
