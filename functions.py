@@ -220,12 +220,12 @@ def map_international_events(athletes):
 ## Clear columns of special characters and spaces
 
     for col in athletes.columns:
-    athletes[col] = athletes[col].astype(str)
-    athletes[col] = athletes[col].str.replace('\xa0', ' ', regex=True)
-    athletes[col] = athletes[col].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
-    athletes[col] = athletes[col].str.replace('\r', ' ', regex=True)
-    athletes[col] = athletes[col].str.replace('\n', ' ', regex=True)
-    athletes[col] = athletes[col].str.strip()
+        athletes[col] = athletes[col].astype(str)
+        athletes[col] = athletes[col].str.replace('\xa0', ' ', regex=True)
+        athletes[col] = athletes[col].str.replace('[\x00-\x1f\x7f-\x9f]', '', regex=True)
+        athletes[col] = athletes[col].str.replace('\r', ' ', regex=True)
+        athletes[col] = athletes[col].str.replace('\n', ' ', regex=True)
+        athletes[col] = athletes[col].str.strip()
 
 
     # Correct javelin category
