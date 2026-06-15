@@ -1223,6 +1223,62 @@ def is_blank_or_null(series):
         series.astype(str).str.lower().str.strip().isin(['none', 'nan', 'null', 'n/a', 'na'])
     )
 
+def clean_base_name(x):
+    """
+    Basic cleanup: remove NBSP, control characters, newlines,
+    repeated spaces, and surrounding spaces.
+    """
+    if pd.isna(x):
+        return ""
+
+    x = str(x)
+    x = x.replace('\xa0', ' ')
+    x = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', x)
+    x = x.replace('\r', ' ').replace('\n', ' ')
+    x = re.sub(r'\s+', ' ', x)
+    return x.strip()
+
+
+def strip_punctuation(x):
+    """
+    Remove Unicode punctuation.
+    Handles normal punctuation like . , - ' / etc.
+    """
+    return ''.join(
+        ch for ch in x
+        if not unicodedata.category(ch).startswith('P')
+    )
+
+
+def name_match_key(x):
+    """
+    Matching key:
+    - cleans text
+    - removes punctuation
+    - removes spaces
+    - casefolds
+
+    This means:
+    'Tan Tse-Teng' == 'Tan Tse Teng' == 'TAN TSE TENG'
+    """
+    x = clean_base_name(x)
+    x = strip_punctuation(x)
+    x = re.sub(r'\s+', '', x)
+    return x.casefold()
+
+
+def clean_replacement_name(x):
+    """
+    Canonical replacement name:
+    - cleans text
+    - strips punctuation
+    - keeps normal word spacing
+    - casefolds before final title case later
+    """
+    x = clean_base_name(x)
+    x = strip_punctuation(x)
+    x = re.sub(r'\s+', ' ', x)
+    return x.strip().casefold()
 
 
                             
