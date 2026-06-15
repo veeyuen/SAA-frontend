@@ -15,6 +15,7 @@ from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
 from functions import normalize_time_format, convert_time_refactored, convert_time_format, seconds_to_mmss, map_nwi
+from functions import strip_punctuation, name_match_key, clean_replacement_name
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -628,8 +629,8 @@ else:  # Choose date and run selection report
    # }
 
     bench_map = {
-        "2023 SEAG Bronze - SEAG Selection": '2023 SEAG Bronze',
-        "2023 SEAG Bronze - OCTC Selection": '2023 SEAG Bronze'
+        "2025 SEAG Bronze - SEAG Selection": '2025 SEAG Bronze',
+        "2025 SEAG Bronze - OCTC Selection": '2025 SEAG Bronze'
             }
     
     bench_name = bench_map.get(benchmark_option, None)
@@ -639,12 +640,9 @@ else:  # Choose date and run selection report
 ## Map relevant events to a standard description ##
 
 ## Map benchmarks ##
-
-#st.dataframe(athletes_selected)
-
 ## Merge benchmarks ##
 
-if benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option == '2023 SEAG Bronze - OCTC Selection':
+if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option == '2025 SEAG Bronze - OCTC Selection':
 
     df = pd.merge(
         left=athletes_selected, 
@@ -671,33 +669,6 @@ if benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option =
 
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
 
-# Name corrections
-# Read name variations from GCS name lists bucket (Still in beta)
-
-# Read csv of name variations from GCS bucket
-
- #   conn = st.connection('gcs', type=FilesConnection, ttl=600)
-  #  names = conn.read("name_variations/name_variations.csv", input_format="csv")
-
-  #  names = clean_columns(names)  # clean name list of special characters, white spaces etc.
-
-    
-
-# Iterate over dataframe and replace names using casefold then convert to capitalize first letter (OLD BLOCK)
-
-#    df['NAME'] = df['NAME'].str.casefold()  # convert everything to lower case (NEW)
-    
-#    names['VARIATION'] = names['VARIATION'].str.casefold()
-#    names['NAME'] = names['NAME'].str.casefold()
-
-#    for row in names.itertuples():  # itertuples is faster
-        
-#        df['NAME'] = df['NAME'].replace(regex=rf"{row.VARIATION}", value=f"{row.NAME}")   
-#        df['NAME'] = df['NAME'].replace(regex=pattern, value=f"{row.NAME}")   
-
-#    df['NAME'] = df['NAME'].str.title()  # capitalize first letter (NEW)
-
-# END OLD BLOCK
 
 # Iterate over dataframe and replace names using casefold then convert to capitalize first letter (NEW BLOCK)
 # Normalize dataframe
@@ -741,21 +712,28 @@ if benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
 # Process list of foreign names and their variations
-
-    # Remove foreign/national teams and nationalities efficiently
+# Remove foreign/national teams and nationalities efficiently
     
-    excluded_teams = {
-        'Malaysia','THAILAND','China','South Korea','Laos','Myanmar','Philippines',
-        'Piboonbumpen Thailand','Chinese Taipei','Gurkha Contingent','Australia','Hong Kong',
-        'PERAK','Sri Lanka','Indonesia','Waseda','Vietnam','INDIA','Hong Kong, China','AIC JAPAN'
-    }
-    excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
-    df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
+#    excluded_teams = {
+#        'Malaysia','THAILAND','China','South Korea','Laos','Myanmar','Philippines',
+#        'Piboonbumpen Thailand','Chinese Taipei','Gurkha Contingent','Australia','Hong Kong',
+#        'PERAK','Sri Lanka','Indonesia','Waseda','Vietnam','INDIA','Hong Kong, China','AIC JAPAN'
+#    }
+#    excluded_nationalities = {'GBR','IND','MAS','INA','JPN','SRI','THA'}
+#    df_local_teams = df[~df['TEAM'].isin(excluded_teams) & ~df['NATIONALITY'].isin(excluded_nationalities)]
 
- #   st.write('Only Locals')
- #   st.write(len(df_local_teams))
+ # Choose only Singaporeans
 
+    allowed_nationalities = ['SGP', 'SIN', 'NONE', '']
     
+    df_local_teams = df[
+        df['NATIONALITY']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .isin(allowed_nationalities)
+    ]   
 
     # Find out top performance for each athlete and event
     
@@ -796,7 +774,7 @@ if benchmark_option == '2023 SEAG Bronze - SEAG Selection' or benchmark_option =
 
    
 
-    if benchmark_option == '2023 SEAG Bronze - OCTC':   # Additional logic for OCTC report
+    if benchmark_option == '2025 SEAG Bronze - OCTC':   # Additional logic for OCTC report
 
         # Rank everyone for octc selection
 
