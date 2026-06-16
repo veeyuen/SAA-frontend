@@ -120,9 +120,6 @@ def fetch_benchmarks():
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
-st.write("LATEST")
-st.write(benchmarks)
-
 ## Download all athlete data from BQ
 
 @st.cache_data(ttl=6000)
@@ -734,8 +731,6 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             .str.upper()
             .isin(allowed_nationalities)
     ]
-
-    st.write(df_local_teams)
 
     # Find out top performance for each athlete and event
 
