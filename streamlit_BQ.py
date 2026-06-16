@@ -81,10 +81,6 @@ def gspread_names():
     return names
 
 names = gspread_names()
-#st.write(names)
-
-
-
 
 
 # Create list of foreigners
@@ -123,6 +119,8 @@ def fetch_benchmarks():
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
+
+st.write(benchmarks)
 
 ## Download all athlete data from BQ
 
@@ -642,7 +640,6 @@ else:  # Choose date and run selection report
 ## Map benchmarks ##
 ## Merge benchmarks ##
 
-st.write(benchmark)
 
 if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option == '2025 SEAG Bronze - OCTC Selection':
 
