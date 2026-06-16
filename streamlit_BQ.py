@@ -116,7 +116,7 @@ FROM `saa-analytics.results.PRODUCTION`
 @st.cache_data(ttl=60)
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=0)
-    benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
+    benchmarks = conn.read("competition_benchmarks/All_Benchmarks_latest.csv", input_format="csv")
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
