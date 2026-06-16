@@ -246,8 +246,8 @@ all_data = fetch_all_data() # fetch the entire database
 
 benchmark_option = st.selectbox(
     "  ",
-    ("Search Database Records by Name or Competition", "List Results By Event", "2023 SEAG Bronze - SEAG Selection", 
-     "2023 SEAG Bronze - OCTC Selection")
+    ("Search Database Records by Name or Competition", "List Results By Event", "2025 SEAG Bronze - SEAG Selection", 
+     "2025 SEAG Bronze - OCTC Selection")
 )
 
 
