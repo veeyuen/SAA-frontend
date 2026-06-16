@@ -123,6 +123,12 @@ def fetch_benchmarks():
         .str.replace('\ufeff', '', regex=False)
         .str.strip()
     )
+
+    benchmarks = benchmarks.rename(columns={
+        'BENCHMARK': 'BENCHMARK_COMPETITION',
+        'RESULT': 'RESULT_BENCHMARK',
+        'Metric': 'STANDARDISED_BENCHMARK',
+    })
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
