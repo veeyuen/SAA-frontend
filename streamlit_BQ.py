@@ -113,7 +113,7 @@ FROM `saa-analytics.results.PRODUCTION`
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
 
-@st.cache_data(ttl=6000)
+@st.cache_data(ttl=60)
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_Processed.csv", input_format="csv")
