@@ -120,6 +120,7 @@ def fetch_benchmarks():
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
+st.write("LATEST")
 st.write(benchmarks)
 
 ## Download all athlete data from BQ
