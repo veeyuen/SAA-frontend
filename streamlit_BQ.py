@@ -117,6 +117,12 @@ FROM `saa-analytics.results.PRODUCTION`
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=0)
     benchmarks = conn.read("competition_benchmarks/All_Benchmarks_latest.csv", input_format="csv")
+
+    benchmarks.columns = (
+        benchmarks.columns.astype(str)
+        .str.replace('\ufeff', '', regex=False)
+        .str.strip()
+    )
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
