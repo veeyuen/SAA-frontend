@@ -735,6 +735,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             .isin(allowed_nationalities)
     ]   
 
+    st.write(df_local_teams)
+
     # Find out top performance for each athlete and event
     
     top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
