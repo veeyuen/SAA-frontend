@@ -432,6 +432,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
+        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object') # Added 17/06/26
 
     # Return full HH:MM:SS.ss format for longer events
 
