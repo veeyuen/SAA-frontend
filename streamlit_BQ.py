@@ -254,8 +254,13 @@ all_data = fetch_all_data() # fetch the entire database
 
 benchmark_option = st.selectbox(
     "  ",
-    ("Search Database Records by Name or Competition", "List Results By Event", "2025 SEAG Bronze - SEAG Selection",
-     "2025 SEAG Bronze - OCTC Selection")
+    (
+        "Search Database Records by Name or Competition",
+        "List Results By Event",
+        "Graph Athlete Performance",
+        "2025 SEAG Bronze - SEAG Selection",
+        "2025 SEAG Bronze - OCTC Selection",
+    )
 )
 
 
@@ -595,6 +600,348 @@ elif benchmark_option == 'List Results By Event':
 
     # Allow text search on athlete name and/or competition
 
+
+
+# ============================================================
+# GRAPH ATHLETE PERFORMANCE PATCH
+# Distinct self-contained graphing module.
+# Uses all_data from fetch_all_data().
+# ============================================================
+
+elif benchmark_option == "Graph Athlete Performance":
+
+    st.subheader("Graph Athlete Performance")
+
+    # ------------------------------------------------------------
+    # 1. Hardcoded athlete list for graphing dropdown
+    # ------------------------------------------------------------
+    ATHLETE_GRAPH_LIST_RAW = [
+        "SOH HWEI EN, RACHEL",
+        "GOH BOON HEE, SHAUN",
+        "TAN HONG AN, DARYL",
+        "TATE TAN FUNG",
+        "ONG JING RONG KERSTIN",
+        "PRAHARSH RYAN S/O SUBASH SOMAN",
+        "VANESSA LEE YING ZHUANG",
+        "OLIVER LIM TZE RONG",
+        "PAK TUNG HON, ANDREW",
+        "GOH SHING LING",
+        "LOW JUN YU",
+        "ASHLEE ONG YUXI",
+        "LOH DING RONG, ANSON",
+        "TAN SHOU YI REI",
+        "NG SI EN, TABITHA",
+        "OLIVER FIORE",
+        "KWA EU HAN",
+        "JADEN CHEW",
+        "TAN YING TONG, SHANNON",
+        "LAAVINIA D/O JAIGANTH",
+        "SUBARAGHAV HARI S/O TAMIL SELVAM",
+        "HENG CHIN KIAT RICHARD",
+        "AMIR RUSYAIDI OSMAN",
+        "CHLOE CHEE EN-YA",
+        "DARYEN KO XIN TZE",
+        "TNG KAI XIN",
+        "KHALEL BIN ZAID",
+        "AHMAD ZUBAYR BIN MOHAMED IMRAN",
+        "NG GABRIEL",
+        "MEGAN PUAH",
+        "SEAN RUSSELL TAY",
+        "JAYDEN NG",
+        "LEE YU FOONG",
+        "JIANG YUNFAN",
+        "LAM XIN, KRISTEL",
+        "WANG QIYUE",
+        "CHUA JE-AN, GARRETT",
+        "LOKE E-JAY REUBEN",
+        "LIU HAOYUE",
+        "HARRY IRFAN CURRAN",
+        "GOH YEN YOUNG AMELIA",
+        "SOH RUI YONG, GUILLAUME",
+        "LAURENT LEE QIFENG",
+        "Manuela Sidhom",
+        "PRISHA KAUSHAL",
+        "CAITLIN NG SHAN WEN",
+        "XANDER HO ANN HENG",
+        "YEE CHUN WAI, ERIC",
+        "LEE SIONG EN, REUBEN RAINER",
+        "THIRUBEN S/O THANA RAJAN",
+        "ELIZABETH-ANN TAN SHEE RU",
+        "MARK LEE REN",
+        "ANDREW GEORGE MEDINA",
+        "GABRIEL LEE JING YI",
+        "TIA LOUISE ROZARIO",
+        "ANG CHEN XIANG",
+        "PEREIRA VERONICA SHANTI",
+        "KAMPTON KAM",
+        "QUEK JUN JIE CALVIN",
+        "MARC BRIAN LOUIS",
+        "QUEK JUN JIE CALVIN",
+        "SNG SUAT LI, MICHELLE",
+        "AMIR RUSYAIDI OSMAN",
+        "ANDREW GEORGE MEDINA",
+        "GABRIEL LEE JING YI",
+        "HIA CALEB",
+        "LOW JUN YU",
+        "NG ZHI RONG RYAN RAPHAEL",
+        "PRAHARSH RYAN S/O SUBASH SOMAN",
+        "TAN HONG AN, DARYL",
+        "TIA LOUISE ROZARIO",
+        "VANESSA LEE YING ZHUANG",
+        "YAN TEO",
+        "YEE CHUN WAI, ERIC",
+        "ASHLEE ONG YUXI",
+        "BRAYDEN CHAN WEI JIE",
+        "CHEONG YIN YERN, JOSEPH",
+        "CHUA HSIN-WEN CLARA",
+        "CHUA JE-AN, GARRETT",
+        "HUANG WEIJUN",
+        "LAAVINIA D/O JAIGANTH",
+        "S VIRESH KUMAR",
+        "SOH HWEI EN, RACHEL",
+        "SUBARAGHAV HARI S/O TAMIL SELVAM",
+        "TAN JIE CONG, JAYDEN",
+        "TAN SHOU YI REI",
+        "TEH YING SHAN",
+        "CHLOE CHEE EN-YA",
+        "EMERY CONRAD KANGLI",
+        "HARRY IRFAN CURRAN",
+        "LIM YEE CHERN CLARA",
+        "LOH DING RONG, ANSON",
+        "ONG YING TAT",
+        "SONG EN XU REAGAN",
+    ]
+
+    # Remove duplicate athlete names while preserving the original order.
+    ATHLETE_GRAPH_LIST = list(dict.fromkeys(ATHLETE_GRAPH_LIST_RAW))
+
+    # ------------------------------------------------------------
+    # 2. Local helper for robust name matching
+    # ------------------------------------------------------------
+    def graph_name_key(x):
+        """
+        Lightweight matching key for this graphing module:
+        - removes hidden/control characters
+        - removes punctuation/non-word characters
+        - removes spaces/underscores
+        - casefolds
+        """
+        if pd.isna(x):
+            return ""
+
+        x = str(x)
+        x = x.replace("\xa0", " ")
+        x = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", x)
+        x = re.sub(r"[\W_]+", "", x, flags=re.UNICODE)
+        return x.casefold()
+
+    # ------------------------------------------------------------
+    # 3. Prepare graph dataframe
+    # ------------------------------------------------------------
+    graph_data = all_data.copy()
+
+    graph_data["DATE_DT"] = pd.to_datetime(graph_data["DATE"], errors="coerce")
+    graph_data["RESULT_FLOAT"] = pd.to_numeric(graph_data["RESULT_CONV"], errors="coerce")
+    graph_data["NAME_GRAPH_KEY"] = graph_data["NAME"].apply(graph_name_key)
+
+    graph_data = graph_data[
+        graph_data["DATE_DT"].notna()
+        & graph_data["RESULT_FLOAT"].notna()
+        & graph_data["MAPPED_EVENT"].notna()
+    ].copy()
+
+    if graph_data.empty:
+        st.warning("No graphable records found. Check that DATE, MAPPED_EVENT and RESULT_CONV are populated.")
+        st.stop()
+
+    # ------------------------------------------------------------
+    # 4. User controls
+    # ------------------------------------------------------------
+    selected_athlete = st.selectbox(
+        "Select Athlete:",
+        options=ATHLETE_GRAPH_LIST,
+    )
+
+    selected_athlete_key = graph_name_key(selected_athlete)
+
+    athlete_data = graph_data[
+        graph_data["NAME_GRAPH_KEY"] == selected_athlete_key
+    ].copy()
+
+    if athlete_data.empty:
+        st.warning(f"No records found for {selected_athlete}.")
+        st.stop()
+
+    min_date = athlete_data["DATE_DT"].min().date()
+    max_date = athlete_data["DATE_DT"].max().date()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        start_date = st.date_input(
+            "Start Date:",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+        )
+
+    with col2:
+        end_date = st.date_input(
+            "End Date:",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+        )
+
+    if start_date > end_date:
+        st.error("Start Date cannot be after End Date.")
+        st.stop()
+
+    athlete_data = athlete_data[
+        (athlete_data["DATE_DT"].dt.date >= start_date)
+        & (athlete_data["DATE_DT"].dt.date <= end_date)
+    ].copy()
+
+    if athlete_data.empty:
+        st.warning("No records found for the selected athlete and date range.")
+        st.stop()
+
+    event_options = sorted(
+        athlete_data["MAPPED_EVENT"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    selected_event = st.selectbox(
+        "Select Event:",
+        options=event_options,
+    )
+
+    plot_df = athlete_data[
+        athlete_data["MAPPED_EVENT"].astype(str) == selected_event
+    ].copy()
+
+    plot_df = plot_df.sort_values("DATE_DT")
+
+    if plot_df.empty:
+        st.warning("No records found for the selected athlete, event and date range.")
+        st.stop()
+
+    # ------------------------------------------------------------
+    # 5. Format results for display
+    # ------------------------------------------------------------
+    distance_events = [
+        "60m", "60m Hurdles", "80m", "100m", "100m Hurdles", "110m Hurdles",
+        "400m Hurdles", "200m", "300m", "400m", "800m", "2400m", "10,000m",
+        "3000m", "5000m", "3000m Steeplechase", "1500m", "10000m Racewalk",
+        "20km Racewalk", "1 Mile", "4 x 100m", "4 x 400m",
+        "2000m Steeplechase", "Marathon", "Half Marathon",
+        "Sprint Medley Relay", "5km Racewalk", "200m Hurdles",
+        "5000m Racewalk", "10,000m Racewalk",
+    ]
+
+    field_events = [
+        "Javelin Throw", "Pole Vault", "Hammer Throw", "Triple Jump",
+        "Long Jump", "Long Jump (Zone)", "High Jump", "Shot Put",
+        "Discus Throw", "Discus", "Decathlon", "Heptathlon",
+    ]
+
+    is_timed_event = selected_event in distance_events
+
+    plot_df["RESULT_C"] = pd.Series(index=plot_df.index, dtype="object")
+
+    if is_timed_event:
+        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"].apply(seconds_to_mmss)
+        y_axis_title = "Performance Time"
+        chart_note = "For timed events, the y-axis is reversed so faster performances appear higher."
+        reverse_y_axis = True
+    else:
+        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"]
+        y_axis_title = "Performance Mark"
+        chart_note = "For field events and combined events, higher marks/points appear higher."
+        reverse_y_axis = False
+
+    # ------------------------------------------------------------
+    # 6. Chart
+    # ------------------------------------------------------------
+    st.write(f"### {selected_athlete} — {selected_event}")
+    st.caption(chart_note)
+
+    chart_data = plot_df[
+        [
+            "DATE_DT",
+            "RESULT_FLOAT",
+            "RESULT_C",
+            "COMPETITION",
+            "WIND",
+            "STAGE",
+            "EVENT_CLASS",
+        ]
+    ].copy()
+
+    try:
+        import altair as alt
+
+        chart = (
+            alt.Chart(chart_data)
+            .mark_line(point=True)
+            .encode(
+                x=alt.X("DATE_DT:T", title="Date"),
+                y=alt.Y(
+                    "RESULT_FLOAT:Q",
+                    title=y_axis_title,
+                    scale=alt.Scale(reverse=reverse_y_axis),
+                ),
+                tooltip=[
+                    alt.Tooltip("DATE_DT:T", title="Date"),
+                    alt.Tooltip("RESULT_C:N", title="Result"),
+                    alt.Tooltip("COMPETITION:N", title="Competition"),
+                    alt.Tooltip("WIND:N", title="Wind"),
+                    alt.Tooltip("STAGE:N", title="Stage"),
+                    alt.Tooltip("EVENT_CLASS:N", title="Event Class"),
+                ],
+            )
+            .properties(height=450)
+        )
+
+        st.altair_chart(chart, use_container_width=True)
+
+    except Exception:
+        # Fallback if Altair is unavailable.
+        fallback_chart = chart_data.set_index("DATE_DT")[["RESULT_FLOAT"]]
+        st.line_chart(fallback_chart)
+
+    # ------------------------------------------------------------
+    # 7. Matching result table using existing report-style columns
+    # ------------------------------------------------------------
+    df_final = plot_df[
+        [
+            "NAME",
+            "DATE",
+            "MAPPED_EVENT",
+            "COMPETITION",
+            "RESULT_C",
+            "RESULT_FLOAT",
+            "WIND",
+            "HOST_CITY",
+            "AGE",
+            "GENDER",
+            "EVENT_CLASS",
+            "DOB",
+        ]
+    ].copy()
+
+    df_final["NAME"] = df_final["NAME"].fillna("").str.title()
+    df_final = map_nwi(df_final)
+
+    st.write("### Results Used In Chart")
+    final_dfs, code = spreadsheet(df_final)
+
+# ============================================================
+# END GRAPH ATHLETE PERFORMANCE PATCH
+# ============================================================
 
 else:  # Choose date and run selection report
 
