@@ -113,16 +113,52 @@ FROM `saa-analytics.results.PRODUCTION`
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
 
-@st.cache_data(ttl=6000)
+@st.cache_data(ttl=60)
 def fetch_benchmarks():
     conn = st.connection('gcs', type=FilesConnection, ttl=0)
-    benchmarks = conn.read("competition_benchmarks/All_Benchmarks_latest.csv", input_format="csv")
+    benchmarks = conn.read(
+        "competition_benchmarks/All_Benchmarks_latest.csv",
+        input_format="csv",
+        ttl=0
+    )
 
     benchmarks.columns = (
         benchmarks.columns.astype(str)
         .str.replace('\ufeff', '', regex=False)
+        .str.replace('\xa0', ' ', regex=False)
         .str.strip()
     )
+
+    # ------------------------------------------------------------
+    # BENCHMARK CSV SCHEMA COMPATIBILITY PATCH
+    # The latest benchmark CSV uses BENCHMARK / RESULT / Metric.
+    # The report code expects BENCHMARK_COMPETITION / RESULT_BENCHMARK /
+    # STANDARDISED_BENCHMARK, so normalize the headers here.
+    # ------------------------------------------------------------
+    benchmarks = benchmarks.rename(columns={
+        'BENCHMARK': 'BENCHMARK_COMPETITION',
+        'RESULT': 'RESULT_BENCHMARK',
+        'Metric': 'STANDARDISED_BENCHMARK',
+    })
+
+    required_cols = {
+        'BENCHMARK_COMPETITION',
+        'EVENT',
+        'GENDER',
+        'RESULT_BENCHMARK',
+        'STANDARDISED_BENCHMARK',
+        '2%',
+        '3.50%',
+        '5%',
+        '10%',
+    }
+    missing_cols = required_cols - set(benchmarks.columns)
+    if missing_cols:
+        st.error(f"Benchmark file is missing required columns: {sorted(missing_cols)}")
+        st.write("Benchmark columns found:", benchmarks.columns.tolist())
+        st.dataframe(benchmarks.head())
+        st.stop()
+
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
