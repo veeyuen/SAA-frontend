@@ -123,12 +123,6 @@ def fetch_benchmarks():
         .str.replace('\ufeff', '', regex=False)
         .str.strip()
     )
-
-    benchmarks = benchmarks.rename(columns={
-        'BENCHMARK': 'BENCHMARK_COMPETITION',
-        'RESULT': 'RESULT_BENCHMARK',
-        'Metric': 'STANDARDISED_BENCHMARK',
-    })
     return benchmarks
 benchmarks = fetch_benchmarks()  # fetch benchmarks
 
@@ -246,6 +240,113 @@ def fetch_all_data():   # for database access
 
     return all_data
 
+
+# ============================================================
+# SEAG/OCTC SEARCH-STYLE OUTPUT FORMAT PATCH
+# Helper used to format SEAG/OCTC selection reports with the
+# same output columns/result display style as the athlete search.
+# ============================================================
+
+def format_results_like_search(df_input):
+    df_search = df_input.copy()
+
+    # Ensure columns required by the standard search-style output exist.
+    required_output_cols = [
+        'NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'STATUS',
+        'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB'
+    ]
+    for col in required_output_cols:
+        if col not in df_search.columns:
+            df_search[col] = ''
+
+    distance_events = [
+        '60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles',
+        '400m Hurdles', '200m', '300m', '400m', '800m', '2400m', '10,000m',
+        '3000m', '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk',
+        '10,000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m',
+        '2000m Steeplechase', 'Marathon', 'Half Marathon', 'Sprint Medley Relay',
+        '5km Racewalk', '5000m Racewalk', '200m Hurdles'
+    ]
+
+    field_events = [
+        'Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump',
+        'Long Jump', 'Long Jump (Zone)', 'High Jump', 'Shot Put',
+        'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon'
+    ]
+
+    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
+
+    # Match the athlete-search wind handling: if a result contains a wind marker
+    # and WIND is blank, mark WIND as Illegal.
+    mask_result_has_w = df_search['RESULT'].astype(str).str.contains('w', case=False, na=False)
+    mask_wind_is_missing = (
+        df_search['WIND'].isna()
+        | (df_search['WIND'].astype(str).str.strip() == '')
+        | (df_search['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
+    )
+    df_search.loc[mask_result_has_w & mask_wind_is_missing, 'WIND'] = 'Illegal'
+
+    # STATUS column for non-numeric results, matching the search report behaviour.
+    df_search['STATUS'] = df_search['RESULT'].where(
+        df_search['RESULT'].astype(str).str.strip().isin(invalid_results),
+        df_search['STATUS']
+    )
+
+    # Use the already-computed RESULT_CONV where available; otherwise fall back
+    # to the same conversion function used in the athlete-search branch.
+    if 'RESULT_CONV' in df_search.columns:
+        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
+    else:
+        def convert_for_row(row):
+            if row['RESULT'] in invalid_results:
+                return ''
+            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
+
+        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
+        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
+
+    mask = df_search['MAPPED_EVENT'].isin(distance_events)
+    mask_field = df_search['MAPPED_EVENT'].isin(field_events)
+
+    # Object dtype is important because RESULT_C mixes formatted time strings,
+    # field-event floats, and non-numeric status strings.
+    df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object')
+
+    df_search.loc[mask, 'RESULT_C'] = df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss)
+    df_search.loc[mask_field, 'RESULT_C'] = df_search.loc[mask_field, 'RESULT_FLOAT']
+
+    pattern = r'^(' + '|'.join(invalid_results) + r')$'
+    mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
+        pattern,
+        case=False,
+        regex=True,
+        na=False
+    )
+    df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search.loc[mask_non_numeric, 'RESULT']
+
+    # If any event is not covered by the distance/field lists, retain the raw result
+    # rather than showing a blank result in the report.
+    mask_result_c_blank = df_search['RESULT_C'].isna() | (df_search['RESULT_C'].astype(str).str.strip() == '')
+    df_search.loc[mask_result_c_blank, 'RESULT_C'] = df_search.loc[mask_result_c_blank, 'RESULT']
+
+    # Standardise date display to match the search outputs.
+    date_converted = pd.to_datetime(df_search['DATE'], errors='coerce')
+    df_search['DATE'] = np.where(
+        date_converted.notna(),
+        date_converted.dt.strftime('%Y-%m-%d'),
+        df_search['DATE'].astype(str)
+    )
+
+    df_final = df_search[[
+        'NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'STATUS',
+        'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB'
+    ]].copy()
+
+    df_final['NAME'] = df_final['NAME'].fillna('').astype(str).str.title()
+    df_final = map_nwi(df_final)
+
+    return df_final
+
 ## Get all the data ##
 
 all_data = fetch_all_data() # fetch the entire database
@@ -254,13 +355,8 @@ all_data = fetch_all_data() # fetch the entire database
 
 benchmark_option = st.selectbox(
     "  ",
-    (
-        "Search Database Records by Name or Competition",
-        "List Results By Event",
-        "Graph Athlete Performance",
-        "2025 SEAG Bronze - SEAG Selection",
-        "2025 SEAG Bronze - OCTC Selection",
-    )
+    ("Search Database Records by Name or Competition", "List Results By Event", "2025 SEAG Bronze - SEAG Selection",
+     "2025 SEAG Bronze - OCTC Selection")
 )
 
 
@@ -437,7 +533,6 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         mask = df_search['MAPPED_EVENT'].isin(distance_events)
         mask_field = df_search['MAPPED_EVENT'].isin(field_events)
-        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object') # Added 17/06/26
 
     # Return full HH:MM:SS.ss format for longer events
 
@@ -600,348 +695,6 @@ elif benchmark_option == 'List Results By Event':
 
     # Allow text search on athlete name and/or competition
 
-
-
-# ============================================================
-# GRAPH ATHLETE PERFORMANCE PATCH
-# Distinct self-contained graphing module.
-# Uses all_data from fetch_all_data().
-# ============================================================
-
-elif benchmark_option == "Graph Athlete Performance":
-
-    st.subheader("Graph Athlete Performance")
-
-    # ------------------------------------------------------------
-    # 1. Hardcoded athlete list for graphing dropdown
-    # ------------------------------------------------------------
-    ATHLETE_GRAPH_LIST_RAW = [
-        "SOH HWEI EN, RACHEL",
-        "GOH BOON HEE, SHAUN",
-        "TAN HONG AN, DARYL",
-        "TATE TAN FUNG",
-        "ONG JING RONG KERSTIN",
-        "PRAHARSH RYAN S/O SUBASH SOMAN",
-        "VANESSA LEE YING ZHUANG",
-        "OLIVER LIM TZE RONG",
-        "PAK TUNG HON, ANDREW",
-        "GOH SHING LING",
-        "LOW JUN YU",
-        "ASHLEE ONG YUXI",
-        "LOH DING RONG, ANSON",
-        "TAN SHOU YI REI",
-        "NG SI EN, TABITHA",
-        "OLIVER FIORE",
-        "KWA EU HAN",
-        "JADEN CHEW",
-        "TAN YING TONG, SHANNON",
-        "LAAVINIA D/O JAIGANTH",
-        "SUBARAGHAV HARI S/O TAMIL SELVAM",
-        "HENG CHIN KIAT RICHARD",
-        "AMIR RUSYAIDI OSMAN",
-        "CHLOE CHEE EN-YA",
-        "DARYEN KO XIN TZE",
-        "TNG KAI XIN",
-        "KHALEL BIN ZAID",
-        "AHMAD ZUBAYR BIN MOHAMED IMRAN",
-        "NG GABRIEL",
-        "MEGAN PUAH",
-        "SEAN RUSSELL TAY",
-        "JAYDEN NG",
-        "LEE YU FOONG",
-        "JIANG YUNFAN",
-        "LAM XIN, KRISTEL",
-        "WANG QIYUE",
-        "CHUA JE-AN, GARRETT",
-        "LOKE E-JAY REUBEN",
-        "LIU HAOYUE",
-        "HARRY IRFAN CURRAN",
-        "GOH YEN YOUNG AMELIA",
-        "SOH RUI YONG, GUILLAUME",
-        "LAURENT LEE QIFENG",
-        "Manuela Sidhom",
-        "PRISHA KAUSHAL",
-        "CAITLIN NG SHAN WEN",
-        "XANDER HO ANN HENG",
-        "YEE CHUN WAI, ERIC",
-        "LEE SIONG EN, REUBEN RAINER",
-        "THIRUBEN S/O THANA RAJAN",
-        "ELIZABETH-ANN TAN SHEE RU",
-        "MARK LEE REN",
-        "ANDREW GEORGE MEDINA",
-        "GABRIEL LEE JING YI",
-        "TIA LOUISE ROZARIO",
-        "ANG CHEN XIANG",
-        "PEREIRA VERONICA SHANTI",
-        "KAMPTON KAM",
-        "QUEK JUN JIE CALVIN",
-        "MARC BRIAN LOUIS",
-        "QUEK JUN JIE CALVIN",
-        "SNG SUAT LI, MICHELLE",
-        "AMIR RUSYAIDI OSMAN",
-        "ANDREW GEORGE MEDINA",
-        "GABRIEL LEE JING YI",
-        "HIA CALEB",
-        "LOW JUN YU",
-        "NG ZHI RONG RYAN RAPHAEL",
-        "PRAHARSH RYAN S/O SUBASH SOMAN",
-        "TAN HONG AN, DARYL",
-        "TIA LOUISE ROZARIO",
-        "VANESSA LEE YING ZHUANG",
-        "YAN TEO",
-        "YEE CHUN WAI, ERIC",
-        "ASHLEE ONG YUXI",
-        "BRAYDEN CHAN WEI JIE",
-        "CHEONG YIN YERN, JOSEPH",
-        "CHUA HSIN-WEN CLARA",
-        "CHUA JE-AN, GARRETT",
-        "HUANG WEIJUN",
-        "LAAVINIA D/O JAIGANTH",
-        "S VIRESH KUMAR",
-        "SOH HWEI EN, RACHEL",
-        "SUBARAGHAV HARI S/O TAMIL SELVAM",
-        "TAN JIE CONG, JAYDEN",
-        "TAN SHOU YI REI",
-        "TEH YING SHAN",
-        "CHLOE CHEE EN-YA",
-        "EMERY CONRAD KANGLI",
-        "HARRY IRFAN CURRAN",
-        "LIM YEE CHERN CLARA",
-        "LOH DING RONG, ANSON",
-        "ONG YING TAT",
-        "SONG EN XU REAGAN",
-    ]
-
-    # Remove duplicate athlete names while preserving the original order.
-    ATHLETE_GRAPH_LIST = list(dict.fromkeys(ATHLETE_GRAPH_LIST_RAW))
-
-    # ------------------------------------------------------------
-    # 2. Local helper for robust name matching
-    # ------------------------------------------------------------
-    def graph_name_key(x):
-        """
-        Lightweight matching key for this graphing module:
-        - removes hidden/control characters
-        - removes punctuation/non-word characters
-        - removes spaces/underscores
-        - casefolds
-        """
-        if pd.isna(x):
-            return ""
-
-        x = str(x)
-        x = x.replace("\xa0", " ")
-        x = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", x)
-        x = re.sub(r"[\W_]+", "", x, flags=re.UNICODE)
-        return x.casefold()
-
-    # ------------------------------------------------------------
-    # 3. Prepare graph dataframe
-    # ------------------------------------------------------------
-    graph_data = all_data.copy()
-
-    graph_data["DATE_DT"] = pd.to_datetime(graph_data["DATE"], errors="coerce")
-    graph_data["RESULT_FLOAT"] = pd.to_numeric(graph_data["RESULT_CONV"], errors="coerce")
-    graph_data["NAME_GRAPH_KEY"] = graph_data["NAME"].apply(graph_name_key)
-
-    graph_data = graph_data[
-        graph_data["DATE_DT"].notna()
-        & graph_data["RESULT_FLOAT"].notna()
-        & graph_data["MAPPED_EVENT"].notna()
-    ].copy()
-
-    if graph_data.empty:
-        st.warning("No graphable records found. Check that DATE, MAPPED_EVENT and RESULT_CONV are populated.")
-        st.stop()
-
-    # ------------------------------------------------------------
-    # 4. User controls
-    # ------------------------------------------------------------
-    selected_athlete = st.selectbox(
-        "Select Athlete:",
-        options=ATHLETE_GRAPH_LIST,
-    )
-
-    selected_athlete_key = graph_name_key(selected_athlete)
-
-    athlete_data = graph_data[
-        graph_data["NAME_GRAPH_KEY"] == selected_athlete_key
-    ].copy()
-
-    if athlete_data.empty:
-        st.warning(f"No records found for {selected_athlete}.")
-        st.stop()
-
-    min_date = athlete_data["DATE_DT"].min().date()
-    max_date = athlete_data["DATE_DT"].max().date()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        start_date = st.date_input(
-            "Start Date:",
-            value=min_date,
-            min_value=min_date,
-            max_value=max_date,
-        )
-
-    with col2:
-        end_date = st.date_input(
-            "End Date:",
-            value=max_date,
-            min_value=min_date,
-            max_value=max_date,
-        )
-
-    if start_date > end_date:
-        st.error("Start Date cannot be after End Date.")
-        st.stop()
-
-    athlete_data = athlete_data[
-        (athlete_data["DATE_DT"].dt.date >= start_date)
-        & (athlete_data["DATE_DT"].dt.date <= end_date)
-    ].copy()
-
-    if athlete_data.empty:
-        st.warning("No records found for the selected athlete and date range.")
-        st.stop()
-
-    event_options = sorted(
-        athlete_data["MAPPED_EVENT"]
-        .dropna()
-        .astype(str)
-        .unique()
-        .tolist()
-    )
-
-    selected_event = st.selectbox(
-        "Select Event:",
-        options=event_options,
-    )
-
-    plot_df = athlete_data[
-        athlete_data["MAPPED_EVENT"].astype(str) == selected_event
-    ].copy()
-
-    plot_df = plot_df.sort_values("DATE_DT")
-
-    if plot_df.empty:
-        st.warning("No records found for the selected athlete, event and date range.")
-        st.stop()
-
-    # ------------------------------------------------------------
-    # 5. Format results for display
-    # ------------------------------------------------------------
-    distance_events = [
-        "60m", "60m Hurdles", "80m", "100m", "100m Hurdles", "110m Hurdles",
-        "400m Hurdles", "200m", "300m", "400m", "800m", "2400m", "10,000m",
-        "3000m", "5000m", "3000m Steeplechase", "1500m", "10000m Racewalk",
-        "20km Racewalk", "1 Mile", "4 x 100m", "4 x 400m",
-        "2000m Steeplechase", "Marathon", "Half Marathon",
-        "Sprint Medley Relay", "5km Racewalk", "200m Hurdles",
-        "5000m Racewalk", "10,000m Racewalk",
-    ]
-
-    field_events = [
-        "Javelin Throw", "Pole Vault", "Hammer Throw", "Triple Jump",
-        "Long Jump", "Long Jump (Zone)", "High Jump", "Shot Put",
-        "Discus Throw", "Discus", "Decathlon", "Heptathlon",
-    ]
-
-    is_timed_event = selected_event in distance_events
-
-    plot_df["RESULT_C"] = pd.Series(index=plot_df.index, dtype="object")
-
-    if is_timed_event:
-        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"].apply(seconds_to_mmss)
-        y_axis_title = "Performance Time"
-        chart_note = "For timed events, the y-axis is reversed so faster performances appear higher."
-        reverse_y_axis = True
-    else:
-        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"]
-        y_axis_title = "Performance Mark"
-        chart_note = "For field events and combined events, higher marks/points appear higher."
-        reverse_y_axis = False
-
-    # ------------------------------------------------------------
-    # 6. Chart
-    # ------------------------------------------------------------
-    st.write(f"### {selected_athlete} — {selected_event}")
-    st.caption(chart_note)
-
-    chart_data = plot_df[
-        [
-            "DATE_DT",
-            "RESULT_FLOAT",
-            "RESULT_C",
-            "COMPETITION",
-            "WIND",
-            "STAGE",
-            "EVENT_CLASS",
-        ]
-    ].copy()
-
-    try:
-        import altair as alt
-
-        chart = (
-            alt.Chart(chart_data)
-            .mark_line(point=True)
-            .encode(
-                x=alt.X("DATE_DT:T", title="Date"),
-                y=alt.Y(
-                    "RESULT_FLOAT:Q",
-                    title=y_axis_title,
-                    scale=alt.Scale(reverse=reverse_y_axis),
-                ),
-                tooltip=[
-                    alt.Tooltip("DATE_DT:T", title="Date"),
-                    alt.Tooltip("RESULT_C:N", title="Result"),
-                    alt.Tooltip("COMPETITION:N", title="Competition"),
-                    alt.Tooltip("WIND:N", title="Wind"),
-                    alt.Tooltip("STAGE:N", title="Stage"),
-                    alt.Tooltip("EVENT_CLASS:N", title="Event Class"),
-                ],
-            )
-            .properties(height=450)
-        )
-
-        st.altair_chart(chart, use_container_width=True)
-
-    except Exception:
-        # Fallback if Altair is unavailable.
-        fallback_chart = chart_data.set_index("DATE_DT")[["RESULT_FLOAT"]]
-        st.line_chart(fallback_chart)
-
-    # ------------------------------------------------------------
-    # 7. Matching result table using existing report-style columns
-    # ------------------------------------------------------------
-    df_final = plot_df[
-        [
-            "NAME",
-            "DATE",
-            "MAPPED_EVENT",
-            "COMPETITION",
-            "RESULT_C",
-            "RESULT_FLOAT",
-            "WIND",
-            "HOST_CITY",
-            "AGE",
-            "GENDER",
-            "EVENT_CLASS",
-            "DOB",
-        ]
-    ].copy()
-
-    df_final["NAME"] = df_final["NAME"].fillna("").str.title()
-    df_final = map_nwi(df_final)
-
-    st.write("### Results Used In Chart")
-    final_dfs, code = spreadsheet(df_final)
-
-# ============================================================
-# END GRAPH ATHLETE PERFORMANCE PATCH
-# ============================================================
 
 else:  # Choose date and run selection report
 
@@ -1208,15 +961,15 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
 
-    final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
+    final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those records with Tier value
 
+    # ============================================================
+    # SEAG/OCTC SEARCH-STYLE OUTPUT FORMAT PATCH
+    # Reformat final report output to match the Athlete Name search output.
+    # This keeps the report logic above intact and only changes the displayed output.
+    # ============================================================
+    final_df = format_results_like_search(final_df)
 
-    final_df=final_df.reset_index(drop=True)
-
-    # Use a text_input to get the keywords to filter the dataframe
-
-
-
-  #  st.write(final_df)
+    final_df = final_df.reset_index(drop=True)
 
     final_dfs, code = spreadsheet(final_df)
