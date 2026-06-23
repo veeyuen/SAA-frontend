@@ -883,7 +883,14 @@ elif benchmark_option == "Graph Athlete Performance":
     # ------------------------------------------------------------
     # 6. Chart
     # ------------------------------------------------------------
-    st.write(f"### {selected_athlete} — {selected_event}")
+    # ------------------------------------------------------------
+    # GRAPH HEADING STYLE PATCH
+    # Display athlete heading in blue. Event remains selected above.
+    # ------------------------------------------------------------
+    st.markdown(
+        f"<h3 style='color:#005EB8; margin-bottom:0.25rem;'>Athlete: {selected_athlete}</h3>",
+        unsafe_allow_html=True,
+    )
     st.caption(chart_note)
 
     chart_data = plot_df[
