@@ -876,7 +876,7 @@ elif benchmark_option == "Graph Athlete Performance":
     if not y_values.empty:
         y_min = float(y_values.min())
         y_max = float(y_values.max())
-        y_axis_domain = [y_min * 0.85, y_max * 1.15]
+        y_axis_domain = [y_min * 0.90, y_max * 1.10]
     else:
         y_axis_domain = None
 
