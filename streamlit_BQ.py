@@ -31,7 +31,7 @@ SAA_LOGO_BASE64 = """/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAA
 st.markdown(
     f"""
     <style>
-        .saa-fixed-banner {
+        .saa-fixed-banner {{
             position: fixed;
             top: 0;
             left: 0;
@@ -44,24 +44,24 @@ st.markdown(
             align-items: center;
             padding-left: 1.25rem;
             box-sizing: border-box;
-        }
+        }}
 
-        .saa-fixed-banner img {
+        .saa-fixed-banner img {{
             height: 88px;
             width: auto;
             object-fit: contain;
             display: block;
-        }
+        }}
 
         /* Push Streamlit page content below the fixed banner */
-        .block-container {
+        .block-container {{
             padding-top: 8.25rem !important;
-        }
+        }}
 
         /* Keep Streamlit's own top header transparent so the custom banner is clean */
-        header[data-testid="stHeader"] {
+        header[data-testid="stHeader"] {{
             background: rgba(255, 255, 255, 0);
-        }
+        }}
     </style>
 
     <div class="saa-fixed-banner">
