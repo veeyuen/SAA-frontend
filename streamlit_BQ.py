@@ -278,9 +278,9 @@ def fetch_all_data():   # for database access
 
 
 # ============================================================
-# SEAG/OCTC SEARCH-STYLE OUTPUT FORMAT PATCH
-# Helper used to format SEAG/OCTC selection reports with the
-# same output columns/result display style as the athlete search.
+# CENTRALISED SEARCH-STYLE RESULT OUTPUT FORMATTER
+# Shared by Athlete Name search, Competition Name search, and
+# SEAG/OCTC selection reports.
 # ============================================================
 
 def format_results_like_search(df_input):
@@ -437,90 +437,10 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
-        df_search = all_data[m1].sort_values(by='DATE', ascending=False)
+        df_search = all_data[m1].sort_values(by='DATE', ascending=False).copy()
 
-        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB', 'STATUS']]
-
-        distance_events = [
-            '60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '2400m','3000m', '5000m',
-            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-            'Sprint Medley Relay', '5km Racewalk', '200m Hurdles'
-                ]
-
-        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'Long Jump (Zone)', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
-
-        invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
-
-        def convert_for_row(row):
-            if row['RESULT'] in invalid_results:
-                return ''
-            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
-
-
-    # 1. Create Mask for Results containing 'w' (illegal wind speed indicator)
-        mask_result_has_w = df_search['RESULT'].astype(str).str.contains('w', case=False, na=False)
-
-    # 2. Create Mask for Missing/Empty Wind Field
-    # This robustly captures NaN, empty string (''), and strings containing only whitespace (' ')
-        mask_wind_is_missing = (
-        df_search['WIND'].isna()
-        | (df_search['WIND'].astype(str).str.strip() == '')
-        | (df_search['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
-        )
-
-    # 3. Combine the masks: Only update the WIND field if the result has 'w' AND the WIND field is missing.
-        final_mask = mask_result_has_w & mask_wind_is_missing
-
-    # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
-        df_search.loc[final_mask, 'WIND'] = 'Illegal'
-
-        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
-
-        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
-
-        df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
-
-
-      #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
-
-
-# 2. Create the boolean mask using .isin()
-# Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
-        mask = df_search['MAPPED_EVENT'].isin(distance_events)
-        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
-
-
-# 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
-# This replaces the original .apply() within the if block.
-        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object')  ## NEW
-
-        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
-        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
-
-        pattern = r'^(' + '|'.join(invalid_results) + r')$'
-
-        # NEW
-        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
-        pattern,
-        case=False,
-        regex=True,
-        na=False
-        )
-
-# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
-# For simplicity, we copy the original RESULT string, which includes the case
-# used in the data ('DNF' vs 'dnf').
-        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
-
-        # END NEW
-# 4. Convert the new column to timedelta
-# This operation is already vectorised (applied to the whole column/Series at once).
-  #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
-
-
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'STATUS', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
+        # Centralised result-display formatting shared by athlete search, competition search, and SEAG/OCTC reports.
+        df_final = format_results_like_search(df_search)
 
 
 
@@ -553,7 +473,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         if pd.api.types.is_datetime64tz_dtype(all_data['DATE']):  # remove timezone awareness
             all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
 
-        df_search = all_data[m2]
+        df_search = all_data[m2].copy()
 
   #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
   #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
@@ -561,50 +481,8 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
-        distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m',
-                           '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-                          'Sprint Medley Relay', '5km Racewalk', '200m Hurdles']
-
-        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
-
-        mask = df_search['MAPPED_EVENT'].isin(distance_events)
-        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
-
-    # Return full HH:MM:SS.ss format for longer events
-
-
-        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
-        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
-
-
-        non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR']
-
-        # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete)
-        # as they are also common non-numeric outcomes. You can customize this list.
-        # 2. Create the mask: Check if the RESULT column (case-insensitive) matches any of the defined strings
-        # We use regex with '|' (OR operator) and wrap the match with '^' and '$' to ensure
-        # it's an exact match, not a partial match within a result string.
-        pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
-
-        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
-        pattern,
-        case=False,
-        regex=True,
-        na=False
-        )
-
-# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
-# For simplicity, we copy the original RESULT string, which includes the case
-# used in the data ('DNF' vs 'dnf').
-        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
-
-        df_search['RESULT_CONV'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
-
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_CONV', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-        df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
-
-        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
+        # Centralised result-display formatting shared by athlete search, competition search, and SEAG/OCTC reports.
+        df_final = format_results_like_search(df_search)
 
 
         if text_search:
@@ -1000,9 +878,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those records with Tier value
 
     # ============================================================
-    # SEAG/OCTC SEARCH-STYLE OUTPUT FORMAT PATCH
-    # Reformat final report output to match the Athlete Name search output.
-    # This keeps the report logic above intact and only changes the displayed output.
+    # CENTRALISED SEARCH-STYLE RESULT OUTPUT FORMATTER
+    # Reformat final report output using the shared search-style formatter.
     # ============================================================
     final_df = format_results_like_search(final_df)
 
