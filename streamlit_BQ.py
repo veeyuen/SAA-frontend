@@ -864,15 +864,21 @@ elif benchmark_option == "Graph Athlete Performance":
         reverse_y_axis = False
 
     # ------------------------------------------------------------
-    # GRAPH Y-AXIS SCALE PATCH
-    # Fixed y-axis domains for selected sprint events.
-    # Other events continue to use automatic scaling.
+    # GRAPH DYNAMIC Y-AXIS SCALE PATCH
+    # The y-axis range is calculated from the selected athlete/event/date data:
+    # - low end  = 15% below the lowest plotted result
+    # - high end = 15% above the highest plotted result
+    # This applies to all events. Timed events still use a reversed y-axis so
+    # faster performances appear higher on the chart.
     # ------------------------------------------------------------
-    y_axis_domain_map = {
-        "100m": [9, 13],
-        "200m": [19, 25],
-    }
-    y_axis_domain = y_axis_domain_map.get(selected_event)
+    y_values = pd.to_numeric(plot_df["RESULT_FLOAT"], errors="coerce").dropna()
+
+    if not y_values.empty:
+        y_min = float(y_values.min())
+        y_max = float(y_values.max())
+        y_axis_domain = [y_min * 0.85, y_max * 1.15]
+    else:
+        y_axis_domain = None
 
     # ------------------------------------------------------------
     # 6. Chart
