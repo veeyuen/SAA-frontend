@@ -311,7 +311,7 @@ benchmark_option = st.selectbox(
     (
         "Search Database Records by Name or Competition",
         "List Results By Event",
-        "Graph Athlete Performance",
+        "Performance Trend Graphs",
         "2025 SEAG Bronze - SEAG Selection",
         "2025 SEAG Bronze - OCTC Selection",
     )
@@ -662,9 +662,9 @@ elif benchmark_option == 'List Results By Event':
 # Uses all_data from fetch_all_data().
 # ============================================================
 
-elif benchmark_option == "Graph Athlete Performance":
+elif benchmark_option == "Performance Trend Graphs":
 
-    st.subheader("Graph Athlete Performance")
+    st.subheader("Performance Trend Graphs")
 
     # ------------------------------------------------------------
     # 1. Hardcoded athlete list for graphing dropdown
@@ -978,7 +978,17 @@ elif benchmark_option == "Graph Athlete Performance":
 
         chart = (
             alt.Chart(chart_data)
-            .mark_line(point=True)
+            # RED DATA POINTS PATCH
+            # Keep the line chart structure, but make each plotted point red
+            # so individual performances are easier to identify.
+            .mark_line(
+                point=alt.OverlayMarkDef(
+                    color="red",
+                    fill="red",
+                    filled=True,
+                    size=85,
+                )
+            )
             .encode(
                 x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
                 y=alt.Y(
