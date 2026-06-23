@@ -866,8 +866,8 @@ elif benchmark_option == "Graph Athlete Performance":
     # ------------------------------------------------------------
     # GRAPH DYNAMIC Y-AXIS SCALE PATCH
     # The y-axis range is calculated from the selected athlete/event/date data:
-    # - low end  = 15% below the lowest plotted result
-    # - high end = 15% above the highest plotted result
+    # - low end  = 10% below the lowest plotted result
+    # - high end = 10% above the highest plotted result
     # This applies to all events. Timed events still use a reversed y-axis so
     # faster performances appear higher on the chart.
     # ------------------------------------------------------------
@@ -901,11 +901,25 @@ elif benchmark_option == "Graph Athlete Performance":
     try:
         import altair as alt
 
+        # ------------------------------------------------------------
+        # GRAPH X-AXIS QUARTERLY TICK PATCH
+        # Show quarterly ticks to reduce clutter, but label only the
+        # January tick with the year. The April/July/October ticks remain
+        # as visual subticks without repeated text labels.
+        # ------------------------------------------------------------
+        x_axis_quarterly = alt.Axis(
+            title="Year / Quarter",
+            tickCount={"interval": "month", "step": 3},
+            labelExpr="month(datum.value) == 0 ? timeFormat(datum.value, '%Y') : ''",
+            labelAngle=0,
+            grid=True,
+        )
+
         chart = (
             alt.Chart(chart_data)
             .mark_line(point=True)
             .encode(
-                x=alt.X("DATE_DT:T", title="Date"),
+                x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
                 y=alt.Y(
                     "RESULT_FLOAT:Q",
                     title=y_axis_title,
@@ -953,7 +967,7 @@ elif benchmark_option == "Graph Athlete Performance":
     df_final["NAME"] = df_final["NAME"].fillna("").str.title()
     df_final = map_nwi(df_final)
 
-    st.write("### Results Used In Chart")
+    st.write("### Data Used In Chart")
     final_dfs, code = spreadsheet(df_final)
 
 # ============================================================
