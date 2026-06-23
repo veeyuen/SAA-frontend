@@ -913,7 +913,7 @@ elif benchmark_option == "Graph Athlete Performance":
         reverse_y_axis = True
     else:
         plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"]
-        y_axis_title = "Performance Mark"
+        y_axis_title = "Distance (Metres)"
         chart_note = "For field events and combined events, higher marks/points appear higher."
         reverse_y_axis = False
 
