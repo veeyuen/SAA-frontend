@@ -257,7 +257,7 @@ benchmark_option = st.selectbox(
     (
         "Search Database Records by Name or Competition",
         "List Results By Event",
-        "Athlete Performance Chart",
+        "Graph Athlete Performance",
         "2025 SEAG Bronze - SEAG Selection",
         "2025 SEAG Bronze - OCTC Selection",
     )
@@ -981,7 +981,7 @@ elif benchmark_option == "Graph Athlete Performance":
 # END GRAPH ATHLETE PERFORMANCE PATCH
 # ============================================================
 
-else:  # Choose date and run selection report
+elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze - OCTC Selection']:  # Choose date and run selection report
 
     data = fetch_data() # fetch the database of results for selected period
 
