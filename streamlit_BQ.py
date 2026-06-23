@@ -257,7 +257,7 @@ benchmark_option = st.selectbox(
     (
         "Search Database Records by Name or Competition",
         "List Results By Event",
-        "Graph Athlete Performance",
+        "Athlete Performance Chart",
         "2025 SEAG Bronze - SEAG Selection",
         "2025 SEAG Bronze - OCTC Selection",
     )
