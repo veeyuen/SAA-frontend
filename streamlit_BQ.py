@@ -300,6 +300,203 @@ def fetch_all_data():   # for database access
 
     return all_data
 
+
+# ============================================================
+# SEARCH OUTPUT FORMATTER PATCH
+# Used by "Search Database Records by Name or Competition"
+# ============================================================
+
+def format_results_like_search(df_input, include_result_conv=False):
+    """
+    Format database search results before display.
+
+    This extracts the repeated formatting logic previously embedded in the
+    Athlete Name and Competition Name search branches.
+
+    Parameters
+    ----------
+    df_input : pandas.DataFrame
+        Search results to format.
+    include_result_conv : bool, default False
+        If True, include RESULT_CONV in the output to preserve the old
+        Competition Name display layout.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Display-ready dataframe for Mito/spreadsheet().
+    """
+
+    df_search = df_input.copy()
+
+    # --------------------------------------------------------
+    # Ensure required columns exist
+    # --------------------------------------------------------
+    required_cols = [
+        'NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT',
+        'STATUS', 'STAGE', 'WIND', 'HOST_CITY', 'AGE',
+        'GENDER', 'EVENT_CLASS', 'DOB', 'RESULT_CONV'
+    ]
+
+    for col in required_cols:
+        if col not in df_search.columns:
+            df_search[col] = ''
+
+    # --------------------------------------------------------
+    # Event groups
+    # --------------------------------------------------------
+    distance_events = [
+        '60m', '60m Hurdles', '80m', '100m', '100m Hurdles',
+        '110m Hurdles', '400m Hurdles', '200m', '200m Hurdles',
+        '300m', '400m', '800m', '10,000m', '2400m', '3000m',
+        '5000m', '3000m Steeplechase', '1500m', '10000m Racewalk',
+        '10,000m Racewalk', '5000m Racewalk', '5km Racewalk',
+        '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m',
+        '2000m Steeplechase', 'Marathon', 'Half Marathon',
+        'Sprint Medley Relay'
+    ]
+
+    field_events = [
+        'Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump',
+        'Long Jump', 'Long Jump (Zone)', 'High Jump', 'Shot Put',
+        'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon'
+    ]
+
+    invalid_results = {
+        '—', 'NONE', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM',
+        'FOUL', 'DNF', 'SR', '', ' '
+    }
+
+    # --------------------------------------------------------
+    # Illegal wind handling
+    # If RESULT contains 'w' and WIND is blank, set WIND to Illegal
+    # --------------------------------------------------------
+    mask_result_has_w = df_search['RESULT'].astype(str).str.contains(
+        'w',
+        case=False,
+        na=False
+    )
+
+    mask_wind_is_missing = (
+        df_search['WIND'].isna()
+        | (df_search['WIND'].astype(str).str.strip() == '')
+        | (df_search['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
+    )
+
+    df_search.loc[mask_result_has_w & mask_wind_is_missing, 'WIND'] = 'Illegal'
+
+    # --------------------------------------------------------
+    # Build numeric RESULT_FLOAT
+    # Prefer RESULT_CONV if already present, otherwise calculate.
+    # --------------------------------------------------------
+    df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
+
+    def convert_for_row(row):
+        raw_result = str(row.get('RESULT', '')).strip()
+
+        if raw_result.upper() in invalid_results:
+            return np.nan
+
+        try:
+            return convert_time_refactored(
+                row.name,
+                row.get('MAPPED_EVENT', ''),
+                row.get('RESULT', '')
+            )
+        except Exception:
+            return np.nan
+
+    missing_result_float = df_search['RESULT_FLOAT'].isna()
+
+    if missing_result_float.any():
+        df_search.loc[missing_result_float, 'RESULT_FLOAT'] = (
+            df_search.loc[missing_result_float].apply(convert_for_row, axis=1)
+        )
+
+    df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
+
+    # Keep RESULT_CONV available for the old Competition Name layout
+    df_search['RESULT_CONV'] = df_search['RESULT_FLOAT']
+
+    # --------------------------------------------------------
+    # Build RESULT_C
+    # --------------------------------------------------------
+    df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object')
+
+    mask_distance = df_search['MAPPED_EVENT'].isin(distance_events)
+    mask_field = df_search['MAPPED_EVENT'].isin(field_events)
+
+    # Timed events: display formatted time
+    df_search.loc[mask_distance, 'RESULT_C'] = (
+        df_search.loc[mask_distance, 'RESULT_FLOAT'].apply(seconds_to_mmss)
+    )
+
+    # Field events: display metric mark
+    df_search.loc[mask_field, 'RESULT_C'] = df_search.loc[mask_field, 'RESULT_FLOAT']
+
+    # Non-numeric / status results
+    result_upper = df_search['RESULT'].astype(str).str.strip().str.upper()
+    mask_non_numeric = result_upper.isin(invalid_results)
+
+    df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search.loc[mask_non_numeric, 'RESULT']
+
+    # Fill anything still blank with original RESULT
+    mask_result_c_blank = (
+        df_search['RESULT_C'].isna()
+        | (df_search['RESULT_C'].astype(str).str.strip() == '')
+        | (df_search['RESULT_C'].astype(str).str.lower().str.strip() == 'nan')
+    )
+
+    df_search.loc[mask_result_c_blank, 'RESULT_C'] = df_search.loc[mask_result_c_blank, 'RESULT']
+
+    # STATUS handling
+    df_search['STATUS'] = df_search['STATUS'].fillna('').astype(str)
+    df_search.loc[mask_non_numeric, 'STATUS'] = df_search.loc[mask_non_numeric, 'RESULT'].astype(str)
+
+    # --------------------------------------------------------
+    # Date formatting
+    # --------------------------------------------------------
+    date_converted = pd.to_datetime(df_search['DATE'], errors='coerce')
+
+    try:
+        if pd.api.types.is_datetime64tz_dtype(date_converted):
+            date_converted = date_converted.dt.tz_convert(None)
+    except Exception:
+        pass
+
+    df_search['DATE'] = np.where(
+        date_converted.notna(),
+        date_converted.dt.strftime('%Y-%m-%d'),
+        df_search['DATE'].astype(str)
+    )
+
+    # --------------------------------------------------------
+    # Final display columns
+    # --------------------------------------------------------
+    if include_result_conv:
+        output_cols = [
+            'NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C',
+            'RESULT_CONV', 'WIND', 'HOST_CITY', 'AGE', 'GENDER',
+            'EVENT_CLASS', 'DOB'
+        ]
+    else:
+        output_cols = [
+            'NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C',
+            'STATUS', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER',
+            'EVENT_CLASS', 'DOB'
+        ]
+
+    df_final = df_search[output_cols].copy()
+    df_final['NAME'] = df_final['NAME'].fillna('').astype(str).str.title()
+
+    df_final = map_nwi(df_final)
+
+    return df_final
+
+# ============================================================
+# END SEARCH OUTPUT FORMATTER PATCH
+# ============================================================
+
 ## Get all the data ##
 
 all_data = fetch_all_data() # fetch the entire database
@@ -359,95 +556,11 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 
         #all_data.loc[all_data['NAME_case'].str.contains(text)]['NAME_case'].unique()
-        df_search = all_data[m1].sort_values(by='DATE', ascending=False)
+        df_search = all_data[m1].sort_values(by='DATE', ascending=False).copy()
 
-        df_search = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB', 'STATUS']]
-
-        distance_events = [
-            '60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '2400m','3000m', '5000m',
-            '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-            'Sprint Medley Relay', '5km Racewalk', '200m Hurdles'
-                ]
-
-        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'Long Jump (Zone)', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
-
-        invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
-
-        def convert_for_row(row):
-            if row['RESULT'] in invalid_results:
-                return ''
-            return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
-
-
-    # 1. Create Mask for Results containing 'w' (illegal wind speed indicator)
-        mask_result_has_w = df_search['RESULT'].astype(str).str.contains('w', case=False, na=False)
-
-    # 2. Create Mask for Missing/Empty Wind Field
-    # This robustly captures NaN, empty string (''), and strings containing only whitespace (' ')
-        mask_wind_is_missing = (
-        df_search['WIND'].isna()
-        | (df_search['WIND'].astype(str).str.strip() == '')
-        | (df_search['WIND'].astype(str).str.lower().str.strip().isin(['nan', 'none', '-']))
-        )
-
-    # 3. Combine the masks: Only update the WIND field if the result has 'w' AND the WIND field is missing.
-        final_mask = mask_result_has_w & mask_wind_is_missing
-
-    # 4. Apply the mask: Set the 'WIND' field to 'Illegal'
-        df_search.loc[final_mask, 'WIND'] = 'Illegal'
-
-        df_search['RESULT_FLOAT'] = df_search.apply(convert_for_row, axis=1)
-
-        df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
-
-        df_search['RESULT_FLOAT'] = df_search['RESULT_FLOAT'].replace('', np.nan)
-
-
-      #  df_search = df_search[df_search['RESULT_FLOAT'].notna()]  # UNCOMMENT THIS IF REQUIRED
-
-
-# 2. Create the boolean mask using .isin()
-# Assuming the column you are checking is called 'EVENT_TYPE' (replace if different)
-        mask = df_search['MAPPED_EVENT'].isin(distance_events)
-        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
-
-
-# 3. Apply the 'seconds_to_mmss' function ONLY to the masked rows
-# This replaces the original .apply() within the if block.
-        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object')  ## NEW
-
-        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_FLOAT'].apply(seconds_to_mmss))
-        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_FLOAT'])
-
-        pattern = r'^(' + '|'.join(invalid_results) + r')$'
-
-        # NEW
-        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
-        pattern,
-        case=False,
-        regex=True,
-        na=False
-        )
-
-# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
-# For simplicity, we copy the original RESULT string, which includes the case
-# used in the data ('DNF' vs 'dnf').
-        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
-
-        # END NEW
-# 4. Convert the new column to timedelta
-# This operation is already vectorised (applied to the whole column/Series at once).
-  #      df_search['timedelta'] = pd.to_timedelta(df_search['RESULT_TIMES'])
-
-
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'STATUS', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
-
-
+        df_final = format_results_like_search(df_search, include_result_conv=False)
 
         if text_search:
-      #      st.write(df_search)
             final_dfs, code = spreadsheet(df_final)
 
         all_data.drop(['NAME_case'], axis=1, inplace=True)
@@ -475,63 +588,13 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         if pd.api.types.is_datetime64tz_dtype(all_data['DATE']):  # remove timezone awareness
             all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
 
-        df_search = all_data[m2]
-
-  #      df_search = df_search[['NAME', 'TEAM', 'RESULT', 'WIND', 'EVENT', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'COMPETITION', 'DOB',
-  #                      'REGION', 'REMARKS', 'SUB_EVENT', 'DISTANCE']]
-
+        df_search = all_data[m2].copy()
 
         all_data.drop(['COMPETITION_case'], axis=1, inplace=True)
 
-        distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m',
-                           '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-                          'Sprint Medley Relay', '5km Racewalk', '200m Hurdles']
-
-        field_events = ['Javelin Throw', 'Pole Vault', 'Hammer Throw', 'Triple Jump', 'Long Jump', 'High Jump', 'Shot Put', 'Discus Throw', 'Discus', 'Decathlon', 'Heptathlon']
-
-        mask = df_search['MAPPED_EVENT'].isin(distance_events)
-        mask_field = df_search['MAPPED_EVENT'].isin(field_events)
-        df_search['RESULT_C'] = pd.Series(index=df_search.index, dtype='object') # Added 17/06/26
-
-    # Return full HH:MM:SS.ss format for longer events
-
-
-        df_search.loc[mask, 'RESULT_C'] = (df_search.loc[mask, 'RESULT_CONV'].apply(seconds_to_mmss))
-        df_search.loc[mask_field, 'RESULT_C'] = (df_search.loc[mask_field, 'RESULT_CONV'])
-
-
-        non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR']
-
-        # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete)
-        # as they are also common non-numeric outcomes. You can customize this list.
-        # 2. Create the mask: Check if the RESULT column (case-insensitive) matches any of the defined strings
-        # We use regex with '|' (OR operator) and wrap the match with '^' and '$' to ensure
-        # it's an exact match, not a partial match within a result string.
-        pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
-
-        mask_non_numeric = df_search['RESULT'].astype(str).str.strip().str.contains(
-        pattern,
-        case=False,
-        regex=True,
-        na=False
-        )
-
-# 3. Apply the mask: Copy the RESULT string into the new RESULT_C column for matching rows.
-# For simplicity, we copy the original RESULT string, which includes the case
-# used in the data ('DNF' vs 'dnf').
-        df_search.loc[mask_non_numeric, 'RESULT_C'] = df_search['RESULT']
-
-        df_search['RESULT_CONV'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
-
-        df_final = df_search[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_CONV', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-        df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
-
-        df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
-
+        df_final = format_results_like_search(df_search, include_result_conv=True)
 
         if text_search:
-        #    st.write(df_search)
             final_dfs, code = spreadsheet(df_final)
 
 
@@ -673,18 +736,18 @@ elif benchmark_option == "Performance Trend Graphs":
         "SOH HWEI EN, RACHEL",
         "GOH BOON HEE, SHAUN",
         "TAN HONG AN, DARYL",
-        "TAN TATE FUNG",
+        "TATE TAN FUNG",
         "ONG JING RONG KERSTIN",
-        "RYAN PRAHARSH",
-        "LEE VANESSA",
-        "LIM OLIVER",
+        "PRAHARSH RYAN S/O SUBASH SOMAN",
+        "VANESSA LEE YING ZHUANG",
+        "OLIVER LIM TZE RONG",
         "PAK TUNG HON, ANDREW",
         "GOH SHING LING",
         "LOW JUN YU",
-        "ONG ASHLEE YUXI",
+        "ASHLEE ONG YUXI",
         "LOH DING RONG, ANSON",
         "TAN SHOU YI REI",
-        "NG TABITHA",
+        "NG SI EN, TABITHA",
         "OLIVER FIORE",
         "KWA EU HAN",
         "JADEN CHEW",
