@@ -110,7 +110,7 @@ def fetch_foreigners():
     conn = st.connection('gcs', type=FilesConnection, ttl=600)
     foreigners = conn.read("name_lists/List of Foreigners.csv", encoding="utf-8", input_format="csv")
     return foreigners
-foreigners = fetch_foreigners()  # get list of foreigners
+# Foreigners are loaded lazily only when the SEAG/OCTC report needs them.
 
 @st.cache_data(ttl=20000)
 def name_variations():
@@ -135,21 +135,33 @@ def gspread_names():
 
     return names
 
-names = gspread_names()
+# Name variations are loaded lazily only when required.
 
 
-# Create list of foreigners
+# Create list of foreigners lazily.
+# This avoids loading the foreigner CSV on every app rerun / every dropdown page.
+@st.cache_data(ttl=6000)
+def get_foreign_exclusions():
+    foreigners = fetch_foreigners().copy()
 
+    required_cols = {"LAST_NAME", "FIRST_NAME"}
+    if not required_cols.issubset(set(foreigners.columns)):
+        return set()
 
-foreigners['V1'] = foreigners['LAST_NAME']+' '+foreigners['FIRST_NAME']
-foreigners['V2'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-foreigners['V3'] = foreigners['LAST_NAME']+', '+foreigners['FIRST_NAME']
-foreigners['V4'] = foreigners['FIRST_NAME']+' '+foreigners['LAST_NAME']
-foreign_list = pd.concat([
-    foreigners['V1'], foreigners['V2'],
-    foreigners['V3'], foreigners['V4']
-]).dropna().str.casefold().unique().tolist()
-exclusions = set(foreign_list)
+    foreigners["LAST_NAME"] = foreigners["LAST_NAME"].fillna("").astype(str)
+    foreigners["FIRST_NAME"] = foreigners["FIRST_NAME"].fillna("").astype(str)
+
+    foreigners["V1"] = foreigners["LAST_NAME"] + " " + foreigners["FIRST_NAME"]
+    foreigners["V2"] = foreigners["FIRST_NAME"] + " " + foreigners["LAST_NAME"]
+    foreigners["V3"] = foreigners["LAST_NAME"] + ", " + foreigners["FIRST_NAME"]
+    foreigners["V4"] = foreigners["FIRST_NAME"] + " " + foreigners["LAST_NAME"]
+
+    foreign_list = pd.concat([
+        foreigners["V1"], foreigners["V2"],
+        foreigners["V3"], foreigners["V4"],
+    ]).dropna().str.casefold().unique().tolist()
+
+    return set(foreign_list)
 
 ### DEFINE SQL QUERIES ###
 
@@ -185,7 +197,7 @@ def fetch_benchmarks():
         'Metric': 'STANDARDISED_BENCHMARK',
     })
     return benchmarks
-benchmarks = fetch_benchmarks()  # fetch benchmarks
+# Benchmarks are loaded lazily only for Benchmark Tables or SEAG/OCTC reports.
 
 ## Download all athlete data from BQ
 
@@ -259,6 +271,9 @@ def fetch_all_data():   # for database access
     # Convert to YYYY-MM-DD string
     all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
 
+    # Load name variations lazily only when database records are actually requested.
+    names = gspread_names()
+
     # Work on a copy of names
     n = names[['VARIATION', 'NAME']].dropna().copy()
     n['VARIATION'] = n['VARIATION'].str.strip().str.casefold()
@@ -279,25 +294,13 @@ def fetch_all_data():   # for database access
  #   all_data = all_data[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]
 
 
-    # Define a filter for rows with convertible results
-    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR'}
-
-# Apply conversion vectorized using apply, skipping invalid values
-    def convert_for_row(row):
-        if row['RESULT'] in invalid_results:
-            return ''
-        return convert_time_refactored(row.name, row['MAPPED_EVENT'], row['RESULT'])
-
-    def status_col(row):
-        val = row.get('RESULT')
-        if val in invalid_results:
-            return val
-        return None  # or '' if you prefer empty string
-
-    all_data['STATUS'] = all_data.apply(status_col, axis=1)
-
-    all_data['RESULT_CONV'] = all_data.apply(convert_for_row, axis=1)
-
+    # RESOURCE PATCH:
+    # Do not convert every result in the full database here.
+    # RESULT_CONV / RESULT_FLOAT are calculated later only on the selected subset
+    # inside format_results_like_search(), List Results, or Performance Trend Graphs.
+    # This removes a full-table apply() on every cache refresh.
+    all_data['STATUS'] = ''
+    all_data['RESULT_CONV'] = np.nan
 
     return all_data
 
@@ -962,11 +965,9 @@ def display_benchmark_table(benchmarks_df, selected_benchmark):
 # END BENCHMARK TABLE DISPLAY HELPERS
 # ============================================================
 
-## Get all the data ##
-
-all_data = fetch_all_data() # fetch the entire database
-#data = fetch_data() # fetch the database of results for selected period
-
+## Data is now loaded lazily inside each dropdown branch.
+## This avoids downloading the full BigQuery results table when the user only wants
+## Benchmark Tables or another report that does not need all_data.
 
 benchmark_option = st.selectbox(
     "  ",
@@ -984,6 +985,8 @@ benchmark_option = st.selectbox(
 st.write(' ')
 
 if benchmark_option == 'Search Database Records by Name or Competition':
+
+    all_data = fetch_all_data()
 
     search_option = st.selectbox(
     "Select Your Search Option:",
@@ -1075,6 +1078,8 @@ elif benchmark_option == 'Benchmark Tables':
 
     st.subheader('Benchmark Tables')
 
+    benchmarks = fetch_benchmarks()
+
     if benchmarks is None or benchmarks.empty:
         st.warning('No benchmark data was loaded from the GCS bucket.')
 
@@ -1111,6 +1116,8 @@ elif benchmark_option == 'Benchmark Tables':
 ## List Results BY Event##
 
 elif benchmark_option == 'List Results By Event':
+
+    all_data = fetch_all_data()
 
     events_list = all_data['MAPPED_EVENT'].str.casefold().unique().tolist()
 
@@ -1235,6 +1242,8 @@ elif benchmark_option == 'List Results By Event':
 # ============================================================
 
 elif benchmark_option == "Performance Trend Graphs":
+
+    all_data = fetch_all_data()
 
     st.subheader("Performance Trend Graphs")
 
@@ -1366,18 +1375,19 @@ elif benchmark_option == "Performance Trend Graphs":
     # ------------------------------------------------------------
     graph_data = all_data.copy()
 
+    if "RESULT_CONV" not in graph_data.columns:
+        graph_data["RESULT_CONV"] = np.nan
+
     graph_data["DATE_DT"] = pd.to_datetime(graph_data["DATE"], errors="coerce")
-    graph_data["RESULT_FLOAT"] = pd.to_numeric(graph_data["RESULT_CONV"], errors="coerce")
     graph_data["NAME_GRAPH_KEY"] = graph_data["NAME"].apply(graph_name_key)
 
     graph_data = graph_data[
         graph_data["DATE_DT"].notna()
-        & graph_data["RESULT_FLOAT"].notna()
         & graph_data["MAPPED_EVENT"].notna()
     ].copy()
 
     if graph_data.empty:
-        st.warning("No graphable records found. Check that DATE, MAPPED_EVENT and RESULT_CONV are populated.")
+        st.warning("No graphable records found. Check that DATE and MAPPED_EVENT are populated.")
         st.stop()
 
     # ------------------------------------------------------------
@@ -1453,6 +1463,38 @@ elif benchmark_option == "Performance Trend Graphs":
 
     if plot_df.empty:
         st.warning("No records found for the selected athlete, event and date range.")
+        st.stop()
+
+    # RESOURCE PATCH:
+    # Calculate numeric results only after athlete/event/date filters are applied.
+    # This avoids converting the entire BigQuery table just to draw one graph.
+    plot_df["RESULT_FLOAT"] = plot_df["RESULT_CONV"].apply(parse_performance_seconds)
+    missing_result_float = plot_df["RESULT_FLOAT"].isna()
+
+    def graph_convert_for_row(row):
+        raw_result = str(row.get("RESULT", "")).strip()
+        parsed_result = parse_performance_seconds(raw_result)
+        if pd.notna(parsed_result):
+            return parsed_result
+        try:
+            return convert_time_refactored(
+                row.name,
+                row.get("MAPPED_EVENT", ""),
+                row.get("RESULT", ""),
+            )
+        except Exception:
+            return np.nan
+
+    if missing_result_float.any():
+        converted_values = plot_df.loc[missing_result_float].apply(graph_convert_for_row, axis=1)
+        converted_values = pd.to_numeric(converted_values, errors="coerce")
+        plot_df.loc[missing_result_float, "RESULT_FLOAT"] = converted_values
+
+    plot_df["RESULT_FLOAT"] = pd.to_numeric(plot_df["RESULT_FLOAT"], errors="coerce")
+    plot_df = plot_df[plot_df["RESULT_FLOAT"].notna()].copy()
+
+    if plot_df.empty:
+        st.warning("Records were found, but none had graphable numeric results for the selected event.")
         st.stop()
 
     # ------------------------------------------------------------
@@ -1619,7 +1661,8 @@ elif benchmark_option == "Performance Trend Graphs":
 
 elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze - OCTC Selection']:  # Choose date and run selection report
 
-    data = fetch_data() # fetch the database of results for selected period
+    data = fetch_data()
+    benchmarks = fetch_benchmarks() # fetch the database of results for selected period
 
 
     # Choose start and end dates
@@ -1705,13 +1748,16 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 # Normalize dataframe
 
     df['NAME'] = df['NAME'].apply(normalize_text)
-    names['VARIATION'] = names['VARIATION'].apply(normalize_text)
-    names['NAME'] = names['NAME'].apply(normalize_text)
+
+    # Load name variations only when the SEAG/OCTC report is run.
+    names_for_report = gspread_names().copy()
+    names_for_report['VARIATION'] = names_for_report['VARIATION'].apply(normalize_text)
+    names_for_report['NAME'] = names_for_report['NAME'].apply(normalize_text)
 
 # Precompile all regex patterns safely
 
     compiled_patterns = []
-    for pattern_str, replacement in zip(names['VARIATION'], names['NAME']):
+    for pattern_str, replacement in zip(names_for_report['VARIATION'], names_for_report['NAME']):
         try:
             compiled_re = re.compile(pattern_str)
             compiled_patterns.append( (compiled_re, replacement) )
@@ -1733,6 +1779,7 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 # Remove foreigners
 
+    exclusions = get_foreign_exclusions()
     df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
 
 
