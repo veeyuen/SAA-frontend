@@ -310,16 +310,86 @@ def fetch_all_data():   # for database access
 # SEARCH / REPORT OUTPUT FORMAT HELPERS
 # ============================================================
 
+def parse_performance_seconds(value):
+    """
+    Convert a performance value into seconds where possible.
+
+    Handles:
+    - numeric seconds: 10.2 -> 10.2
+    - Excel/time strings: 00:11:25.210000 -> 685.21
+    - mm:ss strings: 11:25.210000 -> 685.21
+    - pandas Timedelta-like strings: 0 days 00:11:25.210000 -> 685.21
+
+    Returns np.nan if the value cannot be interpreted as a numeric mark/time.
+    """
+    if pd.isna(value):
+        return np.nan
+
+    # pandas Timedelta / datetime-like objects
+    if isinstance(value, pd.Timedelta):
+        return value.total_seconds()
+
+    # Excel time values may sometimes arrive as datetime/time-like objects.
+    # Use only the time component.
+    if hasattr(value, 'hour') and hasattr(value, 'minute') and hasattr(value, 'second'):
+        try:
+            microsecond = getattr(value, 'microsecond', 0)
+            return (
+                float(value.hour) * 3600
+                + float(value.minute) * 60
+                + float(value.second)
+                + float(microsecond) / 1_000_000
+            )
+        except Exception:
+            pass
+
+    s = str(value).strip()
+
+    if s == '' or s.lower() in {'nan', 'none', 'nat', 'null', '<na>'}:
+        return np.nan
+
+    # Remove obvious whitespace noise
+    s = re.sub(r'\s+', ' ', s)
+
+    # pandas Timedelta string, e.g. "0 days 00:11:25.210000"
+    m = re.fullmatch(
+        r'(?:(?P<days>\d+)\s+days?\s+)?(?P<hours>\d{1,3}):(?P<minutes>\d{2}):(?P<seconds>\d{2}(?:\.\d+)?)',
+        s,
+    )
+    if m:
+        days = int(m.group('days') or 0)
+        hours = int(m.group('hours'))
+        minutes = int(m.group('minutes'))
+        seconds = float(m.group('seconds'))
+        return days * 86400 + hours * 3600 + minutes * 60 + seconds
+
+    # mm:ss string, e.g. "11:25.210000"
+    m = re.fullmatch(r'(?P<minutes>\d{1,3}):(?P<seconds>\d{2}(?:\.\d+)?)', s)
+    if m:
+        minutes = int(m.group('minutes'))
+        seconds = float(m.group('seconds'))
+        return minutes * 60 + seconds
+
+    # Plain numeric value, usually seconds for timed events or metres for field events
+    numeric_value = pd.to_numeric(s, errors='coerce')
+    if pd.notna(numeric_value):
+        return float(numeric_value)
+
+    return np.nan
+
+
 def format_seconds_no_leading_zeros(value):
     """
-    Format numeric seconds for display without leading 00:00.
+    Format seconds/time-like values for display without leading 00:00.
 
     Examples:
-    - 10.2       -> 10.20
-    - 72.34      -> 1:12.34
-    - 3723.45    -> 1:02:03.45
+    - 10.2              -> 10.20
+    - 00:00:10.20       -> 10.20
+    - 00:11:25.210000   -> 11:25.21
+    - 72.34             -> 1:12.34
+    - 3723.45           -> 1:02:03.45
     """
-    value = pd.to_numeric(value, errors='coerce')
+    value = parse_performance_seconds(value)
 
     if pd.isna(value):
         return ''
@@ -437,13 +507,18 @@ def format_results_like_search(df_input, include_result_conv=False, extra_cols=N
     # Build numeric RESULT_FLOAT
     # Prefer RESULT_CONV if already present, otherwise calculate.
     # --------------------------------------------------------
-    df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_CONV'], errors='coerce')
+    df_search['RESULT_FLOAT'] = df_search['RESULT_CONV'].apply(parse_performance_seconds)
 
     def convert_for_row(row):
         raw_result = str(row.get('RESULT', '')).strip()
 
         if raw_result.upper() in invalid_results:
             return np.nan
+
+        # First handle Excel/time-like strings such as 00:11:25.210000.
+        parsed_result = parse_performance_seconds(raw_result)
+        if pd.notna(parsed_result):
+            return parsed_result
 
         try:
             return convert_time_refactored(
