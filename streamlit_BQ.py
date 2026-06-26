@@ -306,7 +306,52 @@ def fetch_all_data():   # for database access
 # Used by "Search Database Records by Name or Competition"
 # ============================================================
 
-def format_results_like_search(df_input, include_result_conv=False):
+# ============================================================
+# SEARCH / REPORT OUTPUT FORMAT HELPERS
+# ============================================================
+
+def format_seconds_no_leading_zeros(value):
+    """
+    Format numeric seconds for display without leading 00:00.
+
+    Examples:
+    - 10.2       -> 10.20
+    - 72.34      -> 1:12.34
+    - 3723.45    -> 1:02:03.45
+    """
+    value = pd.to_numeric(value, errors='coerce')
+
+    if pd.isna(value):
+        return ''
+
+    total_seconds = float(value)
+
+    if total_seconds < 0:
+        return ''
+
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = total_seconds - (hours * 3600) - (minutes * 60)
+
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{seconds:05.2f}"
+
+    if minutes > 0:
+        return f"{minutes}:{seconds:05.2f}"
+
+    return f"{seconds:.2f}"
+
+
+def format_numeric_two_dp(value):
+    """Format numeric performance marks to two decimal places."""
+    value = pd.to_numeric(value, errors='coerce')
+
+    if pd.isna(value):
+        return ''
+
+    return f"{float(value):.2f}"
+
+def format_results_like_search(df_input, include_result_conv=False, extra_cols=None):
     """
     Format database search results before display.
 
@@ -320,6 +365,9 @@ def format_results_like_search(df_input, include_result_conv=False):
     include_result_conv : bool, default False
         If True, include RESULT_CONV in the output to preserve the old
         Competition Name display layout.
+    extra_cols : list[str] or None, default None
+        Optional extra columns to append after the standard display columns.
+        Useful for benchmark reports where TIER / benchmark fields should be retained.
 
     Returns
     -------
@@ -430,13 +478,16 @@ def format_results_like_search(df_input, include_result_conv=False):
     mask_distance = df_search['MAPPED_EVENT'].isin(distance_events)
     mask_field = df_search['MAPPED_EVENT'].isin(field_events)
 
-    # Timed events: display formatted time
+    # Timed events: display formatted time without leading 00:00
+    # Example: 00:00:10.20 -> 10.20
     df_search.loc[mask_distance, 'RESULT_C'] = (
-        df_search.loc[mask_distance, 'RESULT_FLOAT'].apply(seconds_to_mmss)
+        df_search.loc[mask_distance, 'RESULT_FLOAT'].apply(format_seconds_no_leading_zeros)
     )
 
-    # Field events: display metric mark
-    df_search.loc[mask_field, 'RESULT_C'] = df_search.loc[mask_field, 'RESULT_FLOAT']
+    # Field events: display metric mark to two decimal places
+    df_search.loc[mask_field, 'RESULT_C'] = (
+        df_search.loc[mask_field, 'RESULT_FLOAT'].apply(format_numeric_two_dp)
+    )
 
     # Non-numeric / status results
     result_upper = df_search['RESULT'].astype(str).str.strip().str.upper()
@@ -489,6 +540,13 @@ def format_results_like_search(df_input, include_result_conv=False):
             'STATUS', 'STAGE', 'WIND', 'HOST_CITY', 'AGE', 'GENDER',
             'EVENT_CLASS', 'DOB'
         ]
+
+    if extra_cols is not None:
+        extra_cols = [
+            col for col in extra_cols
+            if col in df_search.columns and col not in output_cols
+        ]
+        output_cols = output_cols + extra_cols
 
     df_final = df_search[output_cols].copy()
     df_final['NAME'] = df_final['NAME'].fillna('').astype(str).str.title()
@@ -1300,7 +1358,7 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
 
-    if benchmark_option == '2025 SEAG Bronze - OCTC':   # Additional logic for OCTC report
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':   # Additional logic for OCTC report
 
         # Rank everyone for octc selection
 
@@ -1377,10 +1435,35 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
 
-    final_df = df_no_na[df_no_na['TIER']!=' ']  # Choose only those record with Tier value
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # OCTC report uses the adjusted / reranked tier output created above.
+        final_df = rerank_filtered_octc.copy()
+    else:
+        # SEAG report uses all records with a tier value.
+        final_df = df_no_na[df_no_na['TIER'].fillna('').astype(str).str.strip() != ''].copy()
 
+    final_df = final_df.reset_index(drop=True)
 
-    final_df=final_df.reset_index(drop=True)
+    # Format SEAG / OCTC report output using the same formatter as the
+    # Search Database Records by Name or Competition section.
+    # This standardises RESULT_C, date, name casing, wind handling, etc.
+    report_extra_cols = [
+        'UNIQUE_ID',
+        'TIER',
+        'TIER_RANKING',
+        'TEAM',
+        'NATIONALITY',
+        'RESULT_BENCHMARK',
+        'STANDARDISED_BENCHMARK',
+        'Delta_Benchmark',
+        'PERF_SCALAR',
+    ]
+
+    final_df = format_results_like_search(
+        final_df,
+        include_result_conv=True,
+        extra_cols=report_extra_cols,
+    )
 
     # Use a text_input to get the keywords to filter the dataframe
 
