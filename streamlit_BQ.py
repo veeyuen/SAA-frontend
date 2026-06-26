@@ -409,9 +409,13 @@ def format_results_like_search(df_input, include_result_conv=False):
     missing_result_float = df_search['RESULT_FLOAT'].isna()
 
     if missing_result_float.any():
-        df_search.loc[missing_result_float, 'RESULT_FLOAT'] = (
-            df_search.loc[missing_result_float].apply(convert_for_row, axis=1)
-        )
+        # The row converter can return blanks/strings for invalid or unparseable
+        # results. Convert the replacement Series to numeric before assigning
+        # into RESULT_FLOAT, otherwise pandas/Arrow can reject string values
+        # being assigned into a float column.
+        converted_values = df_search.loc[missing_result_float].apply(convert_for_row, axis=1)
+        converted_values = pd.to_numeric(converted_values, errors='coerce')
+        df_search.loc[missing_result_float, 'RESULT_FLOAT'] = converted_values
 
     df_search['RESULT_FLOAT'] = pd.to_numeric(df_search['RESULT_FLOAT'], errors='coerce')
 
