@@ -11,6 +11,7 @@ import re
 import gcsfs
 #import pytz
 import math
+import html
 from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
@@ -634,6 +635,333 @@ def format_results_like_search(df_input, include_result_conv=False, extra_cols=N
 # END SEARCH OUTPUT FORMATTER PATCH
 # ============================================================
 
+
+# ============================================================
+# BENCHMARK TABLE DISPLAY HELPERS
+# Used by the "Benchmark Tables" dropdown option.
+# ============================================================
+
+BENCHMARK_EVENT_ORDER = [
+    '100m', '200m', '400m', '800m', '1500m',
+    '3000mSC', '3000m Steeplechase', '5000m', '10000m', '10,000m',
+    '100mH/110mH', '100m Hurdles', '110m Hurdles', '400mH', '400m Hurdles',
+    '20km Race Walk', 'Pole Vault', 'Shotput', 'Shot Put', 'Discus',
+    'Hammer', 'Hammer Throw', 'Javelin', 'Javelin Throw',
+    'Heptathlon/Decathlon', 'Heptathlon', 'Decathlon',
+]
+
+TIMED_BENCHMARK_EVENTS = {
+    '60m', '60m hurdles', '80m', '100m', '100m hurdles', '110m hurdles',
+    '100mh/110mh', '200m', '200m hurdles', '300m', '400m', '400m hurdles',
+    '400mh', '800m', '1500m', '1 mile', '2400m', '3000m', '3000msc',
+    '3000m steeplechase', '5000m', '10000m', '10,000m', '5km racewalk',
+    '5000m racewalk', '10000m racewalk', '10,000m racewalk', '20km race walk',
+    '20km racewalk', 'half marathon', 'marathon', '4 x 100m', '4 x 400m',
+    'sprint medley relay',
+}
+
+COMBINED_BENCHMARK_EVENTS = {
+    'heptathlon', 'decathlon', 'heptathlon/decathlon',
+}
+
+
+def normalise_event_label_for_benchmark(event_name):
+    """Make benchmark event labels compact and consistent for table display."""
+    event_name = '' if pd.isna(event_name) else str(event_name).strip()
+
+    replacements = {
+        '100m Hurdles': '100mH/110mH',
+        '110m Hurdles': '100mH/110mH',
+        '400m Hurdles': '400mH',
+        '3000m Steeplechase': '3000mSC',
+        '10,000m': '10000m',
+        'Shot Put': 'Shotput',
+        'Hammer Throw': 'Hammer',
+        'Javelin Throw': 'Javelin',
+    }
+
+    return replacements.get(event_name, event_name)
+
+
+def find_benchmark_col(df, aliases):
+    """Return the actual dataframe column that matches one of the aliases."""
+    cleaned_to_actual = {
+        str(col).strip().lower().replace(' ', ''): col
+        for col in df.columns
+    }
+
+    for alias in aliases:
+        key = str(alias).strip().lower().replace(' ', '')
+        if key in cleaned_to_actual:
+            return cleaned_to_actual[key]
+
+    return None
+
+
+def benchmark_value_from_row(row, col):
+    if row is None or col is None:
+        return ''
+
+    try:
+        return row.get(col, '')
+    except Exception:
+        return ''
+
+
+def format_benchmark_seconds(value):
+    """
+    Format benchmark times without unnecessary leading zero blocks.
+
+    Examples:
+    - 10.2               -> 10.20
+    - 00:00:10.200000    -> 10.20
+    - 00:11:25.210000    -> 11:25.21
+    - 5877               -> 1:37:57 if whole seconds, else 1:37:57.xx
+    """
+    seconds = parse_performance_seconds(value)
+
+    if pd.isna(seconds):
+        return ''
+
+    seconds = float(seconds)
+
+    if seconds < 0:
+        return ''
+
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    sec = seconds - (hours * 3600) - (minutes * 60)
+
+    # Avoid displaying .00 for hour-long race-walk / road-race style benchmarks.
+    sec_is_whole = abs(sec - round(sec)) < 0.005
+
+    if hours > 0:
+        if sec_is_whole:
+            return f"{hours}:{minutes:02d}:{int(round(sec)):02d}"
+        return f"{hours}:{minutes:02d}:{sec:05.2f}"
+
+    if minutes > 0:
+        return f"{minutes}:{sec:05.2f}"
+
+    return f"{sec:.2f}"
+
+
+def format_benchmark_cell(value, event_name):
+    """Format one benchmark value according to event type."""
+    if pd.isna(value):
+        return ''
+
+    raw_value = str(value).strip()
+
+    if raw_value == '' or raw_value.lower() in {'nan', 'none', 'nat', 'null', '<na>'}:
+        return ''
+
+    event_key = str(event_name).strip().casefold()
+
+    if event_key in COMBINED_BENCHMARK_EVENTS:
+        numeric_value = pd.to_numeric(raw_value, errors='coerce')
+        if pd.notna(numeric_value):
+            return f"{float(numeric_value):.0f}"
+        return raw_value
+
+    if event_key in TIMED_BENCHMARK_EVENTS:
+        formatted_time = format_benchmark_seconds(raw_value)
+        return formatted_time if formatted_time != '' else raw_value
+
+    numeric_value = pd.to_numeric(raw_value, errors='coerce')
+
+    if pd.notna(numeric_value):
+        return f"{float(numeric_value):.2f}"
+
+    return raw_value
+
+
+def benchmark_table_dataframe(benchmarks_df, selected_benchmark):
+    """Build a Female | Event | Male benchmark display table like the reference image."""
+    benchmark_df = benchmarks_df.copy()
+
+    if 'BENCHMARK_COMPETITION' not in benchmark_df.columns:
+        return pd.DataFrame()
+
+    benchmark_df = benchmark_df[
+        benchmark_df['BENCHMARK_COMPETITION'].astype(str).str.strip() == str(selected_benchmark).strip()
+    ].copy()
+
+    if benchmark_df.empty:
+        return pd.DataFrame()
+
+    event_col = find_benchmark_col(benchmark_df, ['EVENT'])
+    gender_col = find_benchmark_col(benchmark_df, ['GENDER'])
+    benchmark_col = find_benchmark_col(benchmark_df, ['RESULT_BENCHMARK', 'RESULT', 'Benchmark'])
+    col_2 = find_benchmark_col(benchmark_df, ['2%', '2.00%', '2'])
+    col_35 = find_benchmark_col(benchmark_df, ['3.50%', '3.5%', '3.50', '3.5'])
+    col_5 = find_benchmark_col(benchmark_df, ['5%', '5.00%', '5'])
+
+    if event_col is None or gender_col is None:
+        return pd.DataFrame()
+
+    benchmark_df['_EVENT_DISPLAY'] = benchmark_df[event_col].apply(normalise_event_label_for_benchmark)
+    benchmark_df['_EVENT_KEY'] = benchmark_df['_EVENT_DISPLAY'].astype(str).str.strip().str.casefold()
+    benchmark_df['_GENDER_KEY'] = benchmark_df[gender_col].astype(str).str.strip().str.casefold()
+    benchmark_df['_SOURCE_ORDER'] = range(len(benchmark_df))
+
+    # Preserve the source order, but apply the familiar benchmark-table order where possible.
+    event_order_map = {
+        normalise_event_label_for_benchmark(event).casefold(): i
+        for i, event in enumerate(BENCHMARK_EVENT_ORDER)
+    }
+
+    event_source_order = (
+        benchmark_df.groupby(['_EVENT_KEY', '_EVENT_DISPLAY'], as_index=False)['_SOURCE_ORDER']
+        .min()
+    )
+    event_source_order['_SORT_ORDER'] = event_source_order['_EVENT_KEY'].map(event_order_map)
+    event_source_order['_SORT_ORDER'] = event_source_order['_SORT_ORDER'].fillna(10_000 + event_source_order['_SOURCE_ORDER'])
+    event_source_order = event_source_order.sort_values(['_SORT_ORDER', '_SOURCE_ORDER'])
+
+    rows = []
+
+    for _, event_row in event_source_order.iterrows():
+        event_key = event_row['_EVENT_KEY']
+        event_display = event_row['_EVENT_DISPLAY']
+
+        event_records = benchmark_df[benchmark_df['_EVENT_KEY'] == event_key].copy()
+
+        female_records = event_records[event_records['_GENDER_KEY'].str.contains('female|women|woman', regex=True, na=False)]
+        male_records = event_records[event_records['_GENDER_KEY'].str.contains('male|men|man', regex=True, na=False)]
+
+        female_row = female_records.iloc[0] if not female_records.empty else None
+        male_row = male_records.iloc[0] if not male_records.empty else None
+
+        rows.append({
+            'Female 5.00%': format_benchmark_cell(benchmark_value_from_row(female_row, col_5), event_display),
+            'Female 3.50%': format_benchmark_cell(benchmark_value_from_row(female_row, col_35), event_display),
+            'Female 2%': format_benchmark_cell(benchmark_value_from_row(female_row, col_2), event_display),
+            'Female Benchmark': format_benchmark_cell(benchmark_value_from_row(female_row, benchmark_col), event_display),
+            'Event': event_display,
+            'Male Benchmark': format_benchmark_cell(benchmark_value_from_row(male_row, benchmark_col), event_display),
+            'Male 2%': format_benchmark_cell(benchmark_value_from_row(male_row, col_2), event_display),
+            'Male 3.50%': format_benchmark_cell(benchmark_value_from_row(male_row, col_35), event_display),
+            'Male 5.00%': format_benchmark_cell(benchmark_value_from_row(male_row, col_5), event_display),
+        })
+
+    return pd.DataFrame(rows)
+
+
+def benchmark_table_html(table_df, benchmark_label):
+    """Render the benchmark dataframe as an HTML table with grouped headers."""
+    safe_title = html.escape(str(benchmark_label))
+    safe_benchmark_header = safe_title.replace(' ', '<br>')
+
+    css = """
+    <style>
+        .benchmark-title {
+            color: #005EB8;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        table.benchmark-table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 1100px;
+            background: #ffffff;
+            font-size: 0.95rem;
+        }
+        table.benchmark-table th,
+        table.benchmark-table td {
+            border: 1px solid #333333;
+            padding: 0.42rem 0.5rem;
+            text-align: center;
+            vertical-align: middle;
+            color: #111111;
+        }
+        table.benchmark-table th {
+            font-weight: 700;
+            background: #f8f8f8;
+        }
+        table.benchmark-table th.event-header,
+        table.benchmark-table td.event-cell {
+            font-weight: 700;
+            min-width: 150px;
+        }
+        table.benchmark-table td.event-cell {
+            font-style: italic;
+        }
+        table.benchmark-table th.gender-header {
+            font-size: 1.05rem;
+        }
+    </style>
+    """
+
+    rows_html = []
+
+    for _, row in table_df.iterrows():
+        event_display = str(row.get('Event', ''))
+        if event_display == 'Heptathlon/Decathlon':
+            event_html = 'Heptathlon/<br>Decathlon'
+        else:
+            event_html = html.escape(event_display)
+
+        rows_html.append(
+            '<tr>'
+            f"<td>{html.escape(str(row.get('Female 5.00%', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Female 3.50%', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Female 2%', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Female Benchmark', '')))}</td>"
+            f"<td class='event-cell'>{event_html}</td>"
+            f"<td>{html.escape(str(row.get('Male Benchmark', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Male 2%', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Male 3.50%', '')))}</td>"
+            f"<td>{html.escape(str(row.get('Male 5.00%', '')))}</td>"
+            '</tr>'
+        )
+
+    return f"""
+    {css}
+    <div class="benchmark-title">{safe_title}</div>
+    <table class="benchmark-table">
+        <thead>
+            <tr>
+                <th class="gender-header" colspan="4">Female</th>
+                <th class="event-header" rowspan="2">Event</th>
+                <th class="gender-header" colspan="4">Male</th>
+            </tr>
+            <tr>
+                <th>5.00%</th>
+                <th>3.50%</th>
+                <th>2%</th>
+                <th>{safe_benchmark_header}</th>
+                <th>{safe_benchmark_header}</th>
+                <th>2%</th>
+                <th>3.50%</th>
+                <th>5.00%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {''.join(rows_html)}
+        </tbody>
+    </table>
+    """
+
+
+def display_benchmark_table(benchmarks_df, selected_benchmark):
+    """Display one selected benchmark set in the grouped benchmark-table layout."""
+    table_df = benchmark_table_dataframe(benchmarks_df, selected_benchmark)
+
+    if table_df.empty:
+        st.warning('No benchmark rows were found for this selection, or the benchmark file is missing EVENT/GENDER columns.')
+        return
+
+    st.markdown(
+        benchmark_table_html(table_df, selected_benchmark),
+        unsafe_allow_html=True,
+    )
+
+# ============================================================
+# END BENCHMARK TABLE DISPLAY HELPERS
+# ============================================================
+
 ## Get all the data ##
 
 all_data = fetch_all_data() # fetch the entire database
@@ -644,6 +972,7 @@ benchmark_option = st.selectbox(
     "  ",
     (
         "Search Database Records by Name or Competition",
+        "Benchmark Tables",
         "List Results By Event",
         "Performance Trend Graphs",
         "2025 SEAG Bronze - SEAG Selection",
@@ -734,6 +1063,49 @@ if benchmark_option == 'Search Database Records by Name or Competition':
         if text_search:
             final_dfs, code = spreadsheet(df_final)
 
+
+
+
+# ============================================================
+# BENCHMARK TABLES
+# Displays benchmark sets loaded from the GCS bucket.
+# ============================================================
+
+elif benchmark_option == 'Benchmark Tables':
+
+    st.subheader('Benchmark Tables')
+
+    if benchmarks is None or benchmarks.empty:
+        st.warning('No benchmark data was loaded from the GCS bucket.')
+
+    elif 'BENCHMARK_COMPETITION' not in benchmarks.columns:
+        st.error('The benchmark file does not contain BENCHMARK_COMPETITION after column normalisation.')
+        st.write('Available columns:', benchmarks.columns.tolist())
+
+    else:
+        benchmark_list = (
+            benchmarks['BENCHMARK_COMPETITION']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+        )
+        benchmark_list = sorted([x for x in benchmark_list.unique().tolist() if x])
+
+        if not benchmark_list:
+            st.warning('No benchmark competition labels were found in the benchmark file.')
+        else:
+            selected_benchmark_table = st.selectbox(
+                'Select Benchmark Set:',
+                options=benchmark_list,
+            )
+
+            display_benchmark_table(benchmarks, selected_benchmark_table)
+
+            with st.expander('Show raw benchmark rows'):
+                raw_benchmark_rows = benchmarks[
+                    benchmarks['BENCHMARK_COMPETITION'].astype(str).str.strip() == selected_benchmark_table
+                ].copy()
+                st.dataframe(raw_benchmark_rows, use_container_width=True)
 
 
 ## List Results BY Event##
