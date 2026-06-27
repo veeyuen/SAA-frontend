@@ -969,6 +969,242 @@ def display_benchmark_table(benchmarks_df, selected_benchmark):
 ## This avoids downloading the full BigQuery results table when the user only wants
 ## Benchmark Tables or another report that does not need all_data.
 
+
+# ============================================================
+# HEAD-TO-HEAD ATHLETE OPTION HELPERS
+# ============================================================
+# The head-to-head dropdown should be curated, not built from every name in the
+# database.  We use the same curated list as Performance Trend Graphs, then use
+# the GCS name-variation mapping to resolve each curated display name to the
+# standardised database name.
+
+ATHLETE_GRAPH_LIST_RAW = [
+    "SOH HWEI EN, RACHEL",
+    "GOH BOON HEE, SHAUN",
+    "TAN HONG AN, DARYL",
+    "TATE TAN FUNG",
+    "ONG JING RONG KERSTIN",
+    "PRAHARSH RYAN S/O SUBASH SOMAN",
+    "VANESSA LEE YING ZHUANG",
+    "OLIVER LIM TZE RONG",
+    "PAK TUNG HON, ANDREW",
+    "GOH SHING LING",
+    "LOW JUN YU",
+    "ASHLEE ONG YUXI",
+    "LOH DING RONG, ANSON",
+    "TAN SHOU YI REI",
+    "NG SI EN, TABITHA",
+    "OLIVER FIORE",
+    "KWA EU HAN",
+    "JADEN CHEW",
+    "TAN YING TONG, SHANNON",
+    "LAAVINIA D/O JAIGANTH",
+    "SUBARAGHAV HARI S/O TAMIL SELVAM",
+    "HENG CHIN KIAT RICHARD",
+    "AMIR RUSYAIDI OSMAN",
+    "CHLOE CHEE EN-YA",
+    "DARYEN KO XIN TZE",
+    "TNG KAI XIN",
+    "KHALEL BIN ZAID",
+    "AHMAD ZUBAYR BIN MOHAMED IMRAN",
+    "NG GABRIEL",
+    "MEGAN PUAH",
+    "SEAN RUSSELL TAY",
+    "JAYDEN NG",
+    "LEE YU FOONG",
+    "JIANG YUNFAN",
+    "LAM XIN, KRISTEL",
+    "WANG QIYUE",
+    "CHUA JE-AN, GARRETT",
+    "LOKE E-JAY REUBEN",
+    "LIU HAOYUE",
+    "HARRY IRFAN CURRAN",
+    "GOH YEN YOUNG AMELIA",
+    "SOH RUI YONG, GUILLAUME",
+    "LAURENT LEE QIFENG",
+    "Manuela Sidhom",
+    "PRISHA KAUSHAL",
+    "CAITLIN NG SHAN WEN",
+    "XANDER HO ANN HENG",
+    "YEE CHUN WAI, ERIC",
+    "LEE SIONG EN, REUBEN RAINER",
+    "THIRUBEN S/O THANA RAJAN",
+    "ELIZABETH-ANN TAN SHEE RU",
+    "MARK LEE REN",
+    "ANDREW GEORGE MEDINA",
+    "GABRIEL LEE JING YI",
+    "TIA LOUISE ROZARIO",
+    "ANG CHEN XIANG",
+    "PEREIRA VERONICA SHANTI",
+    "KAMPTON KAM",
+    "QUEK JUN JIE CALVIN",
+    "MARC BRIAN LOUIS",
+    "QUEK JUN JIE CALVIN",
+    "SNG SUAT LI, MICHELLE",
+    "AMIR RUSYAIDI OSMAN",
+    "ANDREW GEORGE MEDINA",
+    "GABRIEL LEE JING YI",
+    "HIA CALEB",
+    "LOW JUN YU",
+    "NG ZHI RONG RYAN RAPHAEL",
+    "PRAHARSH RYAN S/O SUBASH SOMAN",
+    "TAN HONG AN, DARYL",
+    "TIA LOUISE ROZARIO",
+    "VANESSA LEE YING ZHUANG",
+    "YAN TEO",
+    "YEE CHUN WAI, ERIC",
+    "ASHLEE ONG YUXI",
+    "BRAYDEN CHAN WEI JIE",
+    "CHEONG YIN YERN, JOSEPH",
+    "CHUA HSIN-WEN CLARA",
+    "CHUA JE-AN, GARRETT",
+    "HUANG WEIJUN",
+    "LAAVINIA D/O JAIGANTH",
+    "S VIRESH KUMAR",
+    "SOH HWEI EN, RACHEL",
+    "SUBARAGHAV HARI S/O TAMIL SELVAM",
+    "TAN JIE CONG, JAYDEN",
+    "TAN SHOU YI REI",
+    "TEH YING SHAN",
+    "CHLOE CHEE EN-YA",
+    "EMERY CONRAD KANGLI",
+    "HARRY IRFAN CURRAN",
+    "LIM YEE CHERN CLARA",
+    "LOH DING RONG, ANSON",
+    "ONG YING TAT",
+    "SONG EN XU REAGAN",
+]
+
+
+def head_to_head_name_key(x):
+    """Robust key for matching graph-list names, variation names and database names."""
+    if pd.isna(x):
+        return ""
+
+    x = str(x)
+    x = x.replace("\xa0", " ")
+    x = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", x)
+
+    # Remove regex anchors often used in the variation source file
+    x = x.replace("^", "")
+    x = x.replace("$", "")
+    x = x.replace("\\", "")
+
+    # Keep only letters and numbers so comma/order punctuation does not matter
+    x = "".join(ch for ch in x if ch.isalnum())
+    return x.casefold()
+
+
+def head_to_head_display_name(x):
+    """Clean a name for display in Streamlit dropdowns."""
+    if pd.isna(x):
+        return ""
+    x = str(x).replace("\xa0", " ")
+    x = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", x)
+    x = re.sub(r"\s+", " ", x).strip()
+    return x.title()
+
+
+@st.cache_data(ttl=20000)
+def head_to_head_variation_label_map():
+    """
+    Return mapping: normalised variation key -> canonical display name.
+
+    Prefer the GCS name_variations/name_variations.csv file.  The helper is
+    defensive because older files use VARIATION/NAME while newer spliced files
+    may use VARIATION_NAME/CANONICAL_NAME.
+    """
+    try:
+        names_ref = name_variations().copy()
+    except Exception:
+        try:
+            names_ref = gspread_names().copy()
+        except Exception:
+            return {}
+
+    names_ref.columns = names_ref.columns.astype(str).str.strip()
+
+    if "VARIATION" in names_ref.columns:
+        variation_col = "VARIATION"
+    elif "VARIATION_NAME" in names_ref.columns:
+        variation_col = "VARIATION_NAME"
+    else:
+        return {}
+
+    if "NAME" in names_ref.columns:
+        canonical_col = "NAME"
+    elif "CANONICAL_NAME" in names_ref.columns:
+        canonical_col = "CANONICAL_NAME"
+    else:
+        return {}
+
+    n = names_ref[[variation_col, canonical_col]].dropna().copy()
+    n[variation_col] = n[variation_col].astype(str).str.strip()
+    n[canonical_col] = n[canonical_col].astype(str).str.strip()
+    n = n[(n[variation_col] != "") & (n[canonical_col] != "")]
+
+    n["VARIATION_KEY_H2H"] = n[variation_col].apply(head_to_head_name_key)
+    n["CANONICAL_LABEL_H2H"] = n[canonical_col].apply(head_to_head_display_name)
+
+    # Keep the first mapping if duplicate variation keys exist.
+    n = n[n["VARIATION_KEY_H2H"] != ""].drop_duplicates(subset="VARIATION_KEY_H2H")
+
+    return dict(zip(n["VARIATION_KEY_H2H"], n["CANONICAL_LABEL_H2H"]))
+
+
+def build_head_to_head_athlete_options(compare_data):
+    """
+    Restrict Athlete Head-to-Head dropdowns to ATHLETE_GRAPH_LIST_RAW.
+
+    Each curated name is first canonicalised through the GCS name-variation map,
+    then intersected with the standardised athlete names actually present in the
+    database.  This avoids a very large/noisy dropdown while still supporting
+    spelling/order variations from the source list.
+    """
+    available = compare_data[["ATHLETE_LABEL"]].dropna().copy()
+    available["ATHLETE_KEY_H2H"] = available["ATHLETE_LABEL"].apply(head_to_head_name_key)
+    available = available[available["ATHLETE_KEY_H2H"] != ""]
+    available = available.drop_duplicates(subset="ATHLETE_KEY_H2H")
+    available_by_key = dict(zip(available["ATHLETE_KEY_H2H"], available["ATHLETE_LABEL"]))
+
+    variation_label_map = head_to_head_variation_label_map()
+
+    athlete_options = []
+    seen_option_keys = set()
+    unmatched_curated_names = []
+
+    for raw_name in list(dict.fromkeys(ATHLETE_GRAPH_LIST_RAW)):
+        raw_key = head_to_head_name_key(raw_name)
+        canonical_label = variation_label_map.get(raw_key, head_to_head_display_name(raw_name))
+
+        candidate_keys = []
+        for candidate_name in [canonical_label, raw_name]:
+            candidate_key = head_to_head_name_key(candidate_name)
+            if candidate_key and candidate_key not in candidate_keys:
+                candidate_keys.append(candidate_key)
+
+        matched_label = ""
+        matched_key = ""
+        for candidate_key in candidate_keys:
+            if candidate_key in available_by_key:
+                matched_key = candidate_key
+                matched_label = available_by_key[candidate_key]
+                break
+
+        if matched_label:
+            if matched_key not in seen_option_keys:
+                athlete_options.append(matched_label)
+                seen_option_keys.add(matched_key)
+        else:
+            unmatched_curated_names.append(raw_name)
+
+    athlete_options = sorted(athlete_options)
+    return athlete_options, unmatched_curated_names
+
+# ============================================================
+# END HEAD-TO-HEAD ATHLETE OPTION HELPERS
+# ============================================================
+
 benchmark_option = st.selectbox(
     "  ",
     (
@@ -1675,8 +1911,8 @@ elif benchmark_option == "Athlete Head-to-Head":
 
     st.subheader("Athlete Head-to-Head")
     st.caption(
-        "Compares two athletes for the same event using the standardised names "
-        "created from the name-variations file."
+        "Compares two athletes for the same event. Athlete dropdowns are restricted "
+        "to ATHLETE_GRAPH_LIST_RAW and resolved through the GCS name-variation mapping."
     )
 
     # ------------------------------------------------------------
@@ -1714,11 +1950,32 @@ elif benchmark_option == "Athlete Head-to-Head":
         st.warning("No comparison-ready records found. Check that NAME, DATE and MAPPED_EVENT are populated.")
         st.stop()
 
-    athlete_options = sorted(compare_data["ATHLETE_LABEL"].dropna().unique().tolist())
+    # Restrict athlete dropdowns to the curated Performance Trend Graphs list.
+    # The GCS name-variation mapping is used to resolve each curated name to the
+    # same standardised label used in all_data.
+    athlete_options, unmatched_curated_names = build_head_to_head_athlete_options(compare_data)
 
     if len(athlete_options) < 2:
-        st.warning("At least two athletes are required for a head-to-head comparison.")
+        st.warning(
+            "At least two curated graph-list athletes with database records are required "
+            "for a head-to-head comparison."
+        )
+        with st.expander("Show unmatched curated graph-list names"):
+            st.dataframe(
+                pd.DataFrame({"UNMATCHED_CURATED_NAME": unmatched_curated_names}),
+                use_container_width=True,
+            )
         st.stop()
+
+    with st.expander("Show curated graph-list names not currently available for comparison"):
+        st.caption(
+            "These names are in ATHLETE_GRAPH_LIST_RAW but were not found in the "
+            "standardised database records after applying the name-variation mapping."
+        )
+        st.dataframe(
+            pd.DataFrame({"UNMATCHED_CURATED_NAME": unmatched_curated_names}),
+            use_container_width=True,
+        )
 
     # ------------------------------------------------------------
     # 2. User controls
