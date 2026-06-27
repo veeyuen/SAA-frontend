@@ -1202,6 +1202,96 @@ def build_head_to_head_athlete_options(compare_data):
     return athlete_options, unmatched_curated_names
 
 # ============================================================
+# ATHLETE SEARCH HELPERS
+# ============================================================
+
+def filter_athlete_options_by_search(athlete_options, search_text):
+    """
+    Filter athlete dropdown options using a forgiving name search.
+
+    Examples this handles:
+    - "tate tan" can still match "Tan Tate Fung"
+    - punctuation/case differences are ignored
+    - partial strings such as "shanti" or "xander" work
+    """
+    if athlete_options is None:
+        return []
+
+    options = [str(x).strip() for x in athlete_options if str(x).strip() != ""]
+    query = "" if search_text is None else str(search_text).strip()
+
+    if query == "":
+        return options
+
+    query_key = head_to_head_name_key(query)
+    query_tokens = [
+        head_to_head_name_key(token)
+        for token in re.split(r"\s+", query)
+        if head_to_head_name_key(token) != ""
+    ]
+
+    if query_key == "" and not query_tokens:
+        return options
+
+    filtered_options = []
+    for option in options:
+        option_key = head_to_head_name_key(option)
+
+        # Whole-query substring search catches normal partial searches.
+        whole_query_match = query_key != "" and query_key in option_key
+
+        # Token search catches reordered names, e.g. "tate tan" vs "Tan Tate Fung".
+        token_match = bool(query_tokens) and all(token in option_key for token in query_tokens)
+
+        if whole_query_match or token_match:
+            filtered_options.append(option)
+
+    return filtered_options
+
+
+def searchable_athlete_selectbox(
+    label,
+    athlete_options,
+    search_key,
+    select_key,
+    default_index=0,
+    placeholder="Type part of the athlete name...",
+):
+    """
+    Streamlit control: text search + filtered athlete selectbox.
+
+    Returns the selected athlete label, or None when no filtered options remain.
+    """
+    search_text = st.text_input(
+        f"Search {label.replace(':', '')}",
+        key=search_key,
+        placeholder=placeholder,
+    )
+
+    filtered_options = filter_athlete_options_by_search(athlete_options, search_text)
+
+    if not filtered_options:
+        st.warning("No athlete names matched the search text.")
+        return None
+
+    safe_default_index = min(max(int(default_index), 0), len(filtered_options) - 1)
+
+    st.caption(
+        f"Showing {len(filtered_options)} of {len(athlete_options)} available athlete names."
+    )
+
+    return st.selectbox(
+        label,
+        options=filtered_options,
+        index=safe_default_index,
+        key=select_key,
+    )
+
+# ============================================================
+# END ATHLETE SEARCH HELPERS
+# ============================================================
+
+# ============================================================
 # END HEAD-TO-HEAD ATHLETE OPTION HELPERS
 # ============================================================
 
@@ -1485,127 +1575,11 @@ elif benchmark_option == "Performance Trend Graphs":
     st.subheader("Performance Trend Graphs")
 
     # ------------------------------------------------------------
-    # 1. Hardcoded athlete list for graphing dropdown
+    # 1. Athlete options
     # ------------------------------------------------------------
-    ATHLETE_GRAPH_LIST_RAW = [
-        "SOH HWEI EN, RACHEL",
-        "GOH BOON HEE, SHAUN",
-        "TAN HONG AN, DARYL",
-        "TATE TAN FUNG",
-        "ONG JING RONG KERSTIN",
-        "PRAHARSH RYAN S/O SUBASH SOMAN",
-        "VANESSA LEE YING ZHUANG",
-        "OLIVER LIM TZE RONG",
-        "PAK TUNG HON, ANDREW",
-        "GOH SHING LING",
-        "LOW JUN YU",
-        "ASHLEE ONG YUXI",
-        "LOH DING RONG, ANSON",
-        "TAN SHOU YI REI",
-        "NG SI EN, TABITHA",
-        "OLIVER FIORE",
-        "KWA EU HAN",
-        "JADEN CHEW",
-        "TAN YING TONG, SHANNON",
-        "LAAVINIA D/O JAIGANTH",
-        "SUBARAGHAV HARI S/O TAMIL SELVAM",
-        "HENG CHIN KIAT RICHARD",
-        "AMIR RUSYAIDI OSMAN",
-        "CHLOE CHEE EN-YA",
-        "DARYEN KO XIN TZE",
-        "TNG KAI XIN",
-        "KHALEL BIN ZAID",
-        "AHMAD ZUBAYR BIN MOHAMED IMRAN",
-        "NG GABRIEL",
-        "MEGAN PUAH",
-        "SEAN RUSSELL TAY",
-        "JAYDEN NG",
-        "LEE YU FOONG",
-        "JIANG YUNFAN",
-        "LAM XIN, KRISTEL",
-        "WANG QIYUE",
-        "CHUA JE-AN, GARRETT",
-        "LOKE E-JAY REUBEN",
-        "LIU HAOYUE",
-        "HARRY IRFAN CURRAN",
-        "GOH YEN YOUNG AMELIA",
-        "SOH RUI YONG, GUILLAUME",
-        "LAURENT LEE QIFENG",
-        "Manuela Sidhom",
-        "PRISHA KAUSHAL",
-        "CAITLIN NG SHAN WEN",
-        "XANDER HO ANN HENG",
-        "YEE CHUN WAI, ERIC",
-        "LEE SIONG EN, REUBEN RAINER",
-        "THIRUBEN S/O THANA RAJAN",
-        "ELIZABETH-ANN TAN SHEE RU",
-        "MARK LEE REN",
-        "ANDREW GEORGE MEDINA",
-        "GABRIEL LEE JING YI",
-        "TIA LOUISE ROZARIO",
-        "ANG CHEN XIANG",
-        "PEREIRA VERONICA SHANTI",
-        "KAMPTON KAM",
-        "QUEK JUN JIE CALVIN",
-        "MARC BRIAN LOUIS",
-        "QUEK JUN JIE CALVIN",
-        "SNG SUAT LI, MICHELLE",
-        "AMIR RUSYAIDI OSMAN",
-        "ANDREW GEORGE MEDINA",
-        "GABRIEL LEE JING YI",
-        "HIA CALEB",
-        "LOW JUN YU",
-        "NG ZHI RONG RYAN RAPHAEL",
-        "PRAHARSH RYAN S/O SUBASH SOMAN",
-        "TAN HONG AN, DARYL",
-        "TIA LOUISE ROZARIO",
-        "VANESSA LEE YING ZHUANG",
-        "YAN TEO",
-        "YEE CHUN WAI, ERIC",
-        "ASHLEE ONG YUXI",
-        "BRAYDEN CHAN WEI JIE",
-        "CHEONG YIN YERN, JOSEPH",
-        "CHUA HSIN-WEN CLARA",
-        "CHUA JE-AN, GARRETT",
-        "HUANG WEIJUN",
-        "LAAVINIA D/O JAIGANTH",
-        "S VIRESH KUMAR",
-        "SOH HWEI EN, RACHEL",
-        "SUBARAGHAV HARI S/O TAMIL SELVAM",
-        "TAN JIE CONG, JAYDEN",
-        "TAN SHOU YI REI",
-        "TEH YING SHAN",
-        "CHLOE CHEE EN-YA",
-        "EMERY CONRAD KANGLI",
-        "HARRY IRFAN CURRAN",
-        "LIM YEE CHERN CLARA",
-        "LOH DING RONG, ANSON",
-        "ONG YING TAT",
-        "SONG EN XU REAGAN",
-    ]
-
-    # Remove duplicate athlete names while preserving the original order.
-    ATHLETE_GRAPH_LIST = list(dict.fromkeys(ATHLETE_GRAPH_LIST_RAW))
-
-    # ------------------------------------------------------------
-    # 2. Local helper for robust name matching
-    # ------------------------------------------------------------
-    def graph_name_key(x):
-        """
-        Lightweight matching key for this graphing module:
-        - removes hidden/control characters
-        - removes punctuation/non-word characters
-        - removes spaces/underscores
-        - casefolds
-        """
-        if pd.isna(x):
-            return ""
-
-        x = str(x)
-        x = x.replace("\xa0", " ")
-        x = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", x)
-        x = re.sub(r"[\W_]+", "", x, flags=re.UNICODE)
-        return x.casefold()
+    # The graph dropdown is restricted to the curated ATHLETE_GRAPH_LIST_RAW list,
+    # then resolved through the same GCS name-variation mapping used elsewhere.
+    # A text search box below filters this curated list before selection.
 
     # ------------------------------------------------------------
     # 3. Prepare graph dataframe
@@ -1616,11 +1590,26 @@ elif benchmark_option == "Performance Trend Graphs":
         graph_data["RESULT_CONV"] = np.nan
 
     graph_data["DATE_DT"] = pd.to_datetime(graph_data["DATE"], errors="coerce")
-    graph_data["NAME_GRAPH_KEY"] = graph_data["NAME"].apply(graph_name_key)
+
+    # NAME has already been standardised inside fetch_all_data().  Create the
+    # same stable display/filter label used by the Athlete Head-to-Head branch.
+    graph_data["ATHLETE_LABEL"] = (
+        graph_data["NAME"]
+        .fillna("")
+        .astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.replace(r"[\x00-\x1f\x7f-\x9f]", "", regex=True)
+        .str.replace(r"\s+", " ", regex=True)
+        .str.strip()
+        .str.title()
+    )
+    graph_data["ATHLETE_KEY_H2H"] = graph_data["ATHLETE_LABEL"].apply(head_to_head_name_key)
 
     graph_data = graph_data[
         graph_data["DATE_DT"].notna()
         & graph_data["MAPPED_EVENT"].notna()
+        & (graph_data["ATHLETE_LABEL"] != "")
+        & (graph_data["ATHLETE_KEY_H2H"] != "")
     ].copy()
 
     if graph_data.empty:
@@ -1630,15 +1619,41 @@ elif benchmark_option == "Performance Trend Graphs":
     # ------------------------------------------------------------
     # 4. User controls
     # ------------------------------------------------------------
-    selected_athlete = st.selectbox(
-        "Select Athlete:",
-        options=ATHLETE_GRAPH_LIST,
+    athlete_options, unmatched_curated_names = build_head_to_head_athlete_options(graph_data)
+
+    if not athlete_options:
+        st.warning("No curated graph-list athletes were found in the database for graphing.")
+        with st.expander("Show unmatched curated graph-list names"):
+            st.dataframe(
+                pd.DataFrame({"UNMATCHED_CURATED_NAME": unmatched_curated_names}),
+                use_container_width=True,
+            )
+        st.stop()
+
+    with st.expander("Show curated graph-list names not currently available for graphing"):
+        st.caption(
+            "These names are in ATHLETE_GRAPH_LIST_RAW but were not found in the "
+            "standardised database records after applying the name-variation mapping."
+        )
+        st.dataframe(
+            pd.DataFrame({"UNMATCHED_CURATED_NAME": unmatched_curated_names}),
+            use_container_width=True,
+        )
+
+    selected_athlete = searchable_athlete_selectbox(
+        label="Select Athlete:",
+        athlete_options=athlete_options,
+        search_key="performance_trend_athlete_search",
+        select_key="performance_trend_athlete_select",
     )
 
-    selected_athlete_key = graph_name_key(selected_athlete)
+    if selected_athlete is None:
+        st.stop()
+
+    selected_athlete_key = head_to_head_name_key(selected_athlete)
 
     athlete_data = graph_data[
-        graph_data["NAME_GRAPH_KEY"] == selected_athlete_key
+        graph_data["ATHLETE_KEY_H2H"] == selected_athlete_key
     ].copy()
 
     if athlete_data.empty:
@@ -1983,21 +1998,27 @@ elif benchmark_option == "Athlete Head-to-Head":
     col_a, col_b = st.columns(2)
 
     with col_a:
-        athlete_1 = st.selectbox(
-            "Select Athlete 1:",
-            options=athlete_options,
-            key="head_to_head_athlete_1",
+        athlete_1 = searchable_athlete_selectbox(
+            label="Select Athlete 1:",
+            athlete_options=athlete_options,
+            search_key="head_to_head_athlete_1_search",
+            select_key="head_to_head_athlete_1_select",
+            default_index=0,
         )
 
     default_second_index = 1 if len(athlete_options) > 1 else 0
 
     with col_b:
-        athlete_2 = st.selectbox(
-            "Select Athlete 2:",
-            options=athlete_options,
-            index=default_second_index,
-            key="head_to_head_athlete_2",
+        athlete_2 = searchable_athlete_selectbox(
+            label="Select Athlete 2:",
+            athlete_options=athlete_options,
+            search_key="head_to_head_athlete_2_search",
+            select_key="head_to_head_athlete_2_select",
+            default_index=default_second_index,
         )
+
+    if athlete_1 is None or athlete_2 is None:
+        st.stop()
 
     if athlete_1 == athlete_2:
         st.warning("Please select two different athletes.")
