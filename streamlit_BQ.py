@@ -976,6 +976,7 @@ benchmark_option = st.selectbox(
         "Benchmark Tables",
         "List Results By Event",
         "Performance Trend Graphs",
+        "Athlete Head-to-Head",
         "2025 SEAG Bronze - SEAG Selection",
         "2025 SEAG Bronze - OCTC Selection",
     )
@@ -1657,6 +1658,407 @@ elif benchmark_option == "Performance Trend Graphs":
 
 # ============================================================
 # END GRAPH ATHLETE PERFORMANCE PATCH
+# ============================================================
+
+
+# ============================================================
+# ATHLETE HEAD-TO-HEAD PATCH
+# Compare two standardised athlete names for the same event.
+# This follows the current codebase approach: names are already standardised
+# in fetch_all_data() using the name-variations mapping, so matching is by
+# canonicalised NAME rather than UNIQUE_ID.
+# ============================================================
+
+elif benchmark_option == "Athlete Head-to-Head":
+
+    all_data = fetch_all_data()
+
+    st.subheader("Athlete Head-to-Head")
+    st.caption(
+        "Compares two athletes for the same event using the standardised names "
+        "created from the name-variations file."
+    )
+
+    # ------------------------------------------------------------
+    # 1. Prepare comparison dataframe
+    # ------------------------------------------------------------
+    compare_data = all_data.copy()
+
+    for col in ["NAME", "DATE", "MAPPED_EVENT", "RESULT", "RESULT_CONV"]:
+        if col not in compare_data.columns:
+            compare_data[col] = ""
+
+    compare_data["DATE_DT"] = pd.to_datetime(compare_data["DATE"], errors="coerce")
+
+    # NAME has already been standardised inside fetch_all_data().
+    # Create a stable display/filter label from that standardised name.
+    compare_data["ATHLETE_LABEL"] = (
+        compare_data["NAME"]
+        .fillna("")
+        .astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.replace(r"[\x00-\x1f\x7f-\x9f]", "", regex=True)
+        .str.replace(r"\s+", " ", regex=True)
+        .str.strip()
+        .str.title()
+    )
+
+    compare_data = compare_data[
+        compare_data["DATE_DT"].notna()
+        & (compare_data["ATHLETE_LABEL"] != "")
+        & compare_data["MAPPED_EVENT"].notna()
+        & (compare_data["MAPPED_EVENT"].astype(str).str.strip() != "")
+    ].copy()
+
+    if compare_data.empty:
+        st.warning("No comparison-ready records found. Check that NAME, DATE and MAPPED_EVENT are populated.")
+        st.stop()
+
+    athlete_options = sorted(compare_data["ATHLETE_LABEL"].dropna().unique().tolist())
+
+    if len(athlete_options) < 2:
+        st.warning("At least two athletes are required for a head-to-head comparison.")
+        st.stop()
+
+    # ------------------------------------------------------------
+    # 2. User controls
+    # ------------------------------------------------------------
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        athlete_1 = st.selectbox(
+            "Select Athlete 1:",
+            options=athlete_options,
+            key="head_to_head_athlete_1",
+        )
+
+    default_second_index = 1 if len(athlete_options) > 1 else 0
+
+    with col_b:
+        athlete_2 = st.selectbox(
+            "Select Athlete 2:",
+            options=athlete_options,
+            index=default_second_index,
+            key="head_to_head_athlete_2",
+        )
+
+    if athlete_1 == athlete_2:
+        st.warning("Please select two different athletes.")
+        st.stop()
+
+    selected_athletes = [athlete_1, athlete_2]
+
+    two_athlete_data = compare_data[
+        compare_data["ATHLETE_LABEL"].isin(selected_athletes)
+    ].copy()
+
+    common_event_counts = (
+        two_athlete_data.groupby("MAPPED_EVENT")["ATHLETE_LABEL"]
+        .nunique()
+        .reset_index(name="ATHLETE_COUNT")
+    )
+
+    common_events = sorted(
+        common_event_counts.loc[
+            common_event_counts["ATHLETE_COUNT"] == 2,
+            "MAPPED_EVENT",
+        ]
+        .dropna()
+        .astype(str)
+        .tolist()
+    )
+
+    if not common_events:
+        st.warning("These two athletes do not currently have any common events in the database.")
+        with st.expander("Show available events for selected athletes"):
+            available_events = (
+                two_athlete_data[["ATHLETE_LABEL", "MAPPED_EVENT"]]
+                .drop_duplicates()
+                .sort_values(["ATHLETE_LABEL", "MAPPED_EVENT"])
+            )
+            st.dataframe(available_events, use_container_width=True)
+        st.stop()
+
+    selected_event = st.selectbox(
+        "Select Event:",
+        options=common_events,
+        key="head_to_head_event",
+    )
+
+    event_data = two_athlete_data[
+        two_athlete_data["MAPPED_EVENT"].astype(str) == selected_event
+    ].copy()
+
+    if event_data.empty:
+        st.warning("No records found for the selected athletes and event.")
+        st.stop()
+
+    min_date = event_data["DATE_DT"].min().date()
+    max_date = event_data["DATE_DT"].max().date()
+
+    col_start, col_end = st.columns(2)
+
+    with col_start:
+        start_date = st.date_input(
+            "Start Date:",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+            key="head_to_head_start_date",
+        )
+
+    with col_end:
+        end_date = st.date_input(
+            "End Date:",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+            key="head_to_head_end_date",
+        )
+
+    if start_date > end_date:
+        st.error("Start Date cannot be after End Date.")
+        st.stop()
+
+    plot_df = event_data[
+        (event_data["DATE_DT"].dt.date >= start_date)
+        & (event_data["DATE_DT"].dt.date <= end_date)
+    ].copy()
+
+    if plot_df.empty:
+        st.warning("No records found for the selected athletes, event and date range.")
+        st.stop()
+
+    # ------------------------------------------------------------
+    # 3. Convert results only after filtering to reduce CPU usage
+    # ------------------------------------------------------------
+    plot_df["RESULT_FLOAT"] = plot_df["RESULT_CONV"].apply(parse_performance_seconds)
+    missing_result_float = plot_df["RESULT_FLOAT"].isna()
+
+    def head_to_head_convert_for_row(row):
+        raw_result = str(row.get("RESULT", "")).strip()
+        parsed_result = parse_performance_seconds(raw_result)
+        if pd.notna(parsed_result):
+            return parsed_result
+        try:
+            return convert_time_refactored(
+                row.name,
+                row.get("MAPPED_EVENT", ""),
+                row.get("RESULT", ""),
+            )
+        except Exception:
+            return np.nan
+
+    if missing_result_float.any():
+        converted_values = plot_df.loc[missing_result_float].apply(head_to_head_convert_for_row, axis=1)
+        converted_values = pd.to_numeric(converted_values, errors="coerce")
+        plot_df.loc[missing_result_float, "RESULT_FLOAT"] = converted_values
+
+    plot_df["RESULT_FLOAT"] = pd.to_numeric(plot_df["RESULT_FLOAT"], errors="coerce")
+    plot_df = plot_df[plot_df["RESULT_FLOAT"].notna()].copy()
+
+    if plot_df.empty:
+        st.warning("Records were found, but none had graphable numeric results for the selected event.")
+        st.stop()
+
+    plot_df = plot_df.sort_values(["ATHLETE_LABEL", "DATE_DT"])
+
+    # ------------------------------------------------------------
+    # 4. Event type and display formatting
+    # ------------------------------------------------------------
+    distance_events = [
+        "60m", "60m Hurdles", "80m", "100m", "100m Hurdles", "110m Hurdles",
+        "400m Hurdles", "200m", "300m", "400m", "800m", "2400m", "10,000m",
+        "3000m", "5000m", "3000m Steeplechase", "1500m", "10000m Racewalk",
+        "20km Racewalk", "1 Mile", "4 x 100m", "4 x 400m",
+        "2000m Steeplechase", "Marathon", "Half Marathon",
+        "Sprint Medley Relay", "5km Racewalk", "200m Hurdles",
+        "5000m Racewalk", "10,000m Racewalk",
+    ]
+
+    combined_events = {"Decathlon", "Heptathlon"}
+    is_timed_event = selected_event in distance_events
+    is_combined_event = selected_event in combined_events
+
+    if is_timed_event:
+        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"].apply(format_seconds_no_leading_zeros)
+        y_axis_title = "Time (Seconds)"
+        reverse_y_axis = True
+        raw_chart_caption = "For timed events, the y-axis is reversed so faster performances appear higher."
+    elif is_combined_event:
+        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"].round(0).astype("Int64").astype(str)
+        y_axis_title = "Points"
+        reverse_y_axis = False
+        raw_chart_caption = "For combined events, higher points appear higher."
+    else:
+        plot_df["RESULT_C"] = plot_df["RESULT_FLOAT"].apply(format_numeric_two_dp)
+        y_axis_title = "Distance (Metres)"
+        reverse_y_axis = False
+        raw_chart_caption = "For field events, higher marks appear higher."
+
+    # Dynamic y-axis padding: 10% below minimum and 10% above maximum.
+    y_values = pd.to_numeric(plot_df["RESULT_FLOAT"], errors="coerce").dropna()
+    if not y_values.empty:
+        y_min = float(y_values.min())
+        y_max = float(y_values.max())
+        if y_min == y_max:
+            padding = abs(y_min) * 0.05 if y_min != 0 else 1
+            y_axis_domain = [y_min - padding, y_max + padding]
+        else:
+            y_axis_domain = [y_min * 0.90, y_max * 1.10]
+    else:
+        y_axis_domain = None
+
+    # Relative gap to the best performance among both athletes.
+    # For timed events: lower time is best, so gap = result - best_time.
+    # For field/combined events: higher mark/points is best, so gap = best_mark - result.
+    if is_timed_event:
+        best_value = float(plot_df["RESULT_FLOAT"].min())
+        plot_df["RELATIVE_GAP"] = plot_df["RESULT_FLOAT"] - best_value
+        relative_y_title = "Gap To Best (Seconds)"
+        relative_caption = "0.00 is the best performance between the two athletes; larger values are seconds behind."
+    else:
+        best_value = float(plot_df["RESULT_FLOAT"].max())
+        plot_df["RELATIVE_GAP"] = best_value - plot_df["RESULT_FLOAT"]
+        relative_y_title = "Gap To Best"
+        relative_caption = "0.00 is the best performance between the two athletes; larger values are behind the best mark."
+
+    plot_df["RELATIVE_GAP_C"] = plot_df["RELATIVE_GAP"].apply(format_numeric_two_dp)
+
+    # ------------------------------------------------------------
+    # 5. Charts
+    # ------------------------------------------------------------
+    st.markdown(
+        f"<h3 style='color:#005EB8; margin-bottom:0.25rem;'>Head-to-Head: {athlete_1} vs {athlete_2}</h3>",
+        unsafe_allow_html=True,
+    )
+    st.caption(f"Event: {selected_event}")
+
+    chart_data = plot_df[
+        [
+            "ATHLETE_LABEL",
+            "DATE_DT",
+            "RESULT_FLOAT",
+            "RESULT_C",
+            "RELATIVE_GAP",
+            "RELATIVE_GAP_C",
+            "COMPETITION",
+            "WIND",
+            "STAGE",
+            "EVENT_CLASS",
+        ]
+    ].copy()
+
+    try:
+        import altair as alt
+
+        x_axis_quarterly = alt.Axis(
+            title="Year / Quarter",
+            tickCount={"interval": "month", "step": 3},
+            labelExpr="month(datum.value) == 0 ? timeFormat(datum.value, '%Y') : ''",
+            labelAngle=0,
+            grid=True,
+        )
+
+        st.write("### Raw Performance Trend")
+        st.caption(raw_chart_caption)
+
+        raw_chart = (
+            alt.Chart(chart_data)
+            .mark_line(point=alt.OverlayMarkDef(filled=True, size=85))
+            .encode(
+                x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
+                y=alt.Y(
+                    "RESULT_FLOAT:Q",
+                    title=y_axis_title,
+                    scale=alt.Scale(domain=y_axis_domain, reverse=reverse_y_axis),
+                ),
+                color=alt.Color("ATHLETE_LABEL:N", title="Athlete"),
+                tooltip=[
+                    alt.Tooltip("ATHLETE_LABEL:N", title="Athlete"),
+                    alt.Tooltip("DATE_DT:T", title="Date"),
+                    alt.Tooltip("RESULT_C:N", title="Result"),
+                    alt.Tooltip("COMPETITION:N", title="Competition"),
+                    alt.Tooltip("WIND:N", title="Wind"),
+                    alt.Tooltip("STAGE:N", title="Stage"),
+                    alt.Tooltip("EVENT_CLASS:N", title="Event Class"),
+                ],
+            )
+            .properties(height=450)
+        )
+
+        st.altair_chart(raw_chart, use_container_width=True)
+
+        st.write("### Relative Performance Gap")
+        st.caption(relative_caption)
+
+        relative_chart = (
+            alt.Chart(chart_data)
+            .mark_line(point=alt.OverlayMarkDef(filled=True, size=85))
+            .encode(
+                x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
+                y=alt.Y("RELATIVE_GAP:Q", title=relative_y_title),
+                color=alt.Color("ATHLETE_LABEL:N", title="Athlete"),
+                tooltip=[
+                    alt.Tooltip("ATHLETE_LABEL:N", title="Athlete"),
+                    alt.Tooltip("DATE_DT:T", title="Date"),
+                    alt.Tooltip("RELATIVE_GAP_C:N", title="Gap To Best"),
+                    alt.Tooltip("RESULT_C:N", title="Result"),
+                    alt.Tooltip("COMPETITION:N", title="Competition"),
+                    alt.Tooltip("WIND:N", title="Wind"),
+                    alt.Tooltip("STAGE:N", title="Stage"),
+                ],
+            )
+            .properties(height=350)
+        )
+
+        st.altair_chart(relative_chart, use_container_width=True)
+
+    except Exception:
+        fallback_chart = chart_data.pivot_table(
+            index="DATE_DT",
+            columns="ATHLETE_LABEL",
+            values="RESULT_FLOAT",
+            aggfunc="mean",
+        )
+        st.line_chart(fallback_chart)
+
+    # ------------------------------------------------------------
+    # 6. Matching result table
+    # ------------------------------------------------------------
+    table_cols = [
+        "ATHLETE_LABEL",
+        "DATE",
+        "MAPPED_EVENT",
+        "COMPETITION",
+        "RESULT_C",
+        "RELATIVE_GAP_C",
+        "WIND",
+        "HOST_CITY",
+        "AGE",
+        "GENDER",
+        "EVENT_CLASS",
+        "DOB",
+    ]
+
+    for col in table_cols:
+        if col not in plot_df.columns:
+            plot_df[col] = ""
+
+    df_final = plot_df[table_cols].copy()
+    df_final = df_final.rename(
+        columns={
+            "ATHLETE_LABEL": "NAME",
+            "RELATIVE_GAP_C": "GAP_TO_BEST",
+        }
+    )
+    df_final = map_nwi(df_final)
+
+    st.write("### Data Used In Chart")
+    final_dfs, code = spreadsheet(df_final)
+
+# ============================================================
+# END ATHLETE HEAD-TO-HEAD PATCH
 # ============================================================
 
 elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze - OCTC Selection']:  # Choose date and run selection report
