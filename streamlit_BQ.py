@@ -2166,21 +2166,123 @@ elif benchmark_option == "Athlete Head-to-Head":
     else:
         y_axis_domain = None
 
-    # Relative gap to the best performance among both athletes.
-    # For timed events: lower time is best, so gap = result - best_time.
-    # For field/combined events: higher mark/points is best, so gap = best_mark - result.
-    if is_timed_event:
-        best_value = float(plot_df["RESULT_FLOAT"].min())
-        plot_df["RELATIVE_GAP"] = plot_df["RESULT_FLOAT"] - best_value
-        relative_y_title = "Gap To Best (Seconds)"
-        relative_caption = "0.00 is the best performance between the two athletes; larger values are seconds behind."
-    else:
-        best_value = float(plot_df["RESULT_FLOAT"].max())
-        plot_df["RELATIVE_GAP"] = best_value - plot_df["RESULT_FLOAT"]
-        relative_y_title = "Gap To Best"
-        relative_caption = "0.00 is the best performance between the two athletes; larger values are behind the best mark."
+    # ------------------------------------------------------------
+    # 4A. Head-to-head metric: Relative Performance Gap %
+    # ------------------------------------------------------------
+    # This is calculated from Athlete 1's perspective using each athlete's
+    # best valid performance in the selected event/date range.
+    #
+    # Timed events, lower is better:
+    #   ((Athlete 2 best time - Athlete 1 best time) / Athlete 2 best time) * 100
+    #
+    # Field/combined events, higher is better:
+    #   ((Athlete 1 best mark - Athlete 2 best mark) / Athlete 2 best mark) * 100
+    #
+    # Interpretation:
+    #   positive = Athlete 1 is ahead
+    #   zero     = equal
+    #   negative = Athlete 2 is ahead
 
-    plot_df["RELATIVE_GAP_C"] = plot_df["RELATIVE_GAP"].apply(format_numeric_two_dp)
+    def best_head_to_head_value(values):
+        values = pd.to_numeric(values, errors="coerce").dropna()
+        if values.empty:
+            return np.nan
+        return float(values.min()) if is_timed_event else float(values.max())
+
+    def calculate_relative_gap_pct(athlete_1_value, athlete_2_value):
+        athlete_1_value = pd.to_numeric(athlete_1_value, errors="coerce")
+        athlete_2_value = pd.to_numeric(athlete_2_value, errors="coerce")
+
+        if pd.isna(athlete_1_value) or pd.isna(athlete_2_value):
+            return np.nan
+
+        if float(athlete_2_value) == 0:
+            return np.nan
+
+        if is_timed_event:
+            return ((float(athlete_2_value) - float(athlete_1_value)) / float(athlete_2_value)) * 100
+
+        return ((float(athlete_1_value) - float(athlete_2_value)) / float(athlete_2_value)) * 100
+
+    athlete_1_best = best_head_to_head_value(
+        plot_df.loc[plot_df["ATHLETE_LABEL"] == athlete_1, "RESULT_FLOAT"]
+    )
+    athlete_2_best = best_head_to_head_value(
+        plot_df.loc[plot_df["ATHLETE_LABEL"] == athlete_2, "RESULT_FLOAT"]
+    )
+
+    relative_gap_pct = calculate_relative_gap_pct(athlete_1_best, athlete_2_best)
+
+    if is_timed_event:
+        athlete_1_best_c = format_seconds_no_leading_zeros(athlete_1_best)
+        athlete_2_best_c = format_seconds_no_leading_zeros(athlete_2_best)
+        metric_basis = "best time"
+    elif is_combined_event:
+        athlete_1_best_c = str(int(round(athlete_1_best))) if pd.notna(athlete_1_best) else ""
+        athlete_2_best_c = str(int(round(athlete_2_best))) if pd.notna(athlete_2_best) else ""
+        metric_basis = "best points score"
+    else:
+        athlete_1_best_c = format_numeric_two_dp(athlete_1_best)
+        athlete_2_best_c = format_numeric_two_dp(athlete_2_best)
+        metric_basis = "best mark"
+
+    if pd.notna(relative_gap_pct):
+        relative_gap_pct_c = f"{float(relative_gap_pct):+.2f}%"
+        if relative_gap_pct > 0:
+            metric_interpretation = f"{athlete_1} is ahead of {athlete_2} by {abs(float(relative_gap_pct)):.2f}%."
+        elif relative_gap_pct < 0:
+            metric_interpretation = f"{athlete_2} is ahead of {athlete_1} by {abs(float(relative_gap_pct)):.2f}%."
+        else:
+            metric_interpretation = "The two athletes are equal on this metric."
+    else:
+        relative_gap_pct_c = "N/A"
+        metric_interpretation = "The metric could not be calculated because one of the comparison values is missing or zero."
+
+    # Best-to-date timeline for the one-metric head-to-head chart.
+    # The chart has a single line: positive means Athlete 1 ahead, negative means Athlete 2 ahead.
+    timeline_rows = []
+    for current_date in sorted(plot_df["DATE_DT"].dropna().unique()):
+        current_dt = pd.to_datetime(current_date)
+        upto_current = plot_df[plot_df["DATE_DT"] <= current_dt]
+
+        a1_best_to_date = best_head_to_head_value(
+            upto_current.loc[upto_current["ATHLETE_LABEL"] == athlete_1, "RESULT_FLOAT"]
+        )
+        a2_best_to_date = best_head_to_head_value(
+            upto_current.loc[upto_current["ATHLETE_LABEL"] == athlete_2, "RESULT_FLOAT"]
+        )
+
+        gap_pct_to_date = calculate_relative_gap_pct(a1_best_to_date, a2_best_to_date)
+
+        if pd.notna(gap_pct_to_date):
+            if is_timed_event:
+                a1_best_to_date_c = format_seconds_no_leading_zeros(a1_best_to_date)
+                a2_best_to_date_c = format_seconds_no_leading_zeros(a2_best_to_date)
+            elif is_combined_event:
+                a1_best_to_date_c = str(int(round(a1_best_to_date))) if pd.notna(a1_best_to_date) else ""
+                a2_best_to_date_c = str(int(round(a2_best_to_date))) if pd.notna(a2_best_to_date) else ""
+            else:
+                a1_best_to_date_c = format_numeric_two_dp(a1_best_to_date)
+                a2_best_to_date_c = format_numeric_two_dp(a2_best_to_date)
+
+            timeline_rows.append(
+                {
+                    "DATE_DT": current_dt,
+                    "RELATIVE_GAP_PCT": float(gap_pct_to_date),
+                    "RELATIVE_GAP_PCT_C": f"{float(gap_pct_to_date):+.2f}%",
+                    "ATHLETE_1": athlete_1,
+                    "ATHLETE_2": athlete_2,
+                    "ATHLETE_1_BEST": a1_best_to_date,
+                    "ATHLETE_2_BEST": a2_best_to_date,
+                    "ATHLETE_1_BEST_C": a1_best_to_date_c,
+                    "ATHLETE_2_BEST_C": a2_best_to_date_c,
+                }
+            )
+
+    metric_timeline_df = pd.DataFrame(timeline_rows)
+
+    plot_df["HEAD_TO_HEAD_GAP_PCT"] = relative_gap_pct
+    plot_df["HEAD_TO_HEAD_GAP_PCT_C"] = relative_gap_pct_c
 
     # ------------------------------------------------------------
     # 5. Charts
@@ -2197,14 +2299,39 @@ elif benchmark_option == "Athlete Head-to-Head":
             "DATE_DT",
             "RESULT_FLOAT",
             "RESULT_C",
-            "RELATIVE_GAP",
-            "RELATIVE_GAP_C",
             "COMPETITION",
             "WIND",
             "STAGE",
             "EVENT_CLASS",
         ]
     ].copy()
+
+    st.write("### Head-to-Head Metric")
+    metric_col, a1_col, a2_col = st.columns(3)
+
+    with metric_col:
+        st.metric(
+            label="Relative Performance Gap %",
+            value=relative_gap_pct_c,
+        )
+
+    with a1_col:
+        st.metric(
+            label=f"{athlete_1} {metric_basis}",
+            value=athlete_1_best_c,
+        )
+
+    with a2_col:
+        st.metric(
+            label=f"{athlete_2} {metric_basis}",
+            value=athlete_2_best_c,
+        )
+
+    st.caption(
+        "Relative Performance Gap % is calculated from Athlete 1's perspective. "
+        "Positive means Athlete 1 is ahead; negative means Athlete 2 is ahead. "
+        + metric_interpretation
+    )
 
     try:
         import altair as alt
@@ -2246,30 +2373,38 @@ elif benchmark_option == "Athlete Head-to-Head":
 
         st.altair_chart(raw_chart, use_container_width=True)
 
-        st.write("### Relative Performance Gap")
-        st.caption(relative_caption)
-
-        relative_chart = (
-            alt.Chart(chart_data)
-            .mark_line(point=alt.OverlayMarkDef(filled=True, size=85))
-            .encode(
-                x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
-                y=alt.Y("RELATIVE_GAP:Q", title=relative_y_title),
-                color=alt.Color("ATHLETE_LABEL:N", title="Athlete"),
-                tooltip=[
-                    alt.Tooltip("ATHLETE_LABEL:N", title="Athlete"),
-                    alt.Tooltip("DATE_DT:T", title="Date"),
-                    alt.Tooltip("RELATIVE_GAP_C:N", title="Gap To Best"),
-                    alt.Tooltip("RESULT_C:N", title="Result"),
-                    alt.Tooltip("COMPETITION:N", title="Competition"),
-                    alt.Tooltip("WIND:N", title="Wind"),
-                    alt.Tooltip("STAGE:N", title="Stage"),
-                ],
-            )
-            .properties(height=350)
+        st.write("### Relative Performance Gap % Trend")
+        st.caption(
+            "This single-line chart tracks the head-to-head gap using each athlete's best-to-date "
+            "performance. Positive means Athlete 1 is ahead; negative means Athlete 2 is ahead."
         )
 
-        st.altair_chart(relative_chart, use_container_width=True)
+        if not metric_timeline_df.empty:
+            relative_pct_chart = (
+                alt.Chart(metric_timeline_df)
+                .mark_line(point=alt.OverlayMarkDef(filled=True, size=85))
+                .encode(
+                    x=alt.X("DATE_DT:T", axis=x_axis_quarterly),
+                    y=alt.Y("RELATIVE_GAP_PCT:Q", title="Relative Performance Gap (%)"),
+                    tooltip=[
+                        alt.Tooltip("DATE_DT:T", title="Date"),
+                        alt.Tooltip("RELATIVE_GAP_PCT_C:N", title="Relative Gap"),
+                        alt.Tooltip("ATHLETE_1_BEST_C:N", title=f"{athlete_1} Best To Date"),
+                        alt.Tooltip("ATHLETE_2_BEST_C:N", title=f"{athlete_2} Best To Date"),
+                    ],
+                )
+                .properties(height=350)
+            )
+
+            zero_rule = (
+                alt.Chart(pd.DataFrame({"ZERO_LINE": [0]}))
+                .mark_rule(strokeDash=[4, 4])
+                .encode(y="ZERO_LINE:Q")
+            )
+
+            st.altair_chart(relative_pct_chart + zero_rule, use_container_width=True)
+        else:
+            st.info("The relative performance gap trend needs graphable results for both athletes.")
 
     except Exception:
         fallback_chart = chart_data.pivot_table(
@@ -2280,6 +2415,11 @@ elif benchmark_option == "Athlete Head-to-Head":
         )
         st.line_chart(fallback_chart)
 
+        if not metric_timeline_df.empty:
+            st.line_chart(
+                metric_timeline_df.set_index("DATE_DT")[["RELATIVE_GAP_PCT"]]
+            )
+
     # ------------------------------------------------------------
     # 6. Matching result table
     # ------------------------------------------------------------
@@ -2289,7 +2429,7 @@ elif benchmark_option == "Athlete Head-to-Head":
         "MAPPED_EVENT",
         "COMPETITION",
         "RESULT_C",
-        "RELATIVE_GAP_C",
+        "HEAD_TO_HEAD_GAP_PCT_C",
         "WIND",
         "HOST_CITY",
         "AGE",
@@ -2306,7 +2446,7 @@ elif benchmark_option == "Athlete Head-to-Head":
     df_final = df_final.rename(
         columns={
             "ATHLETE_LABEL": "NAME",
-            "RELATIVE_GAP_C": "GAP_TO_BEST",
+            "HEAD_TO_HEAD_GAP_PCT_C": "HEAD_TO_HEAD_GAP_PCT",
         }
     )
     df_final = map_nwi(df_final)
