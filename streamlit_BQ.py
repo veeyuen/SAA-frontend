@@ -137,6 +137,93 @@ def gspread_names():
 
 # Name variations are loaded lazily only when required.
 
+# ============================================================
+# OCTC NOTEBOOK-EQUIVALENT NAME STANDARDISATION
+# Mirrors the name matching used in OCTC_PRODUCTION.ipynb:
+# cleaned punctuation-insensitive key -> exact dictionary lookup.
+# ============================================================
+def _octc_clean_base_name(value):
+    if pd.isna(value):
+        return ""
+
+    value = str(value)
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", value)
+    value = value.replace("\r", " ").replace("\n", " ")
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def _octc_strip_punctuation(value):
+    import unicodedata
+
+    return "".join(
+        character
+        for character in value
+        if not unicodedata.category(character).startswith("P")
+    )
+
+
+def _octc_name_match_key(value):
+    value = _octc_clean_base_name(value)
+    value = _octc_strip_punctuation(value)
+    value = re.sub(r"\s+", "", value)
+    return value.casefold()
+
+
+def _octc_clean_replacement_name(value):
+    value = _octc_clean_base_name(value)
+    value = _octc_strip_punctuation(value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip().casefold()
+
+
+def standardize_octc_names_like_notebook(df_input, names_input):
+    """Return a copy with NAME standardised exactly like the OCTC notebook."""
+    df_output = df_input.copy()
+    names_reference = names_input.copy()
+
+    if "NAME" not in df_output.columns:
+        return df_output
+
+    required_reference_cols = {"VARIATION", "NAME"}
+    if not required_reference_cols.issubset(names_reference.columns):
+        df_output["NAME"] = (
+            df_output["NAME"]
+            .apply(_octc_clean_replacement_name)
+            .str.title()
+        )
+        return df_output
+
+    df_output["NAME_KEY"] = df_output["NAME"].apply(_octc_name_match_key)
+
+    names_reference["VARIATION_KEY"] = (
+        names_reference["VARIATION"].apply(_octc_name_match_key)
+    )
+    names_reference["NAME_CLEAN"] = (
+        names_reference["NAME"].apply(_octc_clean_replacement_name)
+    )
+
+    # The notebook keeps the last row for a duplicated variation key.
+    name_map = (
+        names_reference
+        .loc[names_reference["VARIATION_KEY"].astype(str).str.strip() != ""]
+        .drop_duplicates(subset=["VARIATION_KEY"], keep="last")
+        .set_index("VARIATION_KEY")["NAME_CLEAN"]
+        .to_dict()
+    )
+
+    df_output["NAME"] = df_output["NAME_KEY"].map(name_map).fillna(
+        df_output["NAME"].apply(_octc_clean_replacement_name)
+    )
+    df_output["NAME"] = df_output["NAME"].str.title()
+
+    return df_output.drop(columns=["NAME_KEY"])
+
+# ============================================================
+# END OCTC NOTEBOOK-EQUIVALENT NAME STANDARDISATION
+# ============================================================
+
 
 # Create list of foreigners lazily.
 # This avoids loading the foreigner CSV on every app rerun / every dropdown page.
@@ -1360,10 +1447,13 @@ if benchmark_option == "Ranking & Performance Reports":
     benchmark_option = st.selectbox(
         "Select Ranking / Performance Report:",
         (
+            "",
             "2025 SEAG Bronze - SEAG Selection",
             "2025 SEAG Bronze - OCTC Selection",
             "Marathon Ranking Report",
         ),
+        index=0,
+        key="ranking_performance_report_submenu",
     )
 
 
@@ -2707,7 +2797,7 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
        # start = np.datetime64(start_date)
        # end = np.datetime64(end_date)
         start = '2025-01-01'
-        end = '2026-12-31'
+        end = '2026-06-17'  # Match OCTC_PRODUCTION.ipynb final_tiered_selection window
         start_date = pd.to_datetime(start)
         end_date = pd.to_datetime(end)
 
@@ -2772,34 +2862,44 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     df['PERF_SCALAR']=df['Delta5']/df['STANDARDISED_BENCHMARK']*100
 
 
-# Iterate over dataframe and replace names using casefold then convert to capitalize first letter (NEW BLOCK)
-# Normalize dataframe
+# Standardise athlete names.
+# OCTC follows OCTC_PRODUCTION.ipynb exactly: use the GCS name-variations
+# file and perform an exact punctuation-insensitive key lookup.
+# SEAG retains the existing regex replacement behaviour.
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        names_for_report = name_variations().copy()
+        df = standardize_octc_names_like_notebook(df, names_for_report)
+    else:
+        df['NAME'] = df['NAME'].apply(normalize_text)
 
-    df['NAME'] = df['NAME'].apply(normalize_text)
+        names_for_report = gspread_names().copy()
+        names_for_report['VARIATION'] = names_for_report['VARIATION'].apply(normalize_text)
+        names_for_report['NAME'] = names_for_report['NAME'].apply(normalize_text)
 
-    # Load name variations only when the SEAG/OCTC report is run.
-    names_for_report = gspread_names().copy()
-    names_for_report['VARIATION'] = names_for_report['VARIATION'].apply(normalize_text)
-    names_for_report['NAME'] = names_for_report['NAME'].apply(normalize_text)
+        compiled_patterns = []
+        for pattern_str, replacement_name in zip(
+            names_for_report['VARIATION'],
+            names_for_report['NAME'],
+        ):
+            try:
+                compiled_patterns.append(
+                    (re.compile(pattern_str), replacement_name)
+                )
+            except re.error as error:
+                print(
+                    f"Skipping invalid regex pattern: {pattern_str} "
+                    f"Error: {error}"
+                )
 
-# Precompile all regex patterns safely
+        for regex, replacement_name in compiled_patterns:
+            df['NAME'] = df['NAME'].str.replace(
+                regex,
+                replacement_name,
+                regex=True,
+            )
 
-    compiled_patterns = []
-    for pattern_str, replacement in zip(names_for_report['VARIATION'], names_for_report['NAME']):
-        try:
-            compiled_re = re.compile(pattern_str)
-            compiled_patterns.append( (compiled_re, replacement) )
-        except re.error as e:
-            print(f"Skipping invalid regex pattern: {pattern_str} Error: {e}")
+        df['NAME'] = df['NAME'].str.title()
 
-# Iterate over all patterns and apply replacements using precompiled regexes
-    for regex, replacement in compiled_patterns:
-        df['NAME'] = df['NAME'].str.replace(regex, replacement, regex=True)
-
-# Capitalize final standardized names
-    df['NAME'] = df['NAME'].str.title()
-
-# END NEW BLOCK #
 
 
 
@@ -2807,8 +2907,12 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 # Remove foreigners
 
-    exclusions = get_foreign_exclusions()
-    df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]  # ~ means NOT IN. DROP spex carded athletes
+    # OCTC_PRODUCTION.ipynb does not apply the separate foreigner-name
+    # exclusion list before final_tiered_selection. It relies on the
+    # nationality filter below. Preserve the existing exclusion for SEAG only.
+    if benchmark_option == '2025 SEAG Bronze - SEAG Selection':
+        exclusions = get_foreign_exclusions()
+        df = df.loc[~df['NAME'].str.casefold().isin(exclusions)]
 
 
 # Choose the best result for each event participated by every athlete
@@ -2841,11 +2945,48 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             .isin(allowed_nationalities)
     ]
 
-    # Find out top performance for each athlete and event
+    # Find the best performance for each athlete and event.
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Mirror OCTC_PRODUCTION.ipynb cell 86.
+        df_local_teams = df_local_teams.copy()
+        df_local_teams['PERF_SCALAR'] = pd.to_numeric(
+            df_local_teams['PERF_SCALAR'],
+            errors='coerce',
+        )
 
-    top_performers_clean = df_local_teams.sort_values(['MAPPED_EVENT', 'NAME','PERF_SCALAR'],ascending=False).groupby(['MAPPED_EVENT', 'NAME']).head(1)
+        finite_mask = np.isfinite(df_local_teams['PERF_SCALAR'])
+        df_best_candidates = df_local_teams.loc[finite_mask].copy()
 
-    top_performers_clean.reset_index(inplace=True, drop=True)
+        for grouping_col in ['NAME', 'MAPPED_EVENT']:
+            df_best_candidates[grouping_col] = (
+                df_best_candidates[grouping_col]
+                .astype(str)
+                .str.strip()
+            )
+
+        top_performers_clean = (
+            df_best_candidates
+            .sort_values(
+                ['MAPPED_EVENT', 'NAME', 'PERF_SCALAR'],
+                ascending=[True, True, False],
+            )
+            .drop_duplicates(
+                subset=['MAPPED_EVENT', 'NAME'],
+                keep='first',
+            )
+            .reset_index(drop=True)
+        )
+    else:
+        top_performers_clean = (
+            df_local_teams
+            .sort_values(
+                ['MAPPED_EVENT', 'NAME', 'PERF_SCALAR'],
+                ascending=False,
+            )
+            .groupby(['MAPPED_EVENT', 'NAME'])
+            .head(1)
+            .reset_index(drop=True)
+        )
 
 
 
@@ -2855,11 +2996,54 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
     # Create performance tier column
 
-    top_performers_clean['TIER'] = np.where((top_performers_clean['Delta_Benchmark']>=0), 'Tier 1',
-                                    np.where(((top_performers_clean['Delta_Benchmark']<0) & (top_performers_clean['Delta2']>=0)), 'Tier 2',
-                                    np.where(((top_performers_clean['Delta2']<0) & (top_performers_clean['Delta3.5']>=0)), 'Tier 3',
-                                    np.where(((top_performers_clean['Delta3.5']<0) & (top_performers_clean['Delta5']>=0)), 'Tier 4',
-                                    np.where(((top_performers_clean['Delta5']<0) & (top_performers_clean['Delta10']>=0)), 'Tier 5', ' ')))))
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Match OCTC_PRODUCTION.ipynb final_tiered_selection: Tier 1-4 only.
+        top_performers_clean['TIER'] = np.where(
+            top_performers_clean['Delta_Benchmark'] >= 0,
+            'Tier 1',
+            np.where(
+                (top_performers_clean['Delta_Benchmark'] < 0)
+                & (top_performers_clean['Delta2'] >= 0),
+                'Tier 2',
+                np.where(
+                    (top_performers_clean['Delta2'] < 0)
+                    & (top_performers_clean['Delta3.5'] >= 0),
+                    'Tier 3',
+                    np.where(
+                        (top_performers_clean['Delta3.5'] < 0)
+                        & (top_performers_clean['Delta5'] >= 0),
+                        'Tier 4',
+                        ' ',
+                    ),
+                ),
+            ),
+        )
+    else:
+        top_performers_clean['TIER'] = np.where(
+            top_performers_clean['Delta_Benchmark'] >= 0,
+            'Tier 1',
+            np.where(
+                (top_performers_clean['Delta_Benchmark'] < 0)
+                & (top_performers_clean['Delta2'] >= 0),
+                'Tier 2',
+                np.where(
+                    (top_performers_clean['Delta2'] < 0)
+                    & (top_performers_clean['Delta3.5'] >= 0),
+                    'Tier 3',
+                    np.where(
+                        (top_performers_clean['Delta3.5'] < 0)
+                        & (top_performers_clean['Delta5'] >= 0),
+                        'Tier 4',
+                        np.where(
+                            (top_performers_clean['Delta5'] < 0)
+                            & (top_performers_clean['Delta10'] >= 0),
+                            'Tier 5',
+                            ' ',
+                        ),
+                    ),
+                ),
+            ),
+        )
 
 
     # Drop rows without a corresponding benchmark
@@ -2880,70 +3064,12 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
 
-    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':   # Additional logic for OCTC report
-
-        # Rank everyone for octc selection
-
-##        all_ranking_octc = df_no_na.sort_values(['MAPPED_EVENT','GENDER','PERF_SCALAR'], ascending=[False, False, False])
-##        all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
-
-##        all_ranking_octc['TIER_ADJ'] = np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 1') & (all_ranking_octc['Rank']==3)), 'Tier 2',
-##                                np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 1') & (all_ranking_octc['Rank']>=4)), 'Tier 2',
-##                                np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 2') & (all_ranking_octc['Rank']==3)), 'Tier 3',
-##                                np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 2') & (all_ranking_octc['Rank']>=4)), 'Tier 3',
-##                                np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 3') & (all_ranking_octc['Rank']==3)), 'Tier 4',
-##                                np.where(
-##                                ((all_ranking_octc['TIER']=='Tier 3') & (all_ranking_octc['Rank']>=4)), 'Tier 4', all_ranking_octc['TIER'])
-
-##                                )))))
-
-
-
-##        rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT','GENDER','TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
-##        rerank_octc['Rank_ADJ'] = rerank_octc.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
-
-##        rerank_filtered_octc = rerank_octc[(rerank_octc['TIER_ADJ']!=' ') & (rerank_octc['TIER_ADJ']!='Tier 4')]
-
-##        rerank_filtered_octc = rerank_filtered_octc.drop(['TIER', 'Rank'], axis=1)
-
-##        rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
-## NEW BLOCK
-        # 1. Sort and Rank
-            all_ranking_octc = df_no_na.sort_values(['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'], ascending=[False, False, False])
-            all_ranking_octc['Rank'] = all_ranking_octc.groupby(['GENDER', 'MAPPED_EVENT', 'TIER']).cumcount() + 1
-
-        # 2. Define Tier Adjustment Logic
-            def adjust_tier(row):
-                tier, rank = row['TIER'], row['Rank']
-                if tier == 'Tier 1' and rank >= 3:
-                    return 'Tier 2'
-                elif tier == 'Tier 2' and rank >= 3:
-                    return 'Tier 3'
-                elif tier == 'Tier 3' and rank >= 3:
-                    return 'Tier 4'
-                else:
-                    return tier
-
-        # Apply Tier Adjustment
-            all_ranking_octc['TIER_ADJ'] = all_ranking_octc.apply(adjust_tier, axis=1)
-
-        # 3. Secondary Sort and Re-Rank
-            rerank_octc = all_ranking_octc.sort_values(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'], ascending=[False, False, False, False])
-            rerank_octc['Rank_ADJ'] = rerank_octc.groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ']).cumcount() + 1
-
-        # 4. Filter, Clean, and Rename
-            rerank_filtered_octc = rerank_octc[~rerank_octc['TIER_ADJ'].isin([' ', 'Tier 4'])].drop(['TIER', 'Rank'], axis=1)
-            rerank_filtered_octc.rename(columns={'TIER_ADJ': 'TIER', 'Rank_ADJ': 'TIER_RANKING'}, inplace=True)
-
-    ## NEW BLOCK END##
-
-            final_df = rerank_filtered_octc
-
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # OCTC_PRODUCTION.ipynb creates final_tiered_selection before the
+        # later Rule E tier re-ranking. Match that dataframe directly.
+        final_tiered_selection = df_no_na.loc[
+            df_no_na['TIER'] != ' '
+        ].copy()
 
 
 
@@ -2958,11 +3084,13 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # OCTC report uses the adjusted / reranked tier output created above.
-        final_df = rerank_filtered_octc.copy()
+        # Direct equivalent of notebook final_tiered_selection.
+        final_df = final_tiered_selection.copy()
     else:
         # SEAG report uses all records with a tier value.
-        final_df = df_no_na[df_no_na['TIER'].fillna('').astype(str).str.strip() != ''].copy()
+        final_df = df_no_na[
+            df_no_na['TIER'].fillna('').astype(str).str.strip() != ''
+        ].copy()
 
     final_df = final_df.reset_index(drop=True)
 
@@ -2972,7 +3100,6 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     report_extra_cols = [
         'UNIQUE_ID',
         'TIER',
-        'TIER_RANKING',
         'TEAM',
         'NATIONALITY',
         'RESULT_BENCHMARK',
