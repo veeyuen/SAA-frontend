@@ -419,6 +419,48 @@ def fetch_all_data():   # for database access
 # ============================================================
 
 # ============================================================
+# OCTC EXCEL TRACK-TIME NORMALISATION
+# The notebook normalises Excel-imported track times such as
+# 00:14:57.400000 to 14:57.40 before converting them to seconds.
+# Without this step, older versions of convert_time_refactored() may
+# fail on the two-colon Excel representation, causing the record to
+# receive a blank RESULT_CONV and be removed by the finite-value filter.
+# ============================================================
+def normalize_excel_track_time_for_selection(value):
+    """Normalise Excel-style track times for the selection pipeline.
+
+    Examples
+    --------
+    00:14:57.400000 -> 14:57.40
+    00:17:06.700000 -> 17:06.70
+    00:04:05.090000 -> 4:05.09
+
+    Times with a non-zero hour component are left unchanged so road-race
+    and marathon durations continue to be interpreted as hours.
+    """
+    if pd.isna(value):
+        return value
+
+    value_text = str(value).strip()
+
+    match = re.fullmatch(
+        r"00:(?P<minutes>\d{1,2}):(?P<seconds>\d{2})(?:\.(?P<fraction>\d+))?",
+        value_text,
+    )
+
+    if not match:
+        return value
+
+    minutes = int(match.group("minutes"))
+    seconds = int(match.group("seconds"))
+    fraction = match.group("fraction") or "0"
+
+    # Keep centiseconds to match the notebook/report convention.
+    centiseconds = fraction[:2].ljust(2, "0")
+    return f"{minutes}:{seconds:02d}.{centiseconds}"
+
+
+# ============================================================
 # SEARCH / REPORT OUTPUT FORMAT HELPERS
 # ============================================================
 
@@ -2852,6 +2894,15 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
     df['RESULT'] = df['RESULT'].replace(regex=r'–', value=np.nan)
+
+    # Match the notebook's pre-conversion handling of Excel-imported track
+    # times. This is essential for 5000m records such as
+    # 00:14:57.400000 and 00:17:06.700000; otherwise RESULT_CONV may be
+    # blank and the athletes are removed before tier assignment.
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        df['RESULT'] = df['RESULT'].apply(
+            normalize_excel_track_time_for_selection
+        )
 
     process_results(df) # call function to convert results to standard float64 format
 
