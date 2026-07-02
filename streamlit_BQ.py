@@ -176,6 +176,15 @@ SELECT NAME, EVENT, DATE, COMPETITION, RESULT, WIND, HOST_CITY, TEAM, STAGE, AGE
 FROM `saa-analytics.results.PRODUCTION`
 """
 
+marathon_sql="""
+SELECT NAME, RESULT, TEAM, EVENT, DATE, GENDER, COMPETITION, YEAR, NATIONALITY
+FROM `saa-analytics.results.PRODUCTION`
+WHERE EVENT IN ('Marathon', 'Half Marathon')
+AND CAST(YEAR AS STRING) IN ('2025', '2026')
+AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
+AND RESULT IS NOT NULL
+"""
+
 ## Read all performance benchmarks csv from GCS bucket and process##
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
@@ -228,6 +237,18 @@ def fetch_data():  # for reports
 
  #   process_results(data) # convert results into seconds format
 
+    return data
+
+
+@st.cache_data(ttl=6000)
+def fetch_marathon_ranking_data():
+    """Fetch only marathon / half-marathon results needed for the ranking report.
+
+    This keeps the report lightweight instead of downloading the full results
+    database.
+    """
+    data = client.query_and_wait(marathon_sql).to_dataframe()
+    data.dropna(how="all", axis=1, inplace=True)
     return data
 
 #@st.cache_data(ttl=20000)
@@ -424,6 +445,40 @@ def format_numeric_two_dp(value):
         return ''
 
     return f"{float(value):.2f}"
+
+
+def format_road_race_duration(value):
+    """Format marathon / half-marathon durations for ranking reports.
+
+    Examples:
+    - 00:11:25.210000 -> 11:25.21
+    - 01:08:30        -> 1:08:30
+    - 02:34:57.123456 -> 2:34:57.12
+    """
+    seconds = parse_performance_seconds(value)
+
+    if pd.isna(seconds):
+        return ''
+
+    seconds = float(seconds)
+
+    if seconds < 0:
+        return ''
+
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    sec = seconds - (hours * 3600) - (minutes * 60)
+    sec_is_whole = abs(sec - round(sec)) < 0.005
+
+    if hours > 0:
+        if sec_is_whole:
+            return f"{hours}:{minutes:02d}:{int(round(sec)):02d}"
+        return f"{hours}:{minutes:02d}:{sec:05.2f}"
+
+    if minutes > 0:
+        return f"{minutes}:{sec:05.2f}"
+
+    return f"{sec:.2f}"
 
 def format_results_like_search(df_input, include_result_conv=False, extra_cols=None):
     """
@@ -1290,6 +1345,7 @@ benchmark_option = st.selectbox(
         "List Results By Event",
         "Performance Trend Graphs",
         "Athlete Head-to-Head",
+        "Marathon Ranking Report",
         "2025 SEAG Bronze - SEAG Selection",
         "2025 SEAG Bronze - OCTC Selection",
     )
@@ -2465,6 +2521,156 @@ elif benchmark_option == "Athlete Head-to-Head":
 # ============================================================
 # END ATHLETE HEAD-TO-HEAD PATCH
 # ============================================================
+
+
+elif benchmark_option == 'Marathon Ranking Report':
+
+    st.subheader('Marathon Ranking Report')
+
+    ranking_events = ['Marathon', 'Half Marathon']
+    selected_years = ['2025', '2026']
+
+    competitors = fetch_marathon_ranking_data().copy()
+
+    if competitors.empty:
+        st.warning('No Marathon / Half Marathon records were found for 2025 or 2026.')
+    else:
+        competitors = clean_columns(competitors)
+
+        # Defensive column setup so the report does not fail if one optional
+        # column is absent in the BigQuery result.
+        required_cols = [
+            'EVENT', 'NAME', 'RESULT', 'GENDER', 'TEAM',
+            'COMPETITION', 'DATE', 'YEAR', 'NATIONALITY'
+        ]
+        for col in required_cols:
+            if col not in competitors.columns:
+                competitors[col] = ''
+
+        competitors['EVENT'] = competitors['EVENT'].fillna('').astype(str).str.strip()
+        competitors['YEAR'] = competitors['YEAR'].fillna('').astype(str).str.strip()
+
+        marathoners = competitors[
+            competitors['EVENT'].isin(ranking_events)
+            & competitors['YEAR'].isin(selected_years)
+        ].copy()
+
+        # If YEAR is blank or malformed, fall back to DATE-derived year.
+        if marathoners.empty:
+            competitors['DATE_DT'] = pd.to_datetime(competitors['DATE'], errors='coerce')
+            competitors['YEAR_FROM_DATE'] = competitors['DATE_DT'].dt.year.astype('Int64').astype(str)
+            marathoners = competitors[
+                competitors['EVENT'].isin(ranking_events)
+                & competitors['YEAR_FROM_DATE'].isin(selected_years)
+            ].copy()
+
+        if marathoners.empty:
+            st.warning('No Marathon / Half Marathon records were available after applying the 2025/2026 filter.')
+        else:
+            # Standardise athlete names using the same name-variation source used
+            # by the SEAG / OCTC reports.
+            marathoners['NAME'] = marathoners['NAME'].apply(normalize_text)
+
+            names_for_report = gspread_names().copy()
+            if {'VARIATION', 'NAME'}.issubset(set(names_for_report.columns)):
+                names_for_report['VARIATION'] = names_for_report['VARIATION'].apply(normalize_text)
+                names_for_report['NAME'] = names_for_report['NAME'].apply(normalize_text)
+
+                compiled_patterns = []
+                for pattern_str, replacement in zip(names_for_report['VARIATION'], names_for_report['NAME']):
+                    try:
+                        compiled_re = re.compile(pattern_str)
+                        compiled_patterns.append((compiled_re, replacement))
+                    except re.error as e:
+                        print(f"Skipping invalid regex pattern: {pattern_str} Error: {e}")
+
+                for regex, replacement in compiled_patterns:
+                    marathoners['NAME'] = marathoners['NAME'].str.replace(regex, replacement, regex=True)
+
+            marathoners['NAME'] = marathoners['NAME'].fillna('').astype(str).str.title()
+
+            # Convert timing string into sortable duration.
+            # parse_performance_seconds() handles Excel-style imports such as
+            # 00:11:25.210000 and normal race times such as 2:34:57.
+            marathoners['RESULT_SECONDS'] = marathoners['RESULT'].apply(parse_performance_seconds)
+
+            missing_seconds = marathoners['RESULT_SECONDS'].isna()
+            if missing_seconds.any():
+                def convert_marathon_for_row(row):
+                    try:
+                        return convert_time_refactored(
+                            row.name,
+                            row.get('EVENT', ''),
+                            row.get('RESULT', '')
+                        )
+                    except Exception:
+                        return np.nan
+
+                marathoners.loc[missing_seconds, 'RESULT_SECONDS'] = pd.to_numeric(
+                    marathoners.loc[missing_seconds].apply(convert_marathon_for_row, axis=1),
+                    errors='coerce'
+                )
+
+            marathoners['RESULT_SECONDS'] = pd.to_numeric(marathoners['RESULT_SECONDS'], errors='coerce')
+            marathoners = marathoners[marathoners['RESULT_SECONDS'].notna()].copy()
+
+            if marathoners.empty:
+                st.warning('No valid numeric marathon / half-marathon timings were available for ranking.')
+            else:
+                marathoners['EVENT_RANK'] = (
+                    marathoners
+                    .groupby('EVENT')['RESULT_SECONDS']
+                    .rank(method='min', ascending=True)
+                    .astype('Int64')
+                )
+
+                marathon_ranked = marathoners.sort_values(
+                    ['EVENT', 'EVENT_RANK', 'RESULT_SECONDS', 'NAME'],
+                    ascending=[True, True, True, True]
+                ).copy()
+
+                marathon_ranked['RESULT'] = marathon_ranked['RESULT_SECONDS'].apply(format_road_race_duration)
+
+                date_converted = pd.to_datetime(marathon_ranked['DATE'], errors='coerce')
+                marathon_ranked['DATE'] = np.where(
+                    date_converted.notna(),
+                    date_converted.dt.strftime('%Y-%m-%d'),
+                    marathon_ranked['DATE'].astype(str)
+                )
+
+                display_cols = [
+                    'EVENT_RANK',
+                    'EVENT',
+                    'NAME',
+                    'RESULT',
+                    'GENDER',
+                    'TEAM',
+                    'COMPETITION',
+                    'DATE',
+                    'NATIONALITY'
+                ]
+
+                marathon_report = marathon_ranked[display_cols].copy()
+
+                st.write('### Marathon and Half Marathon Rankings')
+                st.caption('Ranking is fastest to slowest, ranked separately for Marathon and Half Marathon. Years included: 2025 and 2026.')
+
+                final_dfs, code = spreadsheet(marathon_report)
+
+                with st.expander('Show separate Marathon / Half Marathon tables'):
+                    half_marathon_ranked = marathon_report[
+                        marathon_report['EVENT'] == 'Half Marathon'
+                    ].copy()
+                    marathon_ranked_only = marathon_report[
+                        marathon_report['EVENT'] == 'Marathon'
+                    ].copy()
+
+                    st.write('#### Half Marathon')
+                    st.dataframe(half_marathon_ranked, use_container_width=True)
+
+                    st.write('#### Marathon')
+                    st.dataframe(marathon_ranked_only, use_container_width=True)
+
 
 elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze - OCTC Selection']:  # Choose date and run selection report
 
