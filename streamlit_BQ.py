@@ -1345,11 +1345,26 @@ benchmark_option = st.selectbox(
         "List Results By Event",
         "Performance Trend Graphs",
         "Athlete Head-to-Head",
-        "Marathon Ranking Report",
-        "2025 SEAG Bronze - SEAG Selection",
-        "2025 SEAG Bronze - OCTC Selection",
+        "Ranking & Performance Reports",
     )
 )
+
+# ============================================================
+# RANKING & PERFORMANCE REPORTS SUBMENU PATCH
+# The existing SEAG, OCTC, and Marathon report branches are kept
+# unchanged below.  When the user selects the main reports menu,
+# benchmark_option is reassigned to the selected sub-report so the
+# existing branch logic continues to work.
+# ============================================================
+if benchmark_option == "Ranking & Performance Reports":
+    benchmark_option = st.selectbox(
+        "Select Ranking / Performance Report:",
+        (
+            "2025 SEAG Bronze - SEAG Selection",
+            "2025 SEAG Bronze - OCTC Selection",
+            "Marathon Ranking Report",
+        ),
+    )
 
 
 st.write(' ')
