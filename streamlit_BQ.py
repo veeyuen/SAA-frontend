@@ -1474,7 +1474,7 @@ benchmark_option = st.selectbox(
         "List Results By Event",
         "Performance Trend Graphs",
         "Athlete Head-to-Head",
-        "Ranking & Performance Reports",
+        "Ranking & Selection Reports",
     )
 )
 
