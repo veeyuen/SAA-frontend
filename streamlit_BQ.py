@@ -112,7 +112,7 @@ def fetch_foreigners():
     return foreigners
 # Foreigners are loaded lazily only when the SEAG/OCTC report needs them.
 
-@st.cache_data(ttl=20000)
+@st.cache_data(ttl=600)
 def name_variations():
     conn = st.connection('gcs', type=FilesConnection, ttl=0)
     names = conn.read("name_variations/name_variations.csv", input_format="csv")
@@ -166,6 +166,15 @@ def _octc_strip_punctuation(value):
 
 def _octc_name_match_key(value):
     value = _octc_clean_base_name(value)
+
+    # Many rows in the name-variations file are stored as anchored regex
+    # patterns, for example ^Chen Xiang Ang$ and ^Tan Tate$.
+    # Unicode punctuation removal does NOT remove ^ or $ because Python
+    # classifies them as symbols (Sk and Sc), not punctuation.  Without this
+    # explicit cleanup the variation keys become ^chenxiangang$ / ^tantate$,
+    # which cannot match the database keys chenxiangang / tantate.
+    value = value.replace("^", "").replace("$", "").replace("\\", "")
+
     value = _octc_strip_punctuation(value)
     value = re.sub(r"\s+", "", value)
     return value.casefold()
@@ -1487,7 +1496,7 @@ benchmark_option = st.selectbox(
 # ============================================================
 if benchmark_option == "Ranking & Selection Reports":
     benchmark_option = st.selectbox(
-        "Select Ranking / Performance Report:",
+        "Select Report:",
         (
             "",
             "2025 SEAG Bronze - SEAG Selection",
