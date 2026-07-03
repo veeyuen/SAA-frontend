@@ -1470,7 +1470,7 @@ benchmark_option = st.selectbox(
     "  ",
     (
         "Search Database Records by Name or Competition",
-        "Benchmark Tables",
+        "Display Benchmark Tables",
         "List Results By Event",
         "Performance Trend Graphs",
         "Athlete Head-to-Head",
