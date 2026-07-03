@@ -1487,7 +1487,7 @@ benchmark_option = st.selectbox(
 # ============================================================
 if benchmark_option == "Ranking & Selection Reports":
     benchmark_option = st.selectbox(
-        "Select Ranking / Performance Report:",
+        "Select Ranking / Selection Report:",
         (
             "",
             "2025 SEAG Bronze - SEAG Selection",
