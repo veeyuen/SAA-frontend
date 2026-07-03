@@ -1485,7 +1485,7 @@ benchmark_option = st.selectbox(
 # benchmark_option is reassigned to the selected sub-report so the
 # existing branch logic continues to work.
 # ============================================================
-if benchmark_option == "Ranking & Performance Reports":
+if benchmark_option == "Ranking & Selection Reports":
     benchmark_option = st.selectbox(
         "Select Ranking / Performance Report:",
         (
