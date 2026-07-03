@@ -1591,7 +1591,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 # Displays benchmark sets loaded from the GCS bucket.
 # ============================================================
 
-elif benchmark_option == 'Benchmark Tables':
+elif benchmark_option == 'Display Benchmark Tables':
 
     st.subheader('Benchmark Tables')
 
