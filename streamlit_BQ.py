@@ -293,7 +293,7 @@ def fetch_benchmarks():
         'Metric': 'STANDARDISED_BENCHMARK',
     })
     return benchmarks
-# Benchmarks are loaded lazily only for Benchmark Tables or SEAG/OCTC reports.
+# Benchmarks are loaded lazily only for Display Benchmark Tables or SEAG/OCTC reports.
 
 ## Download all athlete data from BQ
 
@@ -825,7 +825,7 @@ def format_results_like_search(df_input, include_result_conv=False, extra_cols=N
 
 # ============================================================
 # BENCHMARK TABLE DISPLAY HELPERS
-# Used by the "Benchmark Tables" dropdown option.
+# Used by the "Display Benchmark Tables" dropdown option.
 # ============================================================
 
 BENCHMARK_EVENT_ORDER = [
@@ -1151,7 +1151,7 @@ def display_benchmark_table(benchmarks_df, selected_benchmark):
 
 ## Data is now loaded lazily inside each dropdown branch.
 ## This avoids downloading the full BigQuery results table when the user only wants
-## Benchmark Tables or another report that does not need all_data.
+## Display Benchmark Tables or another report that does not need all_data.
 
 
 # ============================================================
@@ -1487,7 +1487,7 @@ benchmark_option = st.selectbox(
 # ============================================================
 if benchmark_option == "Ranking & Selection Reports":
     benchmark_option = st.selectbox(
-        "Select Ranking / Selection Report:",
+        "Select Ranking / Performance Report:",
         (
             "",
             "2025 SEAG Bronze - SEAG Selection",
@@ -1593,7 +1593,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
 
 elif benchmark_option == 'Display Benchmark Tables':
 
-    st.subheader('Benchmark Tables')
+    st.subheader('Display Benchmark Tables')
 
     benchmarks = fetch_benchmarks()
 
@@ -3116,11 +3116,61 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # OCTC_PRODUCTION.ipynb creates final_tiered_selection before the
-        # later Rule E tier re-ranking. Match that dataframe directly.
+        # First reproduce OCTC_PRODUCTION.ipynb final_tiered_selection.
         final_tiered_selection = df_no_na.loc[
             df_no_na['TIER'] != ' '
         ].copy()
+
+        # ------------------------------------------------------------
+        # OCTC RULE E RANKING AND TIER ADJUSTMENT
+        # Rank athletes within each gender / event / original tier.
+        # Only two athletes may remain in each tier; third and later
+        # athletes are moved down by one tier.
+        # ------------------------------------------------------------
+        all_ranking = final_tiered_selection.sort_values(
+            ['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'],
+            ascending=[False, False, False],
+        ).copy()
+
+        all_ranking['Rank'] = (
+            all_ranking
+            .groupby(['GENDER', 'MAPPED_EVENT', 'TIER'])
+            .cumcount()
+            + 1
+        )
+
+        all_ranking['TIER_ADJ'] = np.where(
+            (all_ranking['TIER'] == 'Tier 1') & (all_ranking['Rank'] >= 3),
+            'Tier 2',
+            np.where(
+                (all_ranking['TIER'] == 'Tier 2') & (all_ranking['Rank'] >= 3),
+                'Tier 3',
+                np.where(
+                    (all_ranking['TIER'] == 'Tier 3') & (all_ranking['Rank'] >= 3),
+                    'Tier 4',
+                    all_ranking['TIER'],
+                ),
+            ),
+        )
+
+        # Re-rank after the tier adjustment.
+        rerank = all_ranking.sort_values(
+            ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'],
+            ascending=[False, False, False, False],
+        ).copy()
+
+        rerank['Rank_ADJ'] = (
+            rerank
+            .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
+            .cumcount()
+            + 1
+        )
+
+        # Final OCTC output: exclude blank tiers and Tier 4 after Rule E.
+        rerank_filtered = rerank.loc[
+            (rerank['TIER_ADJ'] != ' ')
+            & (rerank['TIER_ADJ'] != 'Tier 4')
+        ].reset_index(drop=True)
 
 
 
@@ -3135,8 +3185,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # Direct equivalent of notebook final_tiered_selection.
-        final_df = final_tiered_selection.copy()
+        # Final OCTC output after Rule E ranking and tier adjustment.
+        final_df = rerank_filtered.copy()
     else:
         # SEAG report uses all records with a tier value.
         final_df = df_no_na[
@@ -3150,7 +3200,10 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     # This standardises RESULT_C, date, name casing, wind handling, etc.
     report_extra_cols = [
         'UNIQUE_ID',
+        'TIER_ADJ',
+        'Rank_ADJ',
         'TIER',
+        'Rank',
         'TEAM',
         'NATIONALITY',
         'RESULT_BENCHMARK',
