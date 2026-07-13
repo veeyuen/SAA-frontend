@@ -347,6 +347,133 @@ def fetch_marathon_ranking_data():
     data.dropna(how="all", axis=1, inplace=True)
     return data
 
+
+
+# ============================================================
+# RESOURCE PATCH: lightweight event-listing queries
+# ============================================================
+
+@st.cache_data(ttl=6000)
+def fetch_event_lookup_data():
+    """Fetch only distinct EVENT / DISTANCE values for the List Results By Event dropdown.
+
+    This avoids loading the full results table just to build the event list.
+    """
+    event_lookup_sql = """
+    SELECT DISTINCT EVENT, DISTANCE
+    FROM `saa-analytics.results.PRODUCTION`
+    WHERE EVENT IS NOT NULL
+    """
+
+    event_lookup = client.query_and_wait(event_lookup_sql).to_dataframe()
+    event_lookup.dropna(how="all", axis=1, inplace=True)
+    event_lookup = simple_map_events(event_lookup)
+
+    event_lookup["EVENT"] = event_lookup["EVENT"].fillna("").astype(str).str.strip()
+    if "DISTANCE" in event_lookup.columns:
+        event_lookup["DISTANCE"] = event_lookup["DISTANCE"].fillna("").astype(str).str.strip()
+
+    return event_lookup
+
+
+def _standardize_names_like_fetch_all_data(df_input):
+    """Apply the same lightweight name-variation mapping used by fetch_all_data()."""
+    df_output = df_input.copy()
+
+    if "NAME" not in df_output.columns:
+        return df_output
+
+    df_output["NAME"] = df_output["NAME"].fillna("").astype(str).str.casefold()
+
+    names = gspread_names()
+    n = names[["VARIATION", "NAME"]].dropna().copy()
+    n["VARIATION"] = n["VARIATION"].astype(str).str.strip().str.casefold()
+    n["VARIATION"] = n["VARIATION"].str.replace(r"^\^", "", regex=True)
+    n["VARIATION"] = n["VARIATION"].str.replace(r"\$$", "", regex=True)
+    n["NAME"] = n["NAME"].astype(str).str.strip().str.casefold()
+
+    mapping = (
+        n.drop_duplicates(subset="VARIATION")
+        .set_index("VARIATION")["NAME"]
+    )
+
+    df_output["NAME"] = df_output["NAME"].map(mapping).fillna(df_output["NAME"])
+
+    return df_output
+
+
+@st.cache_data(ttl=6000)
+def fetch_results_for_mapped_event(selected_mapped_event):
+    """Fetch only rows for the selected mapped event.
+
+    The app maps raw EVENT values to MAPPED_EVENT in Python, so this first finds
+    the raw EVENT values that map to the selected label, then queries only those
+    result rows from BigQuery.
+    """
+    event_lookup = fetch_event_lookup_data()
+
+    selected_mapped_event = str(selected_mapped_event).strip()
+    if selected_mapped_event == "":
+        return pd.DataFrame()
+
+    raw_events = (
+        event_lookup.loc[
+            event_lookup["MAPPED_EVENT"].fillna("").astype(str).str.casefold()
+            == selected_mapped_event.casefold(),
+            "EVENT",
+        ]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .loc[lambda s: s.ne("")]
+        .drop_duplicates()
+        .tolist()
+    )
+
+    if not raw_events:
+        return pd.DataFrame()
+
+    event_results_sql = """
+    SELECT NAME, EVENT, DATE, COMPETITION, RESULT, WIND, HOST_CITY, TEAM,
+           STAGE, AGE, GENDER, SUB_EVENT, DIVISION, DISTANCE, EVENT_CLASS,
+           DOB, NATIONALITY
+    FROM `saa-analytics.results.PRODUCTION`
+    WHERE EVENT IN UNNEST(@event_names)
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ArrayQueryParameter("event_names", "STRING", raw_events)
+        ]
+    )
+
+    data = client.query(event_results_sql, job_config=job_config).to_dataframe()
+    data.dropna(how="all", axis=1, inplace=True)
+    data = simple_map_events(data)
+    data = _standardize_names_like_fetch_all_data(data)
+
+    # Standardize DATE column consistently with fetch_all_data().
+    if "DATE" in data.columns:
+        data["DATE"] = pd.to_datetime(data["DATE"], errors="coerce")
+        try:
+            if isinstance(data["DATE"].dtype, pd.DatetimeTZDtype):
+                data["DATE"] = data["DATE"].dt.tz_localize(None)
+        except Exception:
+            pass
+        data["DATE"] = data["DATE"].dt.strftime("%Y-%m-%d")
+
+    data["STATUS"] = ""
+    data["RESULT_CONV"] = np.nan
+
+    # Keep only rows that mapped to the selected event. This protects against
+    # broad raw EVENT labels that may map unexpectedly after retrieval.
+    data = data.loc[
+        data["MAPPED_EVENT"].fillna("").astype(str).str.casefold()
+        == selected_mapped_event.casefold()
+    ].copy()
+
+    return data
+
 #@st.cache_data(ttl=20000)
 #def fetch_all_data():  # fetch athlete results
 
@@ -1478,13 +1605,16 @@ def searchable_athlete_selectbox(
 benchmark_option = st.selectbox(
     "  ",
     (
+        "",
         "Search Database Records by Name or Competition",
         "Display Benchmark Tables",
         "List Results By Event",
         "Performance Trend Graphs",
         "Athlete Head-to-Head",
         "Ranking & Selection Reports",
-    )
+    ),
+    index=0,
+    key="main_menu_option",
 )
 
 # ============================================================
@@ -1643,13 +1773,14 @@ elif benchmark_option == 'Display Benchmark Tables':
 
 elif benchmark_option == 'List Results By Event':
 
-    all_data = fetch_all_data()
-    all_data = clean_columns(all_data)
+    # RESOURCE PATCH:
+    # Do not load the full results table just to build this report. First fetch
+    # only distinct raw EVENT/DISTANCE values, map them, then query BigQuery
+    # only for the selected mapped event.
+    event_lookup = fetch_event_lookup_data()
 
-    # Build the event dropdown from the original MAPPED_EVENT labels so that
-    # the user sees normal event names rather than case-folded/lowercase text.
     events_list = (
-        all_data['MAPPED_EVENT']
+        event_lookup['MAPPED_EVENT']
         .dropna()
         .astype(str)
         .str.strip()
@@ -1668,10 +1799,7 @@ elif benchmark_option == 'List Results By Event':
         options=events_list,
     )
 
-    searched_event = all_data[
-        all_data['MAPPED_EVENT'].astype(str).str.casefold()
-        == str(list_option).casefold()
-    ].copy()
+    searched_event = fetch_results_for_mapped_event(list_option)
 
     if searched_event.empty:
         st.warning(f"No results found for {list_option}.")
