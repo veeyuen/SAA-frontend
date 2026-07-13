@@ -1614,7 +1614,7 @@ benchmark_option = st.selectbox(
         "Ranking & Selection Reports",
     ),
     index=0,
-    key="main_menu_option",
+    key="main_menu_option_safe_20260713",
 )
 
 # ============================================================
@@ -1634,9 +1634,25 @@ if benchmark_option == "Ranking & Selection Reports":
             "Marathon Ranking Report",
         ),
         index=0,
-        key="ranking_performance_report_submenu",
+        key="ranking_selection_report_submenu_safe_20260713",
     )
 
+
+# ============================================================
+# STARTUP SAFETY GUARD
+# ------------------------------------------------------------
+# The app previously reused Streamlit widget state from older versions of
+# the menu. If a browser session had a heavy option selected, Streamlit could
+# immediately execute a BigQuery-heavy branch on startup and crash before the
+# user saw the page.
+#
+# The selectbox keys above have been versioned, and this explicit guard stops
+# the script when the blank default is selected. No BigQuery, GCS, or Sheets
+# reads should run until the user chooses a menu option.
+# ============================================================
+if not str(benchmark_option).strip():
+    st.info("Select a menu option to begin.")
+    st.stop()
 
 st.write(' ')
 
