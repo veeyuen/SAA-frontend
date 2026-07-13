@@ -1644,120 +1644,49 @@ elif benchmark_option == 'Display Benchmark Tables':
 elif benchmark_option == 'List Results By Event':
 
     all_data = fetch_all_data()
+    all_data = clean_columns(all_data)
 
-    events_list = all_data['MAPPED_EVENT'].str.casefold().unique().tolist()
-
-  #  events_list = ['60m', '60m Hurdles', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '400m', '800m', '10,000m', '3000m', '5000m',
-  #                  '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-  #                  'Sprint Medley Relay', '5km Racewalk']
-
-    list_option = st.selectbox(
-    "Select Event:",
-    options = events_list,
+    # Build the event dropdown from the original MAPPED_EVENT labels so that
+    # the user sees normal event names rather than case-folded/lowercase text.
+    events_list = (
+        all_data['MAPPED_EVENT']
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .loc[lambda s: s.ne('')]
+        .drop_duplicates()
+        .sort_values(key=lambda s: s.str.casefold())
+        .tolist()
     )
 
-    searched_event = all_data[all_data['MAPPED_EVENT'].str.casefold()==list_option]
+    if not events_list:
+        st.warning('No events were found in the database.')
+        st.stop()
 
-    searched_event = clean_columns(searched_event)
+    list_option = st.selectbox(
+        "Select Event:",
+        options=events_list,
+    )
 
- #   searched_event['DATE'] = pd.to_datetime(searched_event['DATE'], format='%Y-%m-%d') # convert to datetime to enable searching
+    searched_event = all_data[
+        all_data['MAPPED_EVENT'].astype(str).str.casefold()
+        == str(list_option).casefold()
+    ].copy()
 
-    invalid_results = {'—', 'None', 'DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR', '', ' '}
+    if searched_event.empty:
+        st.warning(f"No results found for {list_option}.")
+        st.stop()
 
-    def convert_for_row(row):
-        if row['RESULT'] in invalid_results:
-            return ''
-        return convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
-
-
-   # def convert_for_row(row):
-   #     if row['RESULT'] in invalid_results:
-   #         return np.nan
-   #     result = convert_time_refactored(row.name, row['EVENT'], row['RESULT'])
-   #     if result == '' or result is None:
-   #         st.write(f"FAILED PARSE: EVENT={row['EVENT']} RESULT={row['RESULT']}")
-   #         return np.nan
-   #     return result
-
-
-    searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
-
-    searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
-
- #   searched_event = searched_event[searched_event['RESULT_FLOAT'].notna()]
- #   searched_event = searched_event.sort_values(by='RESULT_FLOAT', ascending=True, na_position='last')
-
-
-    #def seconds_to_mmss(seconds):
-    #    if pd.isna(seconds):
-    #        return ''
-    #    minutes, secs = divmod(seconds, 60)
-    #    return f"{int(minutes):02d}:{secs:05.2f}"
-
-    distance_events = ['60m', '60m Hurdles', '80m', '100m', '100m Hurdles', '110m Hurdles', '400m Hurdles', '200m', '300m', '400m', '800m', '2400m', '10,000m', '3000m', '5000m',
-                        '3000m Steeplechase', '1500m', '10000m Racewalk', '20km Racewalk', '1 Mile', '4 x 100m', '4 x 400m', '2000m Steeplechase', 'Marathon',
-                        'Sprint Medley Relay', '5km Racewalk', '200m Hurdles', '5000m Racewalk', '10,000m Racewalk']
-
-# 2. Rewrite the conditional statement
-    #if list_option in distance_events:
-
-    non_numeric_results = ['DQ', 'SCR', 'FS', 'DNQ', 'DNS', 'NH', 'NM', 'FOUL', 'DNF', 'SR']
-
-        # I included 'NM' (No Mark), 'NH' (No Height), and 'DNC' (Did Not Compete)
-        # as they are also common non-numeric outcomes. You can customize this list.
-        # 2. Create the mask: Check if the RESULT column (case-insensitive) matches any of the defined strings
-        # We use regex with '|' (OR operator) and wrap the match with '^' and '$' to ensure
-        # it's an exact match, not a partial match within a result string.
-    pattern = r'^(' + '|'.join(non_numeric_results) + r')$'
-
-
-
-    searched_event['RESULT_C'] = pd.Series(index=searched_event.index, dtype='object') # NEW
-
-    if list_option in [event.lower() for event in distance_events]:
-
-        searched_event['RESULT_FLOAT'] = searched_event.apply(convert_for_row, axis=1)
-
-        searched_event['RESULT_FLOAT'] = searched_event['RESULT_FLOAT'].replace('', np.nan)
-
-        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT'].apply(seconds_to_mmss)
-
-
-
-    else:
-
-        searched_event['RESULT_C'] = searched_event['RESULT_FLOAT']
-
-    mask_non_numeric = searched_event['RESULT'].astype(str).str.strip().str.contains(
-        pattern,
-        case=False,
-        regex=True,
-        na=False
-        )
-
-    searched_event.loc[mask_non_numeric, 'RESULT_C'] = searched_event['RESULT']
-
-
-  #      searched_event['timedelta'] = pd.to_timedelta(searched_event['RESULT_FLOAT'], unit='s') # Convert to timedelta format
-
-    df_final = searched_event[['NAME', 'DATE', 'MAPPED_EVENT', 'COMPETITION', 'RESULT_C', 'RESULT_FLOAT', 'WIND', 'HOST_CITY', 'AGE', 'GENDER', 'EVENT_CLASS', 'DOB']]  #NEW
-
-    df_final['NAME'] = df_final['NAME'].fillna('').str.title() # Capitalize Name
-
-    df_final = map_nwi(df_final) # replace empty WIND fields with 'NWI'
-
-
-
+    # Use the same central display formatter used by the Search, SEAG/OCTC,
+    # and other formatted reports. This keeps RESULT_C, date formatting,
+    # wind/NWI handling, timed-event formatting, field-event formatting,
+    # and column order consistent across the app.
+    df_final = format_results_like_search(
+        searched_event,
+        include_result_conv=False,
+    )
 
     final_dfs, code = spreadsheet(df_final)
-
-    # Show the results, if you have a text_search
-
-
-#    final_dfs, code = spreadsheet(all_data)
-  #  st.write(final_dfs)
-
-    # Allow text search on athlete name and/or competition
 
 
 
