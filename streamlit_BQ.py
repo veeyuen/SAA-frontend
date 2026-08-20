@@ -241,36 +241,39 @@ def standardize_octc_names_like_notebook(df_input, names_input):
 # same OCTC selection pipeline for any chosen report end date so two snapshots
 # can be compared without relying on previously exported files.
 # ============================================================
-def build_octc_snapshot_for_delta(data_input, benchmarks_input, report_end_date):
-    """Build the OCTC Rule E snapshot through report_end_date.
+def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_date):
+    """Prepare OCTC rows once through the later delta report date.
 
-    Returns the full Rule E re-ranked table, including adjusted Tier 4.  Keeping
-    Tier 4 here is intentional: it lets the delta report recognise Tier 4 ->
-    Tier 3 as a tier upgrade rather than incorrectly labelling the athlete as a
-    new entry.
+    Expensive row-level work (result conversion, benchmark merge and name
+    standardisation) is independent of the snapshot date, so it is performed
+    once. Each snapshot still filters this prepared data to its own report date
+    BEFORE best-result selection, tier assignment and Rule E ranking.
     """
-    data_delta = data_input.copy()
-    benchmarks_delta = benchmarks_input.copy()
-
     start_date_delta = pd.Timestamp('2025-01-01')
-    end_date_delta = pd.Timestamp(report_end_date)
+    octc_cutoff_delta = pd.Timestamp('2026-12-31')
+    current_end_date_delta = min(
+        pd.Timestamp(current_report_end_date),
+        octc_cutoff_delta,
+    )
 
     parsed_dates = pd.to_datetime(
-        data_delta['DATE'],
+        data_input['DATE'],
         format='mixed',
         dayfirst=False,
         utc=True,
         errors='coerce',
+    ).dt.tz_localize(None)
+
+    current_mask = (
+        (parsed_dates >= start_date_delta)
+        & (parsed_dates <= current_end_date_delta)
     )
-    data_delta['DATE'] = parsed_dates.dt.tz_localize(None)
 
-    athletes_selected_delta = data_delta.loc[
-        (data_delta['DATE'] >= start_date_delta)
-        & (data_delta['DATE'] <= end_date_delta)
-    ].copy()
+    athletes_selected_delta = data_input.loc[current_mask].copy()
+    athletes_selected_delta['DATE'] = parsed_dates.loc[current_mask]
 
-    benchmark_delta = benchmarks_delta.loc[
-        benchmarks_delta['BENCHMARK_COMPETITION'] == '2025 SEAG Bronze'
+    benchmark_delta = benchmarks_input.loc[
+        benchmarks_input['BENCHMARK_COMPETITION'] == '2025 SEAG Bronze'
     ].copy()
 
     df_delta = pd.merge(
@@ -294,6 +297,7 @@ def build_octc_snapshot_for_delta(data_input, benchmarks_input, report_end_date)
         df_delta['Delta5'] / df_delta['STANDARDISED_BENCHMARK'] * 100
     )
 
+    # Load and apply the name-variation reference once for both snapshots.
     names_for_delta = name_variations().copy()
     df_delta = standardize_octc_names_like_notebook(
         df_delta,
@@ -314,6 +318,22 @@ def build_octc_snapshot_for_delta(data_input, benchmarks_input, report_end_date)
         df_local_delta['PERF_SCALAR'],
         errors='coerce',
     )
+
+    return df_local_delta.reset_index(drop=True)
+
+
+def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
+    """Build one OCTC Rule E snapshot from the once-prepared delta base.
+
+    The date filter happens before best-result selection, tiering and Rule E,
+    so later results cannot influence an earlier snapshot.
+    """
+    octc_cutoff_delta = pd.Timestamp('2026-12-31')
+    end_date_delta = min(pd.Timestamp(report_end_date), octc_cutoff_delta)
+
+    df_local_delta = prepared_delta_base.loc[
+        prepared_delta_base['DATE'] <= end_date_delta
+    ].copy()
 
     finite_mask_delta = np.isfinite(df_local_delta['PERF_SCALAR'])
     df_best_candidates_delta = df_local_delta.loc[
@@ -372,8 +392,6 @@ def build_octc_snapshot_for_delta(data_input, benchmarks_input, report_end_date)
         'Delta_Benchmark', 'PERF_SCALAR', 'TIER',
     ]
 
-    # Keep the helper robust if a future source omits one of the non-key
-    # display columns while preserving the same core OCTC calculations.
     for col in required_snapshot_cols:
         if col not in top_performers_delta.columns:
             top_performers_delta[col] = np.nan
@@ -3280,9 +3298,12 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
             )
 
             today_for_delta = datetime.date.today()
-            default_previous_delta = datetime.date(2026, 6, 17)
-            if default_previous_delta > today_for_delta:
-                default_previous_delta = today_for_delta - datetime.timedelta(days=30)
+            octc_cutoff_date = datetime.date(2026, 12, 31)
+            latest_delta_date = min(today_for_delta, octc_cutoff_date)
+            default_previous_delta = max(
+                datetime.date(2025, 1, 1),
+                latest_delta_date - datetime.timedelta(days=30),
+            )
 
             delta_col_1, delta_col_2 = st.columns(2)
             with delta_col_1:
@@ -3290,15 +3311,15 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                     'Previous report date:',
                     value=default_previous_delta,
                     min_value=datetime.date(2025, 1, 1),
-                    max_value=today_for_delta,
+                    max_value=latest_delta_date,
                     key='octc_delta_previous_date_20260820',
                 )
             with delta_col_2:
                 current_report_date = st.date_input(
                     'Current report date:',
-                    value=today_for_delta,
+                    value=latest_delta_date,
                     min_value=datetime.date(2025, 1, 1),
-                    max_value=today_for_delta,
+                    max_value=latest_delta_date,
                     key='octc_delta_current_date_20260820',
                 )
 
@@ -3316,20 +3337,37 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                 st.info('Choose the two report dates and click Run Delta Report.')
                 st.stop()
 
-            previous_snapshot = build_octc_snapshot_for_delta(
-                data,
-                benchmarks,
-                previous_report_date,
-            )
-            current_snapshot = build_octc_snapshot_for_delta(
-                data,
-                benchmarks,
-                current_report_date,
-            )
+            with st.spinner('Preparing OCTC data and calculating both snapshots...'):
+                prepared_delta_base = prepare_octc_delta_base(
+                    data,
+                    benchmarks,
+                    current_report_date,
+                )
 
-            delta_report = compare_octc_snapshots(
-                previous_snapshot,
-                current_snapshot,
+                previous_source_rows = int(
+                    (prepared_delta_base['DATE'] <= pd.Timestamp(previous_report_date)).sum()
+                )
+                current_source_rows = int(len(prepared_delta_base))
+
+                previous_snapshot = build_octc_snapshot_for_delta(
+                    prepared_delta_base,
+                    previous_report_date,
+                )
+                current_snapshot = build_octc_snapshot_for_delta(
+                    prepared_delta_base,
+                    current_report_date,
+                )
+
+                delta_report = compare_octc_snapshots(
+                    previous_snapshot,
+                    current_snapshot,
+                )
+
+            st.caption(
+                f'Previous snapshot: 1 Jan 2025 – {previous_report_date:%d %b %Y} '
+                f'({previous_source_rows:,} prepared result rows)  |  '
+                f'Current snapshot: 1 Jan 2025 – {current_report_date:%d %b %Y} '
+                f'({current_source_rows:,} prepared result rows)'
             )
 
             if delta_report.empty:
@@ -3355,7 +3393,7 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                 'as an upgrade rather than a new entry.'
             )
 
-            delta_dfs, delta_code = spreadsheet(delta_report)
+            st.dataframe(delta_report, use_container_width=True, hide_index=True)
             st.stop()
 
 
@@ -3373,7 +3411,7 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
        # start = np.datetime64(start_date)
        # end = np.datetime64(end_date)
         start = '2025-01-01'
-        end = '2026-06-17'  # Match OCTC_PRODUCTION.ipynb final_tiered_selection window
+        end = '2026-12-31'  # OCTC selection cutoff
         start_date = pd.to_datetime(start)
         end_date = pd.to_datetime(end)
 
