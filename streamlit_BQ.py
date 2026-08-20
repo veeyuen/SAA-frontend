@@ -234,6 +234,356 @@ def standardize_octc_names_like_notebook(df_input, names_input):
 # ============================================================
 
 
+# ============================================================
+# OCTC DELTA REPORT HELPERS
+# ------------------------------------------------------------
+# The normal OCTC report below remains unchanged.  These helpers rebuild the
+# same OCTC selection pipeline for any chosen report end date so two snapshots
+# can be compared without relying on previously exported files.
+# ============================================================
+def build_octc_snapshot_for_delta(data_input, benchmarks_input, report_end_date):
+    """Build the OCTC Rule E snapshot through report_end_date.
+
+    Returns the full Rule E re-ranked table, including adjusted Tier 4.  Keeping
+    Tier 4 here is intentional: it lets the delta report recognise Tier 4 ->
+    Tier 3 as a tier upgrade rather than incorrectly labelling the athlete as a
+    new entry.
+    """
+    data_delta = data_input.copy()
+    benchmarks_delta = benchmarks_input.copy()
+
+    start_date_delta = pd.Timestamp('2025-01-01')
+    end_date_delta = pd.Timestamp(report_end_date)
+
+    parsed_dates = pd.to_datetime(
+        data_delta['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    )
+    data_delta['DATE'] = parsed_dates.dt.tz_localize(None)
+
+    athletes_selected_delta = data_delta.loc[
+        (data_delta['DATE'] >= start_date_delta)
+        & (data_delta['DATE'] <= end_date_delta)
+    ].copy()
+
+    benchmark_delta = benchmarks_delta.loc[
+        benchmarks_delta['BENCHMARK_COMPETITION'] == '2025 SEAG Bronze'
+    ].copy()
+
+    df_delta = pd.merge(
+        left=athletes_selected_delta,
+        right=benchmark_delta,
+        how='left',
+        left_on=['MAPPED_EVENT', 'GENDER'],
+        right_on=['EVENT', 'GENDER'],
+    )
+
+    clean_columns(df_delta)
+
+    df_delta['RESULT'] = df_delta['RESULT'].replace(regex=r'–', value=np.nan)
+    df_delta['RESULT'] = df_delta['RESULT'].apply(
+        normalize_excel_track_time_for_selection
+    )
+
+    process_results(df_delta)
+
+    df_delta['PERF_SCALAR'] = (
+        df_delta['Delta5'] / df_delta['STANDARDISED_BENCHMARK'] * 100
+    )
+
+    names_for_delta = name_variations().copy()
+    df_delta = standardize_octc_names_like_notebook(
+        df_delta,
+        names_for_delta,
+    )
+
+    allowed_nationalities = ['SGP', 'SIN', 'NONE', '']
+    df_local_delta = df_delta.loc[
+        df_delta['NATIONALITY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .isin(allowed_nationalities)
+    ].copy()
+
+    df_local_delta['PERF_SCALAR'] = pd.to_numeric(
+        df_local_delta['PERF_SCALAR'],
+        errors='coerce',
+    )
+
+    finite_mask_delta = np.isfinite(df_local_delta['PERF_SCALAR'])
+    df_best_candidates_delta = df_local_delta.loc[
+        finite_mask_delta
+    ].copy()
+
+    for grouping_col in ['NAME', 'MAPPED_EVENT']:
+        df_best_candidates_delta[grouping_col] = (
+            df_best_candidates_delta[grouping_col]
+            .astype(str)
+            .str.strip()
+        )
+
+    top_performers_delta = (
+        df_best_candidates_delta
+        .sort_values(
+            ['MAPPED_EVENT', 'NAME', 'PERF_SCALAR'],
+            ascending=[True, True, False],
+        )
+        .drop_duplicates(
+            subset=['MAPPED_EVENT', 'NAME'],
+            keep='first',
+        )
+        .reset_index(drop=True)
+    )
+
+    top_performers_delta['TIER'] = np.where(
+        top_performers_delta['Delta_Benchmark'] >= 0,
+        'Tier 1',
+        np.where(
+            (top_performers_delta['Delta_Benchmark'] < 0)
+            & (top_performers_delta['Delta2'] >= 0),
+            'Tier 2',
+            np.where(
+                (top_performers_delta['Delta2'] < 0)
+                & (top_performers_delta['Delta3.5'] >= 0),
+                'Tier 3',
+                np.where(
+                    (top_performers_delta['Delta3.5'] < 0)
+                    & (top_performers_delta['Delta5'] >= 0),
+                    'Tier 4',
+                    ' ',
+                ),
+            ),
+        ),
+    )
+
+    required_snapshot_cols = [
+        'NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'WIND', 'EVENT_x',
+        'DIVISION', 'STAGE', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
+        'DICT_RESULTS', 'DATE', 'YEAR', 'COMPETITION', 'DOB',
+        'CATEGORY_EVENT', 'REGION', 'SOURCE', 'REMARKS', 'SUB_EVENT',
+        'DISTANCE', 'MAPPED_EVENT', 'BENCHMARK_COMPETITION',
+        'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
+        '10%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10',
+        'Delta_Benchmark', 'PERF_SCALAR', 'TIER',
+    ]
+
+    # Keep the helper robust if a future source omits one of the non-key
+    # display columns while preserving the same core OCTC calculations.
+    for col in required_snapshot_cols:
+        if col not in top_performers_delta.columns:
+            top_performers_delta[col] = np.nan
+
+    df_no_na_delta = top_performers_delta.loc[
+        top_performers_delta['STANDARDISED_BENCHMARK'].notna(),
+        required_snapshot_cols,
+    ].copy()
+
+    final_tiered_delta = df_no_na_delta.loc[
+        df_no_na_delta['TIER'] != ' '
+    ].copy()
+
+    all_ranking_delta = final_tiered_delta.sort_values(
+        ['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'],
+        ascending=[False, False, False],
+    ).copy()
+
+    all_ranking_delta['Rank'] = (
+        all_ranking_delta
+        .groupby(['GENDER', 'MAPPED_EVENT', 'TIER'])
+        .cumcount()
+        + 1
+    )
+
+    all_ranking_delta['TIER_ADJ'] = np.where(
+        (all_ranking_delta['TIER'] == 'Tier 1')
+        & (all_ranking_delta['Rank'] >= 3),
+        'Tier 2',
+        np.where(
+            (all_ranking_delta['TIER'] == 'Tier 2')
+            & (all_ranking_delta['Rank'] >= 3),
+            'Tier 3',
+            np.where(
+                (all_ranking_delta['TIER'] == 'Tier 3')
+                & (all_ranking_delta['Rank'] >= 3),
+                'Tier 4',
+                all_ranking_delta['TIER'],
+            ),
+        ),
+    )
+
+    rerank_delta = all_ranking_delta.sort_values(
+        ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'],
+        ascending=[False, False, False, False],
+    ).copy()
+
+    rerank_delta['Rank_ADJ'] = (
+        rerank_delta
+        .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
+        .cumcount()
+        + 1
+    )
+
+    return rerank_delta.reset_index(drop=True)
+
+
+def _octc_delta_athlete_key(row):
+    """Prefer UNIQUE_ID for identity matching, else use canonical name key."""
+    uid_value = row.get('UNIQUE_ID', '')
+    uid_text = '' if pd.isna(uid_value) else str(uid_value).strip()
+
+    if uid_text and uid_text.casefold() not in {'nan', 'none', 'nat'}:
+        athlete_identity = 'UID:' + uid_text.casefold()
+    else:
+        athlete_identity = 'NAME:' + _octc_name_match_key(row.get('NAME', ''))
+
+    gender_key = str(row.get('GENDER', '')).strip().casefold()
+    event_key = str(row.get('MAPPED_EVENT', '')).strip().casefold()
+    return athlete_identity + '|' + gender_key + '|' + event_key
+
+
+def compare_octc_snapshots(previous_snapshot, current_snapshot):
+    """Return new OCTC entries and adjusted-tier upgrades between snapshots."""
+    previous = previous_snapshot.copy()
+    current = current_snapshot.copy()
+
+    tier_order = {
+        'Tier 1': 1,
+        'Tier 2': 2,
+        'Tier 3': 3,
+        'Tier 4': 4,
+    }
+    visible_tiers = {'Tier 1', 'Tier 2', 'Tier 3'}
+
+    if previous.empty:
+        previous = pd.DataFrame(columns=current.columns)
+    if current.empty:
+        return pd.DataFrame()
+
+    previous['DELTA_KEY'] = previous.apply(_octc_delta_athlete_key, axis=1)
+    current['DELTA_KEY'] = current.apply(_octc_delta_athlete_key, axis=1)
+
+    # Current delta candidates must be visible in the normal OCTC report.
+    current = current.loc[
+        current['TIER_ADJ'].isin(visible_tiers)
+    ].copy()
+
+    previous_by_key = (
+        previous
+        .drop_duplicates(subset=['DELTA_KEY'], keep='first')
+        .set_index('DELTA_KEY', drop=False)
+    )
+
+    previous_visible_names = set(
+        previous.loc[
+            previous['TIER_ADJ'].isin(visible_tiers),
+            'NAME',
+        ]
+        .fillna('')
+        .map(_octc_name_match_key)
+    )
+
+    rows = []
+
+    for _, current_row in current.iterrows():
+        delta_key = current_row['DELTA_KEY']
+        current_tier = str(current_row.get('TIER_ADJ', '')).strip()
+        current_tier_num = tier_order.get(current_tier)
+
+        previous_row = None
+        if delta_key in previous_by_key.index:
+            previous_row = previous_by_key.loc[delta_key]
+            if isinstance(previous_row, pd.DataFrame):
+                previous_row = previous_row.iloc[0]
+
+        if previous_row is None:
+            current_name_key = _octc_name_match_key(current_row.get('NAME', ''))
+            change_type = (
+                'NEW EVENT ENTRY'
+                if current_name_key in previous_visible_names
+                else 'NEW NAME'
+            )
+            previous_tier = ''
+            previous_rank = np.nan
+            previous_result = ''
+            previous_date = pd.NaT
+            previous_competition = ''
+        else:
+            previous_tier = str(previous_row.get('TIER_ADJ', '')).strip()
+            previous_tier_num = tier_order.get(previous_tier)
+
+            if (
+                previous_tier_num is None
+                or current_tier_num is None
+                or current_tier_num >= previous_tier_num
+            ):
+                continue
+
+            change_type = 'TIER UPGRADE'
+            previous_rank = previous_row.get('Rank_ADJ', np.nan)
+            previous_result = previous_row.get('RESULT', '')
+            previous_date = previous_row.get('DATE', pd.NaT)
+            previous_competition = previous_row.get('COMPETITION', '')
+
+        rows.append({
+            'CHANGE': change_type,
+            'NAME': current_row.get('NAME', ''),
+            'GENDER': current_row.get('GENDER', ''),
+            'EVENT': current_row.get('MAPPED_EVENT', ''),
+            'PREVIOUS_TIER': previous_tier,
+            'CURRENT_TIER': current_tier,
+            'PREVIOUS_RANK': previous_rank,
+            'CURRENT_RANK': current_row.get('Rank_ADJ', np.nan),
+            'PREVIOUS_RESULT': previous_result,
+            'CURRENT_RESULT': current_row.get('RESULT', ''),
+            'PREVIOUS_RESULT_DATE': previous_date,
+            'CURRENT_RESULT_DATE': current_row.get('DATE', pd.NaT),
+            'PREVIOUS_COMPETITION': previous_competition,
+            'CURRENT_COMPETITION': current_row.get('COMPETITION', ''),
+            'UNIQUE_ID': current_row.get('UNIQUE_ID', ''),
+        })
+
+    delta_report = pd.DataFrame(rows)
+    if delta_report.empty:
+        return delta_report
+
+    for date_col in ['PREVIOUS_RESULT_DATE', 'CURRENT_RESULT_DATE']:
+        date_values = pd.to_datetime(delta_report[date_col], errors='coerce')
+        delta_report[date_col] = np.where(
+            date_values.notna(),
+            date_values.dt.strftime('%Y-%m-%d'),
+            '',
+        )
+
+    change_order = {
+        'NEW NAME': 1,
+        'NEW EVENT ENTRY': 2,
+        'TIER UPGRADE': 3,
+    }
+    delta_report['_CHANGE_ORDER'] = delta_report['CHANGE'].map(change_order).fillna(99)
+    delta_report['_CURRENT_TIER_ORDER'] = delta_report['CURRENT_TIER'].map(tier_order).fillna(99)
+
+    delta_report = (
+        delta_report
+        .sort_values(
+            ['_CHANGE_ORDER', '_CURRENT_TIER_ORDER', 'EVENT', 'GENDER', 'NAME'],
+            ascending=[True, True, True, True, True],
+        )
+        .drop(columns=['_CHANGE_ORDER', '_CURRENT_TIER_ORDER'])
+        .reset_index(drop=True)
+    )
+
+    return delta_report
+
+# ============================================================
+# END OCTC DELTA REPORT HELPERS
+# ============================================================
+
+
 # Create list of foreigners lazily.
 # This avoids loading the foreigner CSV on every app rerun / every dropdown page.
 @st.cache_data(ttl=6000)
@@ -2905,6 +3255,108 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
 
     data = fetch_data()
     benchmarks = fetch_benchmarks() # fetch the database of results for selected period
+
+    # ------------------------------------------------------------
+    # OCTC DELTA REPORT
+    # Keep the existing OCTC Selection Report as the default view.  The delta
+    # view is calculated only when explicitly selected and the Run button is
+    # pressed, avoiding two extra full OCTC calculations during normal use.
+    # ------------------------------------------------------------
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        octc_report_view = st.radio(
+            'OCTC Report View:',
+            options=['Selection Report', 'Delta Report'],
+            index=0,
+            horizontal=True,
+            key='octc_report_view_20260820',
+        )
+
+        if octc_report_view == 'Delta Report':
+            st.write('### OCTC Delta Report')
+            st.caption(
+                'Compares two OCTC snapshots. Each snapshot uses results from '
+                '1 January 2025 through the selected report date and independently '
+                'recalculates Rule E ranking and adjusted tiers.'
+            )
+
+            today_for_delta = datetime.date.today()
+            default_previous_delta = datetime.date(2026, 6, 17)
+            if default_previous_delta > today_for_delta:
+                default_previous_delta = today_for_delta - datetime.timedelta(days=30)
+
+            delta_col_1, delta_col_2 = st.columns(2)
+            with delta_col_1:
+                previous_report_date = st.date_input(
+                    'Previous report date:',
+                    value=default_previous_delta,
+                    min_value=datetime.date(2025, 1, 1),
+                    max_value=today_for_delta,
+                    key='octc_delta_previous_date_20260820',
+                )
+            with delta_col_2:
+                current_report_date = st.date_input(
+                    'Current report date:',
+                    value=today_for_delta,
+                    min_value=datetime.date(2025, 1, 1),
+                    max_value=today_for_delta,
+                    key='octc_delta_current_date_20260820',
+                )
+
+            if previous_report_date >= current_report_date:
+                st.warning('Current report date must be later than previous report date.')
+                st.stop()
+
+            run_delta_report = st.button(
+                'Run Delta Report',
+                type='primary',
+                key='run_octc_delta_report_20260820',
+            )
+
+            if not run_delta_report:
+                st.info('Choose the two report dates and click Run Delta Report.')
+                st.stop()
+
+            previous_snapshot = build_octc_snapshot_for_delta(
+                data,
+                benchmarks,
+                previous_report_date,
+            )
+            current_snapshot = build_octc_snapshot_for_delta(
+                data,
+                benchmarks,
+                current_report_date,
+            )
+
+            delta_report = compare_octc_snapshots(
+                previous_snapshot,
+                current_snapshot,
+            )
+
+            if delta_report.empty:
+                st.success(
+                    'No new OCTC names, new event entries, or tier upgrades were '
+                    'identified between the selected report dates.'
+                )
+                st.stop()
+
+            new_name_count = int((delta_report['CHANGE'] == 'NEW NAME').sum())
+            new_event_count = int((delta_report['CHANGE'] == 'NEW EVENT ENTRY').sum())
+            upgrade_count = int((delta_report['CHANGE'] == 'TIER UPGRADE').sum())
+
+            metric_col_1, metric_col_2, metric_col_3, metric_col_4 = st.columns(4)
+            metric_col_1.metric('Total Changes', len(delta_report))
+            metric_col_2.metric('New Names', new_name_count)
+            metric_col_3.metric('New Event Entries', new_event_count)
+            metric_col_4.metric('Tier Upgrades', upgrade_count)
+
+            st.caption(
+                'Tier upgrades are based on adjusted Rule E tiers. Tier 4 is '
+                'retained internally for comparison, so Tier 4 → Tier 3 is shown '
+                'as an upgrade rather than a new entry.'
+            )
+
+            delta_dfs, delta_code = spreadsheet(delta_report)
+            st.stop()
 
 
     # Choose start and end dates
