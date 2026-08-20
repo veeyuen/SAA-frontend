@@ -236,6 +236,7 @@ def standardize_octc_names_like_notebook(df_input, names_input):
 
 # ============================================================
 # OCTC DELTA REPORT HELPERS
+# OCTC_DELTA_PATCH_VERSION: 2026-08-20-v2-date-dtype-fix
 # ------------------------------------------------------------
 # The normal OCTC report below remains unchanged.  These helpers rebuild the
 # same OCTC selection pipeline for any chosen report end date so two snapshots
@@ -319,6 +320,18 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         errors='coerce',
     )
 
+    # clean_columns()/process_results() can leave DATE as an Arrow/string
+    # column. Re-normalise it here after all shared preprocessing so every
+    # snapshot comparison uses a true pandas datetime dtype.
+    df_local_delta['DATE'] = pd.to_datetime(
+        df_local_delta['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    ).dt.tz_localize(None)
+    df_local_delta = df_local_delta.loc[df_local_delta['DATE'].notna()].copy()
+
     return df_local_delta.reset_index(drop=True)
 
 
@@ -331,9 +344,20 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
     octc_cutoff_delta = pd.Timestamp('2026-12-31')
     end_date_delta = min(pd.Timestamp(report_end_date), octc_cutoff_delta)
 
+    # Defensive conversion in case a cached/older prepared dataframe carries
+    # DATE as string/Arrow string. This prevents str-vs-Timestamp comparisons.
+    snapshot_dates = pd.to_datetime(
+        prepared_delta_base['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    ).dt.tz_localize(None)
+
     df_local_delta = prepared_delta_base.loc[
-        prepared_delta_base['DATE'] <= end_date_delta
+        snapshot_dates.notna() & (snapshot_dates <= end_date_delta)
     ].copy()
+    df_local_delta['DATE'] = snapshot_dates.loc[df_local_delta.index]
 
     finite_mask_delta = np.isfinite(df_local_delta['PERF_SCALAR'])
     df_best_candidates_delta = df_local_delta.loc[
@@ -3344,10 +3368,21 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                     current_report_date,
                 )
 
+                prepared_delta_dates = pd.to_datetime(
+                    prepared_delta_base['DATE'],
+                    format='mixed',
+                    dayfirst=False,
+                    utc=True,
+                    errors='coerce',
+                ).dt.tz_localize(None)
+
                 previous_source_rows = int(
-                    (prepared_delta_base['DATE'] <= pd.Timestamp(previous_report_date)).sum()
+                    (
+                        prepared_delta_dates.notna()
+                        & (prepared_delta_dates <= pd.Timestamp(previous_report_date))
+                    ).sum()
                 )
-                current_source_rows = int(len(prepared_delta_base))
+                current_source_rows = int(prepared_delta_dates.notna().sum())
 
                 previous_snapshot = build_octc_snapshot_for_delta(
                     prepared_delta_base,
