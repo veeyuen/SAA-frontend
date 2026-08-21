@@ -236,12 +236,22 @@ def standardize_octc_names_like_notebook(df_input, names_input):
 
 # ============================================================
 # OCTC DELTA REPORT HELPERS
-# OCTC_DELTA_PATCH_VERSION: 2026-08-20-v2-date-dtype-fix
+# OCTC_DELTA_PATCH_VERSION: 2026-08-21-v3-stable-athlete-identity
 # ------------------------------------------------------------
 # The normal OCTC report below remains unchanged.  These helpers rebuild the
 # same OCTC selection pipeline for any chosen report end date so two snapshots
 # can be compared without relying on previously exported files.
 # ============================================================
+def _octc_delta_canonical_name_key(value):
+    """Stable OCTC athlete identity based on the already-canonicalised name.
+
+    Do NOT switch between UID and name across report dates: UIDs can be blank in
+    an earlier result and populated in a later result, which would make the same
+    athlete appear to be two different identities.
+    """
+    return _octc_name_match_key(value)
+
+
 def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_date):
     """Prepare OCTC rows once through the later delta report date.
 
@@ -332,6 +342,22 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
     ).dt.tz_localize(None)
     df_local_delta = df_local_delta.loc[df_local_delta['DATE'].notna()].copy()
 
+    # Establish one stable athlete identity BEFORE either snapshot chooses a
+    # best result. Names have already been canonicalised above, and the same
+    # cleaned canonical-name key is used for both dates. This prevents name
+    # variants or a UID appearing only in the later period from splitting one
+    # athlete into multiple identities.
+    df_local_delta['ATHLETE_KEY'] = (
+        df_local_delta['NAME']
+        .apply(_octc_delta_canonical_name_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    df_local_delta = df_local_delta.loc[
+        df_local_delta['ATHLETE_KEY'].ne('')
+    ].copy()
+
     return df_local_delta.reset_index(drop=True)
 
 
@@ -364,21 +390,53 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
         finite_mask_delta
     ].copy()
 
-    for grouping_col in ['NAME', 'MAPPED_EVENT']:
+    # Rebuild ATHLETE_KEY defensively in case Streamlit serves an older cached
+    # prepared dataframe. The key is canonical-name based and deliberately does
+    # not depend on UID availability.
+    if 'ATHLETE_KEY' not in df_best_candidates_delta.columns:
+        df_best_candidates_delta['ATHLETE_KEY'] = (
+            df_best_candidates_delta['NAME']
+            .apply(_octc_delta_canonical_name_key)
+        )
+    else:
+        missing_identity = (
+            df_best_candidates_delta['ATHLETE_KEY']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+            .eq('')
+        )
+        if missing_identity.any():
+            df_best_candidates_delta.loc[missing_identity, 'ATHLETE_KEY'] = (
+                df_best_candidates_delta.loc[missing_identity, 'NAME']
+                .apply(_octc_delta_canonical_name_key)
+            )
+
+    for grouping_col in ['NAME', 'MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY']:
         df_best_candidates_delta[grouping_col] = (
             df_best_candidates_delta[grouping_col]
+            .fillna('')
             .astype(str)
             .str.strip()
         )
 
+    df_best_candidates_delta = df_best_candidates_delta.loc[
+        df_best_candidates_delta['ATHLETE_KEY'].ne('')
+        & df_best_candidates_delta['MAPPED_EVENT'].ne('')
+    ].copy()
+
+    # Pick exactly one best performance for each athlete / gender / event
+    # INSIDE this snapshot. PERF_SCALAR is constructed so larger is always
+    # better for both timed and field events. DATE descending is only a
+    # deterministic tie-breaker when the same best performance occurs twice.
     top_performers_delta = (
         df_best_candidates_delta
         .sort_values(
-            ['MAPPED_EVENT', 'NAME', 'PERF_SCALAR'],
-            ascending=[True, True, False],
+            ['MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY', 'PERF_SCALAR', 'DATE'],
+            ascending=[True, True, True, False, False],
         )
         .drop_duplicates(
-            subset=['MAPPED_EVENT', 'NAME'],
+            subset=['MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY'],
             keep='first',
         )
         .reset_index(drop=True)
@@ -407,7 +465,7 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
 
     required_snapshot_cols = [
         'NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'WIND', 'EVENT_x',
-        'DIVISION', 'STAGE', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY',
+        'DIVISION', 'STAGE', 'AGE', 'GENDER', 'ATHLETE_KEY', 'UNIQUE_ID', 'NATIONALITY',
         'DICT_RESULTS', 'DATE', 'YEAR', 'COMPETITION', 'DOB',
         'CATEGORY_EVENT', 'REGION', 'SOURCE', 'REMARKS', 'SUB_EVENT',
         'DISTANCE', 'MAPPED_EVENT', 'BENCHMARK_COMPETITION',
@@ -474,18 +532,23 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
 
 
 def _octc_delta_athlete_key(row):
-    """Prefer UNIQUE_ID for identity matching, else use canonical name key."""
-    uid_value = row.get('UNIQUE_ID', '')
-    uid_text = '' if pd.isna(uid_value) else str(uid_value).strip()
+    """Stable athlete/event key shared by every delta snapshot.
 
-    if uid_text and uid_text.casefold() not in {'nan', 'none', 'nat'}:
-        athlete_identity = 'UID:' + uid_text.casefold()
-    else:
-        athlete_identity = 'NAME:' + _octc_name_match_key(row.get('NAME', ''))
+    Use the cleaned canonical name for identity on BOTH dates. UNIQUE_ID remains
+    useful output metadata but is not allowed to change the matching key,
+    because an athlete can have a blank UID in an older result and a populated
+    UID in a newer result.
+    """
+    athlete_name_key = row.get('ATHLETE_KEY', '')
+    athlete_name_key = (
+        '' if pd.isna(athlete_name_key) else str(athlete_name_key).strip()
+    )
+    if not athlete_name_key:
+        athlete_name_key = _octc_delta_canonical_name_key(row.get('NAME', ''))
 
     gender_key = str(row.get('GENDER', '')).strip().casefold()
     event_key = str(row.get('MAPPED_EVENT', '')).strip().casefold()
-    return athlete_identity + '|' + gender_key + '|' + event_key
+    return 'NAME:' + athlete_name_key + '|' + gender_key + '|' + event_key
 
 
 def compare_octc_snapshots(previous_snapshot, current_snapshot):
@@ -506,27 +569,71 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
     if current.empty:
         return pd.DataFrame()
 
+    # Recreate ATHLETE_KEY defensively for snapshots made by an older cached
+    # helper, then build the same name-based event key on both dates.
+    for snapshot in [previous, current]:
+        if 'ATHLETE_KEY' not in snapshot.columns:
+            snapshot['ATHLETE_KEY'] = snapshot['NAME'].apply(
+                _octc_delta_canonical_name_key
+            )
+        else:
+            snapshot['ATHLETE_KEY'] = snapshot['ATHLETE_KEY'].fillna('').astype(str)
+            missing_identity = snapshot['ATHLETE_KEY'].str.strip().eq('')
+            if missing_identity.any():
+                snapshot.loc[missing_identity, 'ATHLETE_KEY'] = (
+                    snapshot.loc[missing_identity, 'NAME']
+                    .apply(_octc_delta_canonical_name_key)
+                )
+
     previous['DELTA_KEY'] = previous.apply(_octc_delta_athlete_key, axis=1)
     current['DELTA_KEY'] = current.apply(_octc_delta_athlete_key, axis=1)
+
+    # build_octc_snapshot_for_delta() should already guarantee one row per
+    # athlete/gender/event. If an old cached snapshot still contains duplicates,
+    # resolve them by actual performance (not by lexical Tier order / row order).
+    def _dedupe_delta_snapshot(snapshot):
+        if snapshot.empty or not snapshot['DELTA_KEY'].duplicated(keep=False).any():
+            return snapshot
+
+        snapshot = snapshot.copy()
+        snapshot['_DELTA_PERF_SORT'] = pd.to_numeric(
+            snapshot.get('PERF_SCALAR'), errors='coerce'
+        )
+        snapshot['_DELTA_DATE_SORT'] = pd.to_datetime(
+            snapshot.get('DATE'), errors='coerce', utc=True
+        )
+        snapshot = (
+            snapshot
+            .sort_values(
+                ['DELTA_KEY', '_DELTA_PERF_SORT', '_DELTA_DATE_SORT'],
+                ascending=[True, False, False],
+            )
+            .drop_duplicates(subset=['DELTA_KEY'], keep='first')
+            .drop(columns=['_DELTA_PERF_SORT', '_DELTA_DATE_SORT'])
+            .reset_index(drop=True)
+        )
+        return snapshot
+
+    previous = _dedupe_delta_snapshot(previous)
+    current = _dedupe_delta_snapshot(current)
 
     # Current delta candidates must be visible in the normal OCTC report.
     current = current.loc[
         current['TIER_ADJ'].isin(visible_tiers)
     ].copy()
 
-    previous_by_key = (
-        previous
-        .drop_duplicates(subset=['DELTA_KEY'], keep='first')
-        .set_index('DELTA_KEY', drop=False)
+    previous_by_key = previous.set_index(
+        'DELTA_KEY', drop=False, verify_integrity=True
     )
 
-    previous_visible_names = set(
+    previous_visible_athletes = set(
         previous.loc[
             previous['TIER_ADJ'].isin(visible_tiers),
-            'NAME',
+            'ATHLETE_KEY',
         ]
         .fillna('')
-        .map(_octc_name_match_key)
+        .astype(str)
+        .str.strip()
     )
 
     rows = []
@@ -539,14 +646,14 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
         previous_row = None
         if delta_key in previous_by_key.index:
             previous_row = previous_by_key.loc[delta_key]
-            if isinstance(previous_row, pd.DataFrame):
-                previous_row = previous_row.iloc[0]
 
         if previous_row is None:
-            current_name_key = _octc_name_match_key(current_row.get('NAME', ''))
+            current_athlete_key = str(
+                current_row.get('ATHLETE_KEY', '')
+            ).strip()
             change_type = (
                 'NEW EVENT ENTRY'
-                if current_name_key in previous_visible_names
+                if current_athlete_key in previous_visible_athletes
                 else 'NEW NAME'
             )
             previous_tier = ''
