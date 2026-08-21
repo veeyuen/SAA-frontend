@@ -1,5 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-21-v4-training-national
 
 import streamlit as st
 import pandas as pd
@@ -780,6 +781,25 @@ AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
 AND RESULT IS NOT NULL
 """
 
+
+# ============================================================
+# JUMPS SELECTION REPORT
+# Shared data source for Training and National selections.
+# Mirrors the current Jumps_Selection_latest.ipynb logic.
+# ============================================================
+jumps_selection_sql = """
+SELECT
+    NAME, RESULT, TEAM, AGE, RANK AS COMPETITION_RANK, DIVISION,
+    EVENT, DISTANCE, EVENT_CLASS, UNIQUE_ID, DOB, NATIONALITY,
+    WIND, CATEGORY_EVENT, GENDER, COMPETITION, DATE, YEAR, REGION
+FROM `saa-analytics.results.PRODUCTION`
+WHERE CATEGORY_EVENT = 'Jump'
+  AND EVENT IN ('Long Jump', 'Triple Jump', 'High Jump')
+  AND CAST(DATE AS DATE) BETWEEN DATE '2026-01-01' AND DATE '2026-08-30'
+  AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL')
+  AND RESULT IS NOT NULL
+"""
+
 ## Read all performance benchmarks csv from GCS bucket and process##
 # Benchmark column names must be BENCHMARK_COMPETITION, EVENT, GENDER, RESULT_BENCHMARK, STANDARDISED_BENCHMARK, 2%, 3.50%, 5%, 10%
 
@@ -845,6 +865,215 @@ def fetch_marathon_ranking_data():
     data = client.query_and_wait(marathon_sql).to_dataframe()
     data.dropna(how="all", axis=1, inplace=True)
     return data
+
+@st.cache_data(ttl=6000)
+def fetch_jumps_selection_data():
+    """Fetch only the jump results required by the Jumps Selection reports."""
+    data = client.query_and_wait(jumps_selection_sql).to_dataframe()
+    data.dropna(how="all", axis=1, inplace=True)
+    return data
+
+
+def get_jumps_selection_benchmarks():
+    """Return the National / Training jump benchmarks from the current notebook."""
+    benchmarks = pd.DataFrame(
+        [
+            ['Male',   'NATIONAL', 'Long Jump',    7.20],
+            ['Female', 'NATIONAL', 'Long Jump',    5.70],
+            ['Male',   'NATIONAL', 'Triple Jump', 15.20],
+            ['Female', 'NATIONAL', 'Triple Jump', 12.00],
+            ['Male',   'NATIONAL', 'High Jump',    2.07],
+            ['Female', 'NATIONAL', 'High Jump',    1.65],
+            ['Male',   'TRAINING', 'Long Jump',    6.80],
+            ['Female', 'TRAINING', 'Long Jump',    5.30],
+            ['Male',   'TRAINING', 'Triple Jump', 14.30],
+            ['Female', 'TRAINING', 'Triple Jump', 11.30],
+            ['Male',   'TRAINING', 'High Jump',    1.95],
+            ['Female', 'TRAINING', 'High Jump',    1.57],
+        ],
+        columns=['GENDER', 'SQUAD', 'EVENT', 'BENCHMARK'],
+    )
+
+    benchmarks['2%'] = benchmarks['BENCHMARK'] * 0.98
+    benchmarks['3.5%'] = benchmarks['BENCHMARK'] * 0.965
+    benchmarks['5%'] = benchmarks['BENCHMARK'] * 0.95
+    benchmarks['10%'] = benchmarks['BENCHMARK'] * 0.90
+    return benchmarks
+
+
+def _jumps_result_to_numeric(value):
+    """Convert a field-event result such as 6.80m / 6.80 / 6.80w to metres."""
+    if pd.isna(value):
+        return np.nan
+
+    value = str(value).strip()
+    if value.upper() in {'', 'NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL', 'NH'}:
+        return np.nan
+
+    # The authoritative wind check is performed from the WIND column below.
+    # Strip common field-result suffixes only so the mark remains visible/auditable.
+    value = re.sub(r'(?i)GR', '', value)
+    value = re.sub(r'(?i)[mw]$', '', value)
+    value = value.strip()
+
+    try:
+        return round(float(value), 2)
+    except Exception:
+        return np.nan
+
+
+def build_jumps_selection(df_input, squad):
+    """Build a Training or National jumps selection from one shared pipeline.
+
+    Illegal-wind Long Jump / Triple Jump results remain in the processed audit
+    dataframe but are excluded from best-performance selection and tiering.
+    """
+    squad = str(squad).strip().upper()
+    if squad not in {'TRAINING', 'NATIONAL'}:
+        raise ValueError("squad must be 'TRAINING' or 'NATIONAL'")
+
+    df = df_input.copy()
+
+    required_cols = [
+        'NAME', 'RESULT', 'TEAM', 'AGE', 'COMPETITION_RANK', 'DIVISION',
+        'EVENT', 'DISTANCE', 'EVENT_CLASS', 'UNIQUE_ID', 'DOB', 'NATIONALITY',
+        'WIND', 'CATEGORY_EVENT', 'GENDER', 'COMPETITION', 'DATE', 'YEAR', 'REGION',
+    ]
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = ''
+
+    # Preserve native numeric/date dtypes and clean text columns only.
+    text_cols = df.select_dtypes(include=['object', 'string']).columns
+    for col in text_cols:
+        df[col] = (
+            df[col]
+            .fillna('')
+            .astype(str)
+            .str.replace('\xa0', ' ', regex=False)
+            .str.replace(r'[\x00-\x1f\x7f-\x9f]', '', regex=True)
+            .str.replace('\r', ' ', regex=False)
+            .str.replace('\n', ' ', regex=False)
+            .str.strip()
+        )
+
+    # Use the same cleaned-key canonicalisation as the OCTC / notebook flow.
+    names_for_jumps = name_variations().copy()
+    df = standardize_octc_names_like_notebook(df, names_for_jumps)
+
+    # Singapore athletes only.
+    allowed_nationalities = {'SGP', 'SIN', 'NONE', ''}
+    nationality_key = (
+        df['NATIONALITY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    df = df.loc[nationality_key.isin(allowed_nationalities)].copy()
+
+    # Pole Vault is intentionally excluded from this report.
+    jump_events = {'Long Jump', 'Triple Jump', 'High Jump'}
+    df = df.loc[df['EVENT'].isin(jump_events)].copy()
+
+    df['RESULT_CONV'] = df['RESULT'].apply(_jumps_result_to_numeric)
+
+    # Wind legality applies only to horizontal jumps. Unknown wind remains eligible,
+    # matching the agreed Option A behaviour.
+    horizontal_jumps = {'Long Jump', 'Triple Jump'}
+    df['WIND_NUM'] = pd.to_numeric(
+        df['WIND']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.replace('+', '', regex=False),
+        errors='coerce',
+    )
+
+    horizontal_mask = df['EVENT'].isin(horizontal_jumps)
+    df['ILLEGAL_WIND'] = (
+        horizontal_mask
+        & df['WIND_NUM'].notna()
+        & (df['WIND_NUM'] > 2.0)
+    )
+    df['WIND_STATUS'] = 'Not applicable'
+    df.loc[horizontal_mask & df['WIND_NUM'].isna(), 'WIND_STATUS'] = 'Unknown'
+    df.loc[
+        horizontal_mask & df['WIND_NUM'].notna() & ~df['ILLEGAL_WIND'],
+        'WIND_STATUS',
+    ] = 'Legal'
+    df.loc[df['ILLEGAL_WIND'], 'WIND_STATUS'] = 'Illegal wind'
+    df['RESULT_ELIGIBLE'] = ~df['ILLEGAL_WIND']
+
+    benchmarks = get_jumps_selection_benchmarks()
+    benchmarks = benchmarks.loc[benchmarks['SQUAD'] == squad].copy()
+
+    df = df.merge(
+        benchmarks,
+        how='left',
+        on=['EVENT', 'GENDER'],
+    )
+
+    numeric_cols = ['RESULT_CONV', 'BENCHMARK', '2%', '3.5%', '5%', '10%']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    df['Delta2'] = df['RESULT_CONV'] - df['2%']
+    df['Delta3.5'] = df['RESULT_CONV'] - df['3.5%']
+    df['Delta5'] = df['RESULT_CONV'] - df['5%']
+    df['Delta10'] = df['RESULT_CONV'] - df['10%']
+    df['Delta_Benchmark'] = df['RESULT_CONV'] - df['BENCHMARK']
+    df['PERF_SCALAR'] = df['Delta5'] / df['BENCHMARK'] * 100
+
+    # Preserve all processed rows for the audit table; only eligible results may
+    # become the selected best result.
+    finite_mask = np.isfinite(pd.to_numeric(df['PERF_SCALAR'], errors='coerce'))
+    eligible_mask = finite_mask & df['RESULT_ELIGIBLE'] & df['BENCHMARK'].notna()
+    df_best_candidates = df.loc[eligible_mask].copy()
+
+    top_performers = (
+        df_best_candidates
+        .sort_values(
+            ['EVENT', 'GENDER', 'NAME', 'PERF_SCALAR'],
+            ascending=[True, True, True, False],
+        )
+        .drop_duplicates(
+            subset=['EVENT', 'GENDER', 'NAME'],
+            keep='first',
+        )
+        .reset_index(drop=True)
+    )
+
+    top_performers['TIER'] = np.select(
+        [
+            top_performers['Delta_Benchmark'] >= 0,
+            top_performers['Delta2'] >= 0,
+            top_performers['Delta3.5'] >= 0,
+            top_performers['Delta5'] >= 0,
+            top_performers['Delta10'] >= 0,
+        ],
+        ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'],
+        default='',
+    )
+
+    final_selection = (
+        top_performers
+        .loc[top_performers['TIER'] != '']
+        .sort_values(
+            ['EVENT', 'GENDER', 'PERF_SCALAR'],
+            ascending=[True, True, False],
+        )
+        .reset_index(drop=True)
+    )
+
+    final_selection['MAPPED_EVENT'] = final_selection['EVENT']
+    df['MAPPED_EVENT'] = df['EVENT']
+
+    return final_selection, df
+
+# ============================================================
+# END JUMPS SELECTION REPORT HELPERS
+# ============================================================
 
 
 
@@ -2130,6 +2359,8 @@ if benchmark_option == "Ranking & Selection Reports":
             "",
             "2025 SEAG Bronze - SEAG Selection",
             "2025 SEAG Bronze - OCTC Selection",
+            "Jumps - Training Selection",
+            "Jumps - National Selection",
             "Marathon Ranking Report",
         ),
         index=0,
@@ -3249,6 +3480,103 @@ elif benchmark_option == "Athlete Head-to-Head":
 # ============================================================
 # END ATHLETE HEAD-TO-HEAD PATCH
 # ============================================================
+
+
+elif benchmark_option in (
+    'Jumps - Training Selection',
+    'Jumps - National Selection',
+):
+
+    squad = (
+        'TRAINING'
+        if benchmark_option == 'Jumps - Training Selection'
+        else 'NATIONAL'
+    )
+
+    st.subheader(f"Jumps - {squad.title()} Selection")
+    st.caption(
+        "Events: Long Jump, Triple Jump and High Jump. "
+        "Tier 1–5 thresholds follow the current jumps-selection notebook. "
+        "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
+    )
+
+    jumps_data = fetch_jumps_selection_data().copy()
+
+    if jumps_data.empty:
+        st.warning('No jump records were found for the configured report period.')
+    else:
+        final_jumps_selection, processed_jumps = build_jumps_selection(
+            jumps_data,
+            squad=squad,
+        )
+
+        if final_jumps_selection.empty:
+            st.warning(f'No athletes currently meet the {squad.title()} Tier 1–5 thresholds.')
+        else:
+            jumps_display = format_results_like_search(
+                final_jumps_selection,
+                include_result_conv=False,
+                extra_cols=[
+                    'UNIQUE_ID',
+                    'WIND_NUM',
+                    'WIND_STATUS',
+                    'BENCHMARK',
+                    '2%',
+                    '3.5%',
+                    '5%',
+                    '10%',
+                    'Delta_Benchmark',
+                    'PERF_SCALAR',
+                    'TIER',
+                ],
+            )
+
+            # Round calculation fields for a cleaner report display.
+            round_cols = [
+                'WIND_NUM', 'BENCHMARK', '2%', '3.5%', '5%', '10%',
+                'Delta_Benchmark', 'PERF_SCALAR',
+            ]
+            for col in round_cols:
+                if col in jumps_display.columns:
+                    jumps_display[col] = pd.to_numeric(
+                        jumps_display[col], errors='coerce'
+                    ).round(3)
+
+            st.write(f"### {squad.title()} Selection")
+            final_dfs, code = spreadsheet(jumps_display)
+
+        illegal_wind_results = processed_jumps.loc[
+            processed_jumps['ILLEGAL_WIND']
+        ].copy()
+
+        with st.expander(
+            f"Illegal Wind Results Excluded From Selection ({len(illegal_wind_results)})"
+        ):
+            if illegal_wind_results.empty:
+                st.info('No illegal-wind Long Jump / Triple Jump results were found.')
+            else:
+                illegal_display_cols = [
+                    'NAME', 'DATE', 'EVENT', 'COMPETITION', 'RESULT',
+                    'WIND', 'WIND_NUM', 'WIND_STATUS', 'GENDER',
+                    'UNIQUE_ID', 'NATIONALITY',
+                ]
+                for col in illegal_display_cols:
+                    if col not in illegal_wind_results.columns:
+                        illegal_wind_results[col] = ''
+
+                illegal_display = illegal_wind_results[illegal_display_cols].copy()
+                illegal_display['DATE'] = pd.to_datetime(
+                    illegal_display['DATE'], errors='coerce'
+                ).dt.strftime('%Y-%m-%d')
+                illegal_display['WIND_NUM'] = pd.to_numeric(
+                    illegal_display['WIND_NUM'], errors='coerce'
+                ).round(2)
+
+                st.dataframe(
+                    illegal_display,
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
 
 elif benchmark_option == 'Marathon Ranking Report':
