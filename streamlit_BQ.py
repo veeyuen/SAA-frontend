@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-21-v4-training-national
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-21-v5-date-safe-cast
 
 import streamlit as st
 import pandas as pd
@@ -795,7 +795,7 @@ SELECT
 FROM `saa-analytics.results.PRODUCTION`
 WHERE CATEGORY_EVENT = 'Jump'
   AND EVENT IN ('Long Jump', 'Triple Jump', 'High Jump')
-  AND CAST(DATE AS DATE) BETWEEN DATE '2026-01-01' AND DATE '2026-08-30'
+  AND DATE(SAFE_CAST(DATE AS TIMESTAMP)) BETWEEN DATE '2026-01-01' AND DATE '2026-08-30'
   AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL')
   AND RESULT IS NOT NULL
 """
