@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-21-v5-date-safe-cast
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v6-jumps-dropdown-programme-changes
 
 import streamlit as st
 import pandas as pd
@@ -1070,6 +1070,340 @@ def build_jumps_selection(df_input, squad):
     df['MAPPED_EVENT'] = df['EVENT']
 
     return final_selection, df
+
+
+
+# ============================================================
+# JUMPS PROGRAMME CHANGES
+# Two-date cumulative comparison for new programme entries and
+# Training -> National upgrades.  Programme membership is based on
+# actually meeting the respective squad BENCHMARK (Tier 1), while the
+# standalone Training / National reports continue to show Tier 1-5.
+# ============================================================
+JUMPS_PROGRAMME_EXCLUDED_NAMES = [
+    # spexPotential
+    'Tia Louise Rozario',
+    'Andrew George Medina',
+    'Gabriel Lee Jing Yi',
+    'Mark Lee Ren',
+    'Reuben Rainer Lee Siong En',
+    'Elizabeth Ann Tan Shee Ru',
+    'Thiruben S/O Thana Rajan',
+
+    # spexScholarship
+    'Pereira Veronica Shanti',
+    'Kampton Kam',
+    'Ang Chen Xiang',
+    'Quek Jun Jie Calvin',
+    'Marc Brian Louis',
+]
+
+
+def _jumps_programme_name_signature(value):
+    """Order-insensitive token signature used only for the explicit spex list."""
+    value = _octc_clean_base_name(value).casefold()
+    tokens = re.findall(r"[a-z0-9]+", value)
+    return "|".join(sorted(tokens))
+
+
+def _jumps_programme_excluded_identity_sets():
+    """Return canonical keys and token signatures for the spex exclusion list.
+
+    The exclusion names are first passed through the same name-variation mapping
+    as result rows.  An order-insensitive signature is also retained as a narrow
+    fallback for the explicit exclusion list, so name-order variants are excluded
+    even if a particular variation is missing from the GCS mapping.
+    """
+    raw_excluded = pd.DataFrame({'NAME': JUMPS_PROGRAMME_EXCLUDED_NAMES})
+    canonical_excluded = standardize_octc_names_like_notebook(
+        raw_excluded,
+        name_variations().copy(),
+    )
+
+    excluded_keys = set(
+        canonical_excluded['NAME']
+        .apply(_octc_name_match_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .loc[lambda s: s.ne('')]
+        .tolist()
+    )
+
+    # Include signatures from both the supplied names and their canonicalised
+    # versions.  This fallback is deliberately limited to the 12 explicit spex
+    # exclusions and is not used for general athlete identity matching.
+    excluded_signatures = {
+        _jumps_programme_name_signature(name)
+        for name in JUMPS_PROGRAMME_EXCLUDED_NAMES
+        if _jumps_programme_name_signature(name)
+    }
+    excluded_signatures.update(
+        {
+            _jumps_programme_name_signature(name)
+            for name in canonical_excluded['NAME'].tolist()
+            if _jumps_programme_name_signature(name)
+        }
+    )
+
+    return excluded_keys, excluded_signatures
+
+
+def _prepare_jumps_programme_identity(df_input):
+    """Add stable athlete/event keys and remove programme-excluded athletes."""
+    df = df_input.copy()
+    if df.empty:
+        return df
+
+    for col in ['NAME', 'GENDER', 'EVENT']:
+        if col not in df.columns:
+            df[col] = ''
+
+    df['ATHLETE_KEY'] = (
+        df['NAME']
+        .apply(_octc_name_match_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    df['GENDER_KEY'] = (
+        df['GENDER'].fillna('').astype(str).str.strip().str.casefold()
+    )
+    df['EVENT_KEY'] = (
+        df['EVENT'].fillna('').astype(str).str.strip().str.casefold()
+    )
+
+    excluded_keys, excluded_signatures = _jumps_programme_excluded_identity_sets()
+    df['NAME_SIGNATURE'] = df['NAME'].apply(_jumps_programme_name_signature)
+    df = df.loc[
+        df['ATHLETE_KEY'].ne('')
+        & ~df['ATHLETE_KEY'].isin(excluded_keys)
+        & ~df['NAME_SIGNATURE'].isin(excluded_signatures)
+    ].copy()
+
+    df['PROGRAMME_KEY'] = (
+        df['ATHLETE_KEY'] + '|' + df['GENDER_KEY'] + '|' + df['EVENT_KEY']
+    )
+    return df
+
+
+def build_jumps_programme_snapshot(df_input, report_end_date):
+    """Build one cumulative Jumps Programme snapshot through report_end_date.
+
+    Status precedence is National > Training > Not Selected.  A squad status
+    requires the athlete's best legal/eligible mark to meet that squad's actual
+    benchmark (Tier 1). Tier 2-5 remain monitoring bands in the standalone
+    selection reports and do not by themselves establish programme membership.
+    """
+    programme_start = pd.Timestamp('2026-01-01')
+    report_end = pd.Timestamp(report_end_date)
+
+    df_source = df_input.copy()
+    if 'DATE' not in df_source.columns:
+        return pd.DataFrame()
+
+    source_dates = pd.to_datetime(
+        df_source['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    ).dt.tz_localize(None)
+
+    period_mask = (
+        source_dates.notna()
+        & (source_dates >= programme_start)
+        & (source_dates <= report_end)
+    )
+    df_period = df_source.loc[period_mask].copy()
+    df_period['DATE'] = source_dates.loc[df_period.index]
+
+    if df_period.empty:
+        return pd.DataFrame()
+
+    training_selection, _ = build_jumps_selection(df_period, squad='TRAINING')
+    national_selection, _ = build_jumps_selection(df_period, squad='NATIONAL')
+
+    # 'Met the benchmark standard' means the actual benchmark has been reached.
+    # In the existing Tier 1-5 engine, that corresponds exactly to Tier 1.
+    training_met = training_selection.loc[
+        training_selection['TIER'].eq('Tier 1')
+    ].copy()
+    national_met = national_selection.loc[
+        national_selection['TIER'].eq('Tier 1')
+    ].copy()
+
+    training_met = _prepare_jumps_programme_identity(training_met)
+    national_met = _prepare_jumps_programme_identity(national_met)
+
+    if not national_met.empty:
+        national_met['PROGRAMME_STATUS'] = 'National'
+    if not training_met.empty:
+        training_met['PROGRAMME_STATUS'] = 'Training'
+
+    national_keys = set(
+        national_met.get('PROGRAMME_KEY', pd.Series(dtype='object')).tolist()
+    )
+
+    # National status takes precedence because the National benchmark is the
+    # higher squad standard.  A National athlete also meets the Training
+    # standard but should appear only once in the snapshot.
+    if not training_met.empty:
+        training_only = training_met.loc[
+            ~training_met['PROGRAMME_KEY'].isin(national_keys)
+        ].copy()
+    else:
+        training_only = training_met.copy()
+
+    snapshot = pd.concat(
+        [national_met, training_only],
+        ignore_index=True,
+        sort=False,
+    )
+
+    if snapshot.empty:
+        return snapshot
+
+    # Defensive uniqueness: the selection engine should already have one best
+    # row per athlete/gender/event, but preserve the best mark if duplicates
+    # ever appear upstream.
+    snapshot['RESULT_CONV'] = pd.to_numeric(
+        snapshot.get('RESULT_CONV'), errors='coerce'
+    )
+    snapshot = (
+        snapshot
+        .sort_values(
+            ['PROGRAMME_KEY', 'RESULT_CONV', 'DATE'],
+            ascending=[True, False, False],
+        )
+        .drop_duplicates(subset=['PROGRAMME_KEY'], keep='first')
+        .reset_index(drop=True)
+    )
+    return snapshot
+
+
+def _jumps_programme_date_text(value):
+    parsed = pd.to_datetime(value, errors='coerce')
+    if pd.isna(parsed):
+        return ''
+    return parsed.strftime('%Y-%m-%d')
+
+
+def _jumps_programme_value(row, column, default=''):
+    if row is None or column not in row.index:
+        return default
+    value = row[column]
+    if pd.isna(value):
+        return default
+    return value
+
+
+def compare_jumps_programme_snapshots(previous_snapshot, current_snapshot):
+    """Return only NEW ENTRY and Training -> National UPGRADE transitions."""
+    previous = previous_snapshot.copy()
+    current = current_snapshot.copy()
+
+    output_columns = [
+        'CHANGE', 'NAME', 'GENDER', 'EVENT',
+        'PREVIOUS_STATUS', 'CURRENT_STATUS',
+        'PREVIOUS_RESULT', 'CURRENT_RESULT',
+        'PREVIOUS_WIND', 'CURRENT_WIND',
+        'PREVIOUS_WIND_STATUS', 'CURRENT_WIND_STATUS',
+        'PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK',
+        'PREVIOUS_RESULT_DATE', 'CURRENT_RESULT_DATE',
+        'PREVIOUS_COMPETITION', 'CURRENT_COMPETITION',
+        'UNIQUE_ID',
+    ]
+
+    if current.empty:
+        return pd.DataFrame(columns=output_columns)
+
+    if previous.empty:
+        previous_by_key = {}
+    else:
+        previous_by_key = {
+            row['PROGRAMME_KEY']: row
+            for _, row in previous.iterrows()
+        }
+
+    rows = []
+    for _, current_row in current.iterrows():
+        key = current_row.get('PROGRAMME_KEY', '')
+        previous_row = previous_by_key.get(key)
+
+        previous_status = (
+            '' if previous_row is None
+            else str(_jumps_programme_value(previous_row, 'PROGRAMME_STATUS', '')).strip()
+        )
+        current_status = str(
+            _jumps_programme_value(current_row, 'PROGRAMME_STATUS', '')
+        ).strip()
+
+        if previous_row is None:
+            change = 'NEW ENTRY'
+        elif previous_status == 'Training' and current_status == 'National':
+            change = 'UPGRADE'
+        else:
+            # Same-squad improvements, continued membership and any downgrade
+            # are outside the requested Programme Changes report.
+            continue
+
+        unique_id = str(
+            _jumps_programme_value(current_row, 'UNIQUE_ID', '')
+        ).strip()
+        if unique_id == '' and previous_row is not None:
+            unique_id = str(
+                _jumps_programme_value(previous_row, 'UNIQUE_ID', '')
+            ).strip()
+
+        rows.append(
+            {
+                'CHANGE': change,
+                'NAME': _jumps_programme_value(current_row, 'NAME', ''),
+                'GENDER': _jumps_programme_value(current_row, 'GENDER', ''),
+                'EVENT': _jumps_programme_value(current_row, 'EVENT', ''),
+                'PREVIOUS_STATUS': previous_status,
+                'CURRENT_STATUS': current_status,
+                'PREVIOUS_RESULT': _jumps_programme_value(previous_row, 'RESULT', ''),
+                'CURRENT_RESULT': _jumps_programme_value(current_row, 'RESULT', ''),
+                'PREVIOUS_WIND': _jumps_programme_value(previous_row, 'WIND', ''),
+                'CURRENT_WIND': _jumps_programme_value(current_row, 'WIND', ''),
+                'PREVIOUS_WIND_STATUS': _jumps_programme_value(previous_row, 'WIND_STATUS', ''),
+                'CURRENT_WIND_STATUS': _jumps_programme_value(current_row, 'WIND_STATUS', ''),
+                'PREVIOUS_BENCHMARK': _jumps_programme_value(previous_row, 'BENCHMARK', ''),
+                'CURRENT_BENCHMARK': _jumps_programme_value(current_row, 'BENCHMARK', ''),
+                'PREVIOUS_RESULT_DATE': _jumps_programme_date_text(
+                    _jumps_programme_value(previous_row, 'DATE', '')
+                ),
+                'CURRENT_RESULT_DATE': _jumps_programme_date_text(
+                    _jumps_programme_value(current_row, 'DATE', '')
+                ),
+                'PREVIOUS_COMPETITION': _jumps_programme_value(previous_row, 'COMPETITION', ''),
+                'CURRENT_COMPETITION': _jumps_programme_value(current_row, 'COMPETITION', ''),
+                'UNIQUE_ID': unique_id,
+            }
+        )
+
+    result = pd.DataFrame(rows, columns=output_columns)
+    if result.empty:
+        return result
+
+    change_order = pd.Categorical(
+        result['CHANGE'],
+        categories=['UPGRADE', 'NEW ENTRY'],
+        ordered=True,
+    )
+    result = (
+        result
+        .assign(_CHANGE_ORDER=change_order)
+        .sort_values(
+            ['_CHANGE_ORDER', 'EVENT', 'GENDER', 'NAME'],
+            ascending=[True, True, True, True],
+        )
+        .drop(columns=['_CHANGE_ORDER'])
+        .reset_index(drop=True)
+    )
+    return result
 
 # ============================================================
 # END JUMPS SELECTION REPORT HELPERS
@@ -2359,8 +2693,7 @@ if benchmark_option == "Ranking & Selection Reports":
             "",
             "2025 SEAG Bronze - SEAG Selection",
             "2025 SEAG Bronze - OCTC Selection",
-            "Jumps - Training Selection",
-            "Jumps - National Selection",
+            "Jumps Selection",
             "Marathon Ranking Report",
         ),
         index=0,
@@ -3482,101 +3815,231 @@ elif benchmark_option == "Athlete Head-to-Head":
 # ============================================================
 
 
-elif benchmark_option in (
-    'Jumps - Training Selection',
-    'Jumps - National Selection',
-):
+elif benchmark_option == 'Jumps Selection':
 
-    squad = (
-        'TRAINING'
-        if benchmark_option == 'Jumps - Training Selection'
-        else 'NATIONAL'
+    st.subheader('Jumps Selection')
+
+    jumps_report_option = st.selectbox(
+        'Select Jumps Report:',
+        (
+            'Training Selection',
+            'National Selection',
+            'Programme Changes',
+        ),
+        index=0,
+        key='jumps_selection_submenu_20260825',
     )
 
-    st.subheader(f"Jumps - {squad.title()} Selection")
-    st.caption(
-        "Events: Long Jump, Triple Jump and High Jump. "
-        "Tier 1–5 thresholds follow the current jumps-selection notebook. "
-        "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
-    )
-
-    jumps_data = fetch_jumps_selection_data().copy()
-
-    if jumps_data.empty:
-        st.warning('No jump records were found for the configured report period.')
-    else:
-        final_jumps_selection, processed_jumps = build_jumps_selection(
-            jumps_data,
-            squad=squad,
+    if jumps_report_option in ('Training Selection', 'National Selection'):
+        squad = (
+            'TRAINING'
+            if jumps_report_option == 'Training Selection'
+            else 'NATIONAL'
         )
 
-        if final_jumps_selection.empty:
-            st.warning(f'No athletes currently meet the {squad.title()} Tier 1–5 thresholds.')
+        st.write(f"### {squad.title()} Selection")
+        st.caption(
+            "Events: Long Jump, Triple Jump and High Jump. "
+            "Tier 1–5 thresholds follow the current jumps-selection notebook. "
+            "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
+        )
+
+        jumps_data = fetch_jumps_selection_data().copy()
+
+        if jumps_data.empty:
+            st.warning('No jump records were found for the configured report period.')
         else:
-            jumps_display = format_results_like_search(
-                final_jumps_selection,
-                include_result_conv=False,
-                extra_cols=[
-                    'UNIQUE_ID',
-                    'WIND_NUM',
-                    'WIND_STATUS',
-                    'BENCHMARK',
-                    '2%',
-                    '3.5%',
-                    '5%',
-                    '10%',
-                    'Delta_Benchmark',
-                    'PERF_SCALAR',
-                    'TIER',
-                ],
+            final_jumps_selection, processed_jumps = build_jumps_selection(
+                jumps_data,
+                squad=squad,
             )
 
-            # Round calculation fields for a cleaner report display.
-            round_cols = [
-                'WIND_NUM', 'BENCHMARK', '2%', '3.5%', '5%', '10%',
-                'Delta_Benchmark', 'PERF_SCALAR',
-            ]
-            for col in round_cols:
-                if col in jumps_display.columns:
-                    jumps_display[col] = pd.to_numeric(
-                        jumps_display[col], errors='coerce'
-                    ).round(3)
-
-            st.write(f"### {squad.title()} Selection")
-            final_dfs, code = spreadsheet(jumps_display)
-
-        illegal_wind_results = processed_jumps.loc[
-            processed_jumps['ILLEGAL_WIND']
-        ].copy()
-
-        with st.expander(
-            f"Illegal Wind Results Excluded From Selection ({len(illegal_wind_results)})"
-        ):
-            if illegal_wind_results.empty:
-                st.info('No illegal-wind Long Jump / Triple Jump results were found.')
+            if final_jumps_selection.empty:
+                st.warning(f'No athletes currently meet the {squad.title()} Tier 1–5 thresholds.')
             else:
-                illegal_display_cols = [
-                    'NAME', 'DATE', 'EVENT', 'COMPETITION', 'RESULT',
-                    'WIND', 'WIND_NUM', 'WIND_STATUS', 'GENDER',
-                    'UNIQUE_ID', 'NATIONALITY',
-                ]
-                for col in illegal_display_cols:
-                    if col not in illegal_wind_results.columns:
-                        illegal_wind_results[col] = ''
-
-                illegal_display = illegal_wind_results[illegal_display_cols].copy()
-                illegal_display['DATE'] = pd.to_datetime(
-                    illegal_display['DATE'], errors='coerce'
-                ).dt.strftime('%Y-%m-%d')
-                illegal_display['WIND_NUM'] = pd.to_numeric(
-                    illegal_display['WIND_NUM'], errors='coerce'
-                ).round(2)
-
-                st.dataframe(
-                    illegal_display,
-                    use_container_width=True,
-                    hide_index=True,
+                jumps_display = format_results_like_search(
+                    final_jumps_selection,
+                    include_result_conv=False,
+                    extra_cols=[
+                        'UNIQUE_ID',
+                        'WIND_NUM',
+                        'WIND_STATUS',
+                        'BENCHMARK',
+                        '2%',
+                        '3.5%',
+                        '5%',
+                        '10%',
+                        'Delta_Benchmark',
+                        'PERF_SCALAR',
+                        'TIER',
+                    ],
                 )
+
+                # Round calculation fields for a cleaner report display.
+                round_cols = [
+                    'WIND_NUM', 'BENCHMARK', '2%', '3.5%', '5%', '10%',
+                    'Delta_Benchmark', 'PERF_SCALAR',
+                ]
+                for col in round_cols:
+                    if col in jumps_display.columns:
+                        jumps_display[col] = pd.to_numeric(
+                            jumps_display[col], errors='coerce'
+                        ).round(3)
+
+                final_dfs, code = spreadsheet(jumps_display)
+
+            illegal_wind_results = processed_jumps.loc[
+                processed_jumps['ILLEGAL_WIND']
+            ].copy()
+
+            with st.expander(
+                f"Illegal Wind Results Excluded From Selection ({len(illegal_wind_results)})"
+            ):
+                if illegal_wind_results.empty:
+                    st.info('No illegal-wind Long Jump / Triple Jump results were found.')
+                else:
+                    illegal_display_cols = [
+                        'NAME', 'DATE', 'EVENT', 'COMPETITION', 'RESULT',
+                        'WIND', 'WIND_NUM', 'WIND_STATUS', 'GENDER',
+                        'UNIQUE_ID', 'NATIONALITY',
+                    ]
+                    for col in illegal_display_cols:
+                        if col not in illegal_wind_results.columns:
+                            illegal_wind_results[col] = ''
+
+                    illegal_display = illegal_wind_results[illegal_display_cols].copy()
+                    illegal_display['DATE'] = pd.to_datetime(
+                        illegal_display['DATE'], errors='coerce'
+                    ).dt.strftime('%Y-%m-%d')
+                    illegal_display['WIND_NUM'] = pd.to_numeric(
+                        illegal_display['WIND_NUM'], errors='coerce'
+                    ).round(2)
+
+                    st.dataframe(
+                        illegal_display,
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+    elif jumps_report_option == 'Programme Changes':
+        st.write('### Jumps Programme Changes')
+        st.caption(
+            'Compares two cumulative Jumps Programme snapshots from 1 January 2026 '
+            'through the selected report dates. Only new programme entries and '
+            'Training Squad → National Squad upgrades are shown. Programme membership '
+            'requires meeting the actual Training or National benchmark; Tier 2–5 remain '
+            'monitoring bands in the standalone selection reports. The specified '
+            'spexPotential and spexScholarship athletes are excluded from this comparison.'
+        )
+
+        programme_start_date = datetime.date(2026, 1, 1)
+        programme_cutoff_date = datetime.date(2026, 8, 30)
+        latest_programme_date = min(datetime.date.today(), programme_cutoff_date)
+        default_previous_programme = max(
+            programme_start_date,
+            latest_programme_date - datetime.timedelta(days=30),
+        )
+
+        jumps_delta_col_1, jumps_delta_col_2 = st.columns(2)
+        with jumps_delta_col_1:
+            previous_jumps_report_date = st.date_input(
+                'Previous report date:',
+                value=default_previous_programme,
+                min_value=programme_start_date,
+                max_value=latest_programme_date,
+                key='jumps_programme_previous_date_20260825',
+            )
+        with jumps_delta_col_2:
+            current_jumps_report_date = st.date_input(
+                'Current report date:',
+                value=latest_programme_date,
+                min_value=programme_start_date,
+                max_value=latest_programme_date,
+                key='jumps_programme_current_date_20260825',
+            )
+
+        if previous_jumps_report_date >= current_jumps_report_date:
+            st.warning('Current report date must be later than previous report date.')
+        else:
+            run_jumps_programme_changes = st.button(
+                'Run Programme Changes',
+                type='primary',
+                key='run_jumps_programme_changes_20260825',
+            )
+
+            if not run_jumps_programme_changes:
+                st.info(
+                    'Choose the two report dates and click Run Programme Changes.'
+                )
+            else:
+                jumps_data = fetch_jumps_selection_data().copy()
+
+                if jumps_data.empty:
+                    st.warning('No jump records were found for the configured report period.')
+                else:
+                    with st.spinner('Calculating both Jumps Programme snapshots...'):
+                        previous_jumps_snapshot = build_jumps_programme_snapshot(
+                            jumps_data,
+                            previous_jumps_report_date,
+                        )
+                        current_jumps_snapshot = build_jumps_programme_snapshot(
+                            jumps_data,
+                            current_jumps_report_date,
+                        )
+                        jumps_programme_changes = compare_jumps_programme_snapshots(
+                            previous_jumps_snapshot,
+                            current_jumps_snapshot,
+                        )
+
+                    upgrade_count = int(
+                        (jumps_programme_changes['CHANGE'] == 'UPGRADE').sum()
+                    ) if not jumps_programme_changes.empty else 0
+                    new_entry_count = int(
+                        (jumps_programme_changes['CHANGE'] == 'NEW ENTRY').sum()
+                    ) if not jumps_programme_changes.empty else 0
+
+                    metric_1, metric_2, metric_3 = st.columns(3)
+                    metric_1.metric('Upgrades', upgrade_count)
+                    metric_2.metric('New Entries', new_entry_count)
+                    metric_3.metric('Total Changes', len(jumps_programme_changes))
+
+                    if jumps_programme_changes.empty:
+                        st.info(
+                            'No new Jumps Programme entries or Training → National '
+                            'upgrades were identified between the selected report dates.'
+                        )
+                    else:
+                        for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
+                            if col in jumps_programme_changes.columns:
+                                jumps_programme_changes[col] = pd.to_numeric(
+                                    jumps_programme_changes[col], errors='coerce'
+                                ).round(3)
+
+                        final_dfs, code = spreadsheet(jumps_programme_changes)
+
+                    with st.expander('Show excluded spex athletes'):
+                        st.write('#### spexPotential (excluded)')
+                        st.write(
+                            [
+                                'Tia Louise Rozario',
+                                'Andrew George Medina',
+                                'Gabriel Lee Jing Yi',
+                                'Mark Lee Ren',
+                                'Reuben Rainer Lee Siong En',
+                                'Elizabeth Ann Tan Shee Ru',
+                                'Thiruben S/O Thana Rajan',
+                            ]
+                        )
+                        st.write('#### spexScholarship (excluded)')
+                        st.write(
+                            [
+                                'Pereira Veronica Shanti',
+                                'Kampton Kam',
+                                'Ang Chen Xiang',
+                                'Quek Jun Jie Calvin',
+                                'Marc Brian Louis',
+                            ]
+                        )
 
 
 elif benchmark_option == 'Marathon Ranking Report':
