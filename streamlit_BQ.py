@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v7-programme-changes-session-state-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v9-jumps-full-year-hide-seag
 
 import streamlit as st
 import pandas as pd
@@ -795,7 +795,6 @@ SELECT
 FROM `saa-analytics.results.PRODUCTION`
 WHERE CATEGORY_EVENT = 'Jump'
   AND EVENT IN ('Long Jump', 'Triple Jump', 'High Jump')
-  AND DATE(SAFE_CAST(DATE AS TIMESTAMP)) BETWEEN DATE '2026-01-01' AND DATE '2026-08-30'
   AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL')
   AND RESULT IS NOT NULL
 """
@@ -872,6 +871,43 @@ def fetch_jumps_selection_data():
     data = client.query_and_wait(jumps_selection_sql).to_dataframe()
     data.dropna(how="all", axis=1, inplace=True)
     return data
+
+
+def filter_report_date_range(df_input, start_date, end_date):
+    """Return rows whose DATE falls within the inclusive selected date range.
+
+    DATE values in PRODUCTION may arrive as strings, timezone-aware timestamps,
+    or pandas datetimes.  Normalising to UTC here keeps all standalone report
+    date controls consistent without changing the underlying SQL per selection.
+    """
+    df = df_input.copy()
+
+    if 'DATE' not in df.columns:
+        return df.iloc[0:0].copy()
+
+    parsed_dates = pd.to_datetime(
+        df['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    )
+
+    start_ts = pd.Timestamp(start_date, tz='UTC')
+    # Use an exclusive next-day bound so all timestamps on the selected end date
+    # are included, regardless of their time of day.
+    end_exclusive = pd.Timestamp(end_date, tz='UTC') + pd.Timedelta(days=1)
+
+    mask = (
+        parsed_dates.notna()
+        & (parsed_dates >= start_ts)
+        & (parsed_dates < end_exclusive)
+    )
+
+    # Preserve the existing standalone-report convention of a timezone-naive
+    # DATE column after filtering, while using UTC-aware values for the mask.
+    df['DATE'] = parsed_dates.dt.tz_localize(None)
+    return df.loc[mask].copy()
 
 
 def get_jumps_selection_benchmarks():
@@ -2691,7 +2727,6 @@ if benchmark_option == "Ranking & Selection Reports":
         "Select Report:",
         (
             "",
-            "2025 SEAG Bronze - SEAG Selection",
             "2025 SEAG Bronze - OCTC Selection",
             "Jumps Selection",
             "Marathon Ranking Report",
@@ -3844,10 +3879,43 @@ elif benchmark_option == 'Jumps Selection':
             "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
         )
 
+        # Standalone Jumps reports use an explicit result-date slice.
+        # Default to the full 2026 calendar year.
+        jumps_default_start = datetime.date(2026, 1, 1)
+        jumps_default_end = datetime.date(2026, 12, 31)
+        jumps_date_key = squad.lower()
+
+        jumps_date_col_1, jumps_date_col_2 = st.columns(2)
+        with jumps_date_col_1:
+            jumps_start_date = st.date_input(
+                'Start Date:',
+                value=jumps_default_start,
+                key=f'jumps_{jumps_date_key}_standalone_start_date_20260825',
+            )
+        with jumps_date_col_2:
+            jumps_end_date = st.date_input(
+                'End Date:',
+                value=jumps_default_end,
+                key=f'jumps_{jumps_date_key}_standalone_end_date_20260825',
+            )
+
+        if jumps_start_date > jumps_end_date:
+            st.warning('Start Date must be on or before End Date.')
+            st.stop()
+
+        st.caption(
+            f"Results period: {jumps_start_date:%d %b %Y} – {jumps_end_date:%d %b %Y}"
+        )
+
         jumps_data = fetch_jumps_selection_data().copy()
+        jumps_data = filter_report_date_range(
+            jumps_data,
+            jumps_start_date,
+            jumps_end_date,
+        )
 
         if jumps_data.empty:
-            st.warning('No jump records were found for the configured report period.')
+            st.warning('No jump records were found for the selected report period.')
         else:
             final_jumps_selection, processed_jumps = build_jumps_selection(
                 jumps_data,
@@ -4385,32 +4453,45 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
             st.stop()
 
 
-    # Choose start and end dates
-
+    # Choose the result-date slice for the standalone SEAG / OCTC report.
+    # Defaults reproduce the existing report periods; users can override both ends.
     if benchmark_option == '2025 SEAG Bronze - SEAG Selection':
+        default_start_date = datetime.date(2024, 10, 22)
+        default_end_date = datetime.date(2025, 9, 5)
+        report_date_key = 'seag'
+    else:
+        # OCTC default must remain the full 1 Jan 2025 – 31 Dec 2026 window.
+        default_start_date = datetime.date(2025, 1, 1)
+        default_end_date = datetime.date(2026, 12, 31)
+        report_date_key = 'octc'
 
-        start = '2024-10-22'
-        end = '2025-09-05'
-        start_date = pd.to_datetime(start)
-        end_date = pd.to_datetime(end)
+    report_date_col_1, report_date_col_2 = st.columns(2)
+    with report_date_col_1:
+        start_date = st.date_input(
+            'Start Date:',
+            value=default_start_date,
+            key=f'{report_date_key}_standalone_start_date_20260825',
+        )
+    with report_date_col_2:
+        end_date = st.date_input(
+            'End Date:',
+            value=default_end_date,
+            key=f'{report_date_key}_standalone_end_date_20260825',
+        )
 
+    if start_date > end_date:
+        st.warning('Start Date must be on or before End Date.')
+        st.stop()
 
-    elif benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-       # start = np.datetime64(start_date)
-       # end = np.datetime64(end_date)
-        start = '2025-01-01'
-        end = '2026-12-31'  # OCTC selection cutoff
-        start_date = pd.to_datetime(start)
-        end_date = pd.to_datetime(end)
+    st.caption(
+        f"Results period: {start_date:%d %b %Y} – {end_date:%d %b %Y}"
+    )
 
-
-
-    data['DATE'] = pd.to_datetime(data['DATE'], format='mixed', dayfirst=False, utc=True)
-    data['DATE'] = data['DATE'].dt.tz_localize(None)  # switch off timezone for compatibility with np.datetime64
-
-
-    mask = ((data['DATE'] >= start) & (data['DATE'] <= end))
-    athletes_selected = data.loc[mask]
+    athletes_selected = filter_report_date_range(
+        data,
+        start_date,
+        end_date,
+    )
     athletes_selected.reset_index(drop=True, inplace=True)
 
     # Fast lookup for benchmarks
