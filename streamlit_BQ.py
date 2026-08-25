@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v13-fetch-all-jump-events-before-cleaning
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v14-jumps-data-verification
 
 import streamlit as st
 import pandas as pd
@@ -912,6 +912,50 @@ def filter_report_date_range(df_input, start_date, end_date):
     # DATE column after filtering, while using UTC-aware values for the mask.
     df['DATE'] = parsed_dates.dt.tz_localize(None)
     return df.loc[mask].copy()
+
+
+
+def summarize_jumps_data_checkpoint(df_input, checkpoint):
+    """Return compact date/year diagnostics for a Jumps report pipeline checkpoint."""
+    if df_input is None:
+        df = pd.DataFrame()
+    else:
+        df = df_input.copy()
+
+    if 'DATE' in df.columns:
+        parsed_dates = pd.to_datetime(
+            df['DATE'],
+            format='mixed',
+            dayfirst=False,
+            utc=True,
+            errors='coerce',
+        )
+    else:
+        parsed_dates = pd.Series(pd.NaT, index=df.index, dtype='datetime64[ns, UTC]')
+
+    valid_dates = parsed_dates.dropna()
+    year_counts = (
+        valid_dates.dt.year
+        .value_counts()
+        .sort_index()
+        .rename_axis('YEAR')
+        .reset_index(name='ROWS')
+    )
+    if not year_counts.empty:
+        year_counts['YEAR'] = year_counts['YEAR'].astype(int)
+
+    summary = {
+        'CHECKPOINT': checkpoint,
+        'ROWS': int(len(df)),
+        'VALID_DATE_ROWS': int(parsed_dates.notna().sum()),
+        'INVALID_DATE_ROWS': int(parsed_dates.isna().sum()),
+        'MIN_DATE': valid_dates.min().date().isoformat() if not valid_dates.empty else '',
+        'MAX_DATE': valid_dates.max().date().isoformat() if not valid_dates.empty else '',
+        'ROWS_2025': int((parsed_dates.dt.year == 2025).sum()),
+        'ROWS_2026': int((parsed_dates.dt.year == 2026).sum()),
+    }
+
+    return summary, year_counts
 
 
 def get_jumps_selection_benchmarks():
@@ -4062,20 +4106,83 @@ elif benchmark_option == 'Jumps Selection':
             f"Results period: {jumps_start_date:%d %b %Y} – {jumps_end_date:%d %b %Y}"
         )
 
-        jumps_data = fetch_jumps_selection_data(jumps_selection_sql).copy()
+        # Keep explicit checkpoints so the selected date range can be audited.
+        # This is intentionally lightweight: only counts/date ranges/year counts are shown.
+        raw_jumps_data = fetch_jumps_selection_data(jumps_selection_sql).copy()
+        raw_jumps_summary, raw_jumps_years = summarize_jumps_data_checkpoint(
+            raw_jumps_data,
+            'A. Raw BigQuery jump rows',
+        )
+
         jumps_data = filter_report_date_range(
-            jumps_data,
+            raw_jumps_data,
             jumps_start_date,
             jumps_end_date,
         )
+        filtered_jumps_summary, filtered_jumps_years = summarize_jumps_data_checkpoint(
+            jumps_data,
+            'B. After selected date-range filter',
+        )
 
         if jumps_data.empty:
+            with st.expander('Jumps Data Verification'):
+                st.dataframe(
+                    pd.DataFrame([raw_jumps_summary, filtered_jumps_summary]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                st.write('#### Rows by year — raw BigQuery data')
+                st.dataframe(raw_jumps_years, use_container_width=True, hide_index=True)
+                st.write('#### Rows by year — after selected date range')
+                st.dataframe(filtered_jumps_years, use_container_width=True, hide_index=True)
             st.warning('No jump records were found for the selected report period.')
         else:
             final_jumps_selection, processed_jumps = build_jumps_selection(
                 jumps_data,
                 squad=squad,
             )
+
+            processed_jumps_summary, processed_jumps_years = summarize_jumps_data_checkpoint(
+                processed_jumps,
+                'C. After Jumps preprocessing / eligibility preparation',
+            )
+            selected_jumps_summary, selected_jumps_years = summarize_jumps_data_checkpoint(
+                final_jumps_selection,
+                'D. Final selected athlete-event rows',
+            )
+
+            with st.expander('Jumps Data Verification'):
+                st.caption(
+                    'Use these checkpoints to identify where historical rows are lost. '
+                    'For a 01 Jan 2025–25 Aug 2026 run, checkpoint A should contain 2025 rows. '
+                    'Checkpoint B should retain them if the date filter is working, and checkpoint C '
+                    'shows what remains after name, nationality, event, wind and benchmark preprocessing.'
+                )
+                st.dataframe(
+                    pd.DataFrame([
+                        raw_jumps_summary,
+                        filtered_jumps_summary,
+                        processed_jumps_summary,
+                        selected_jumps_summary,
+                    ]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+                verification_tabs = st.tabs([
+                    'A. Raw by year',
+                    'B. Date-filtered by year',
+                    'C. Processed by year',
+                    'D. Selected by year',
+                ])
+                with verification_tabs[0]:
+                    st.dataframe(raw_jumps_years, use_container_width=True, hide_index=True)
+                with verification_tabs[1]:
+                    st.dataframe(filtered_jumps_years, use_container_width=True, hide_index=True)
+                with verification_tabs[2]:
+                    st.dataframe(processed_jumps_years, use_container_width=True, hide_index=True)
+                with verification_tabs[3]:
+                    st.dataframe(selected_jumps_years, use_container_width=True, hide_index=True)
 
             if final_jumps_selection.empty:
                 st.warning(f'No athletes currently meet the {squad.title()} Tier 1–5 thresholds.')
