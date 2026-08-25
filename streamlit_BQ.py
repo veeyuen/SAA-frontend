@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v6-jumps-dropdown-programme-changes
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v7-programme-changes-session-state-fix
 
 import streamlit as st
 import pandas as pd
@@ -3961,20 +3961,32 @@ elif benchmark_option == 'Jumps Selection':
         if previous_jumps_report_date >= current_jumps_report_date:
             st.warning('Current report date must be later than previous report date.')
         else:
+            # Persist Programme Changes results across Streamlit reruns.
+            # The Mito spreadsheet component triggers a rerun when it mounts; because
+            # st.button() is only True on the click rerun, that previously caused the
+            # calculated table to disappear immediately.  Store the dataframe and the
+            # report-date pair in session_state, then render it outside the button-only
+            # calculation block.
+            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v7'
+            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v7'
+
             run_jumps_programme_changes = st.button(
                 'Run Programme Changes',
                 type='primary',
                 key='run_jumps_programme_changes_20260825',
             )
 
-            if not run_jumps_programme_changes:
-                st.info(
-                    'Choose the two report dates and click Run Programme Changes.'
-                )
-            else:
+            selected_date_pair = (
+                str(previous_jumps_report_date),
+                str(current_jumps_report_date),
+            )
+
+            if run_jumps_programme_changes:
                 jumps_data = fetch_jumps_selection_data().copy()
 
                 if jumps_data.empty:
+                    st.session_state.pop(jumps_changes_state_key, None)
+                    st.session_state.pop(jumps_changes_dates_key, None)
                     st.warning('No jump records were found for the configured report period.')
                 else:
                     with st.spinner('Calculating both Jumps Programme snapshots...'):
@@ -3986,60 +3998,103 @@ elif benchmark_option == 'Jumps Selection':
                             jumps_data,
                             current_jumps_report_date,
                         )
-                        jumps_programme_changes = compare_jumps_programme_snapshots(
+                        calculated_jumps_programme_changes = compare_jumps_programme_snapshots(
                             previous_jumps_snapshot,
                             current_jumps_snapshot,
                         )
 
-                    upgrade_count = int(
-                        (jumps_programme_changes['CHANGE'] == 'UPGRADE').sum()
-                    ) if not jumps_programme_changes.empty else 0
-                    new_entry_count = int(
-                        (jumps_programme_changes['CHANGE'] == 'NEW ENTRY').sum()
-                    ) if not jumps_programme_changes.empty else 0
+                    for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
+                        if col in calculated_jumps_programme_changes.columns:
+                            calculated_jumps_programme_changes[col] = pd.to_numeric(
+                                calculated_jumps_programme_changes[col], errors='coerce'
+                            ).round(3)
 
-                    metric_1, metric_2, metric_3 = st.columns(3)
-                    metric_1.metric('Upgrades', upgrade_count)
-                    metric_2.metric('New Entries', new_entry_count)
-                    metric_3.metric('Total Changes', len(jumps_programme_changes))
+                    st.session_state[jumps_changes_state_key] = (
+                        calculated_jumps_programme_changes.copy()
+                    )
+                    st.session_state[jumps_changes_dates_key] = selected_date_pair
 
-                    if jumps_programme_changes.empty:
-                        st.info(
-                            'No new Jumps Programme entries or Training → National '
-                            'upgrades were identified between the selected report dates.'
-                        )
-                    else:
-                        for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
-                            if col in jumps_programme_changes.columns:
-                                jumps_programme_changes[col] = pd.to_numeric(
-                                    jumps_programme_changes[col], errors='coerce'
-                                ).round(3)
+            stored_date_pair = st.session_state.get(jumps_changes_dates_key)
+            if stored_date_pair == selected_date_pair:
+                jumps_programme_changes = st.session_state.get(jumps_changes_state_key)
+            else:
+                jumps_programme_changes = None
 
-                        final_dfs, code = spreadsheet(jumps_programme_changes)
+            if jumps_programme_changes is None:
+                st.info(
+                    'Choose the two report dates and click Run Programme Changes.'
+                )
+            else:
+                upgrade_count = int(
+                    (jumps_programme_changes['CHANGE'] == 'UPGRADE').sum()
+                ) if not jumps_programme_changes.empty else 0
+                new_entry_count = int(
+                    (jumps_programme_changes['CHANGE'] == 'NEW ENTRY').sum()
+                ) if not jumps_programme_changes.empty else 0
 
-                    with st.expander('Show excluded spex athletes'):
-                        st.write('#### spexPotential (excluded)')
-                        st.write(
-                            [
-                                'Tia Louise Rozario',
-                                'Andrew George Medina',
-                                'Gabriel Lee Jing Yi',
-                                'Mark Lee Ren',
-                                'Reuben Rainer Lee Siong En',
-                                'Elizabeth Ann Tan Shee Ru',
-                                'Thiruben S/O Thana Rajan',
-                            ]
-                        )
-                        st.write('#### spexScholarship (excluded)')
-                        st.write(
-                            [
-                                'Pereira Veronica Shanti',
-                                'Kampton Kam',
-                                'Ang Chen Xiang',
-                                'Quek Jun Jie Calvin',
-                                'Marc Brian Louis',
-                            ]
-                        )
+                metric_1, metric_2, metric_3 = st.columns(3)
+                metric_1.metric('Upgrades', upgrade_count)
+                metric_2.metric('New Entries', new_entry_count)
+                metric_3.metric('Total Changes', len(jumps_programme_changes))
+
+                st.caption(
+                    f'Previous snapshot: 1 Jan 2026 – {previous_jumps_report_date:%d %b %Y}  |  '
+                    f'Current snapshot: 1 Jan 2026 – {current_jumps_report_date:%d %b %Y}'
+                )
+
+                if jumps_programme_changes.empty:
+                    st.info(
+                        'No new Jumps Programme entries or Training → National '
+                        'upgrades were identified between the selected report dates.'
+                    )
+                else:
+                    # Use the native Streamlit dataframe here rather than Mito.
+                    # This table is read-only and does not trigger the component rerun
+                    # that previously made the Programme Changes output disappear.
+                    st.dataframe(
+                        jumps_programme_changes,
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                    jumps_programme_csv = jumps_programme_changes.to_csv(
+                        index=False
+                    ).encode('utf-8')
+                    st.download_button(
+                        'Download Programme Changes CSV',
+                        data=jumps_programme_csv,
+                        file_name=(
+                            'jumps_programme_changes_'
+                            f'{previous_jumps_report_date:%Y%m%d}_to_'
+                            f'{current_jumps_report_date:%Y%m%d}.csv'
+                        ),
+                        mime='text/csv',
+                        key='download_jumps_programme_changes_20260825_v7',
+                    )
+
+            with st.expander('Show excluded spex athletes'):
+                st.write('#### spexPotential (excluded)')
+                st.write(
+                    [
+                        'Tia Louise Rozario',
+                        'Andrew George Medina',
+                        'Gabriel Lee Jing Yi',
+                        'Mark Lee Ren',
+                        'Reuben Rainer Lee Siong En',
+                        'Elizabeth Ann Tan Shee Ru',
+                        'Thiruben S/O Thana Rajan',
+                    ]
+                )
+                st.write('#### spexScholarship (excluded)')
+                st.write(
+                    [
+                        'Pereira Veronica Shanti',
+                        'Kampton Kam',
+                        'Ang Chen Xiang',
+                        'Quek Jun Jie Calvin',
+                        'Marc Brian Louis',
+                    ]
+                )
 
 
 elif benchmark_option == 'Marathon Ranking Report':
