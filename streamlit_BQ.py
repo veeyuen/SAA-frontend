@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v15-shared-jumps-standalone-date-state-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v16-jumps-standalone-run-report-state-fix
 
 import streamlit as st
 import pandas as pd
@@ -4078,41 +4078,65 @@ elif benchmark_option == 'Jumps Selection':
             "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
         )
 
-        # Standalone Jumps reports use an explicit result-date slice.
-        # Default to the full 2026 calendar year.
+        # Standalone Jumps reports use an explicit submitted result-date slice.
+        # Draft calendar values are kept separate from the ACTIVE dates used by
+        # the calculation. This prevents component / Streamlit reruns from
+        # silently reverting the report to the default period.
         jumps_default_start = datetime.date(2026, 1, 1)
         jumps_default_end = datetime.date(2026, 12, 31)
 
-        # Training and National share the SAME standalone date-range state.
-        # This prevents switching between the two sub-reports from silently
-        # restoring a different date range for one squad.
-        jumps_shared_start_key = 'jumps_standalone_start_date_v15'
-        jumps_shared_end_key = 'jumps_standalone_end_date_v15'
+        jumps_draft_start_key = 'jumps_standalone_draft_start_date_v16'
+        jumps_draft_end_key = 'jumps_standalone_draft_end_date_v16'
+        jumps_active_start_key = 'jumps_standalone_active_start_date_v16'
+        jumps_active_end_key = 'jumps_standalone_active_end_date_v16'
 
-        if jumps_shared_start_key not in st.session_state:
-            st.session_state[jumps_shared_start_key] = jumps_default_start
-        if jumps_shared_end_key not in st.session_state:
-            st.session_state[jumps_shared_end_key] = jumps_default_end
+        if jumps_active_start_key not in st.session_state:
+            st.session_state[jumps_active_start_key] = jumps_default_start
+        if jumps_active_end_key not in st.session_state:
+            st.session_state[jumps_active_end_key] = jumps_default_end
+        if jumps_draft_start_key not in st.session_state:
+            st.session_state[jumps_draft_start_key] = st.session_state[jumps_active_start_key]
+        if jumps_draft_end_key not in st.session_state:
+            st.session_state[jumps_draft_end_key] = st.session_state[jumps_active_end_key]
 
-        jumps_date_col_1, jumps_date_col_2 = st.columns(2)
-        with jumps_date_col_1:
-            jumps_start_date = st.date_input(
-                'Start Date:',
-                key=jumps_shared_start_key,
-            )
-        with jumps_date_col_2:
-            jumps_end_date = st.date_input(
-                'End Date:',
-                key=jumps_shared_end_key,
-            )
+        with st.form('jumps_standalone_date_form_v16'):
+            jumps_date_col_1, jumps_date_col_2 = st.columns(2)
+            with jumps_date_col_1:
+                selected_jumps_start_date = st.date_input(
+                    'Start Date:',
+                    key=jumps_draft_start_key,
+                )
+            with jumps_date_col_2:
+                selected_jumps_end_date = st.date_input(
+                    'End Date:',
+                    key=jumps_draft_end_key,
+                )
+
+            run_jumps_report = st.form_submit_button('Run Report')
+
+        if run_jumps_report:
+            if selected_jumps_start_date > selected_jumps_end_date:
+                st.warning('Start Date must be on or before End Date.')
+            else:
+                st.session_state[jumps_active_start_key] = selected_jumps_start_date
+                st.session_state[jumps_active_end_key] = selected_jumps_end_date
+
+        jumps_start_date = st.session_state[jumps_active_start_key]
+        jumps_end_date = st.session_state[jumps_active_end_key]
 
         if jumps_start_date > jumps_end_date:
-            st.warning('Start Date must be on or before End Date.')
+            st.warning('Active Start Date must be on or before Active End Date.')
             st.stop()
 
         st.caption(
-            f"Results period: {jumps_start_date:%d %b %Y} – {jumps_end_date:%d %b %Y}"
+            f"Active results period: {jumps_start_date:%d %b %Y} – {jumps_end_date:%d %b %Y}"
         )
+
+        if (
+            selected_jumps_start_date != jumps_start_date
+            or selected_jumps_end_date != jumps_end_date
+        ):
+            st.info('Calendar dates have changed. Click **Run Report** to apply them.')
 
         # Keep explicit checkpoints so the selected date range can be audited.
         # This is intentionally lightweight: only counts/date ranges/year counts are shown.
@@ -4132,11 +4156,18 @@ elif benchmark_option == 'Jumps Selection':
             'B. After selected date-range filter',
         )
 
+        active_date_diagnostics = {
+            'ACTIVE_START_DATE': jumps_start_date.isoformat(),
+            'ACTIVE_END_DATE': jumps_end_date.isoformat(),
+        }
+        raw_jumps_summary.update(active_date_diagnostics)
+        filtered_jumps_summary.update(active_date_diagnostics)
+
         if jumps_data.empty:
             with st.expander('Jumps Data Verification'):
                 st.write(
-                    f"**Requested Start Date:** {jumps_start_date:%d %b %Y}  \n"
-                    f"**Requested End Date:** {jumps_end_date:%d %b %Y}"
+                    f"**Active Start Date:** {jumps_start_date:%d %b %Y}  \n"
+                    f"**Active End Date:** {jumps_end_date:%d %b %Y}"
                 )
                 st.dataframe(
                     pd.DataFrame([raw_jumps_summary, filtered_jumps_summary]),
@@ -4162,14 +4193,16 @@ elif benchmark_option == 'Jumps Selection':
                 final_jumps_selection,
                 'D. Final selected athlete-event rows',
             )
+            processed_jumps_summary.update(active_date_diagnostics)
+            selected_jumps_summary.update(active_date_diagnostics)
 
             with st.expander('Jumps Data Verification'):
                 st.write(
-                    f"**Requested Start Date:** {jumps_start_date:%d %b %Y}  \n"
-                    f"**Requested End Date:** {jumps_end_date:%d %b %Y}"
+                    f"**Active Start Date:** {jumps_start_date:%d %b %Y}  \n"
+                    f"**Active End Date:** {jumps_end_date:%d %b %Y}"
                 )
                 st.caption(
-                    'These are the exact dates passed into filter_report_date_range(). '
+                    'The ACTIVE_START_DATE / ACTIVE_END_DATE columns are the exact submitted dates passed into filter_report_date_range(). '
                     'Checkpoint A is the raw BigQuery population; checkpoint B must retain all rows '
                     'inside the requested range; checkpoint C shows what remains after name, nationality, '
                     'event, wind and benchmark preprocessing.'
