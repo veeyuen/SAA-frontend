@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v11-programme-change-verification
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v12-jumps-sql-cache-key-fix
 
 import streamlit as st
 import pandas as pd
@@ -866,9 +866,14 @@ def fetch_marathon_ranking_data():
     return data
 
 @st.cache_data(ttl=6000)
-def fetch_jumps_selection_data():
-    """Fetch only the jump results required by the Jumps Selection reports."""
-    data = client.query_and_wait(jumps_selection_sql).to_dataframe()
+def fetch_jumps_selection_data(sql):
+    """Fetch only the jump results required by the Jumps Selection reports.
+
+    The SQL text is deliberately passed as an argument so Streamlit includes it
+    in the cache key.  If the source query changes (for example, a date filter
+    is removed or amended), the cached dataframe is automatically invalidated.
+    """
+    data = client.query_and_wait(sql).to_dataframe()
     data.dropna(how="all", axis=1, inplace=True)
     return data
 
@@ -4058,7 +4063,7 @@ elif benchmark_option == 'Jumps Selection':
             f"Results period: {jumps_start_date:%d %b %Y} – {jumps_end_date:%d %b %Y}"
         )
 
-        jumps_data = fetch_jumps_selection_data().copy()
+        jumps_data = fetch_jumps_selection_data(jumps_selection_sql).copy()
         jumps_data = filter_report_date_range(
             jumps_data,
             jumps_start_date,
@@ -4188,9 +4193,9 @@ elif benchmark_option == 'Jumps Selection':
             # calculated table to disappear immediately.  Store the dataframe and the
             # report-date pair in session_state, then render it outside the button-only
             # calculation block.
-            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v11'
-            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v11'
-            jumps_verification_state_key = 'jumps_programme_verification_20260825_v11'
+            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v12'
+            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v12'
+            jumps_verification_state_key = 'jumps_programme_verification_20260825_v12'
 
             run_jumps_programme_changes = st.button(
                 'Run Programme Changes',
@@ -4204,7 +4209,7 @@ elif benchmark_option == 'Jumps Selection':
             )
 
             if run_jumps_programme_changes:
-                jumps_data = fetch_jumps_selection_data().copy()
+                jumps_data = fetch_jumps_selection_data(jumps_selection_sql).copy()
 
                 if jumps_data.empty:
                     st.session_state.pop(jumps_changes_state_key, None)
