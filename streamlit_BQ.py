@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v12-jumps-sql-cache-key-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v13-fetch-all-jump-events-before-cleaning
 
 import streamlit as st
 import pandas as pd
@@ -794,7 +794,6 @@ SELECT
     WIND, CATEGORY_EVENT, GENDER, COMPETITION, DATE, YEAR, REGION
 FROM `saa-analytics.results.PRODUCTION`
 WHERE CATEGORY_EVENT = 'Jump'
-  AND EVENT IN ('Long Jump', 'Triple Jump', 'High Jump')
   AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL')
   AND RESULT IS NOT NULL
 """
