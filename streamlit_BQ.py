@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v10-configurable-programme-lookback
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v11-programme-change-verification
 
 import streamlit as st
 import pandas as pd
@@ -1471,6 +1471,126 @@ def compare_jumps_programme_snapshots(previous_snapshot, current_snapshot):
         .reset_index(drop=True)
     )
     return result
+
+
+def build_jumps_programme_verification(previous_snapshot, current_snapshot):
+    """Build audit tables proving the Training -> National intersection.
+
+    Returns three dataframes:
+      1. athlete-events classified as Training in the earlier snapshot;
+      2. athlete-events classified as National in the later snapshot; and
+      3. the exact PROGRAMME_KEY intersection of those two populations.
+    """
+    previous = previous_snapshot.copy()
+    current = current_snapshot.copy()
+
+    if previous.empty:
+        previous_training = previous.copy()
+    else:
+        previous_training = previous.loc[
+            previous['PROGRAMME_STATUS'].eq('Training')
+        ].copy()
+
+    if current.empty:
+        current_national = current.copy()
+    else:
+        current_national = current.loc[
+            current['PROGRAMME_STATUS'].eq('National')
+        ].copy()
+
+    audit_base_cols = [
+        'PROGRAMME_KEY', 'NAME', 'GENDER', 'EVENT', 'RESULT', 'WIND',
+        'WIND_STATUS', 'BENCHMARK', 'DATE', 'COMPETITION', 'UNIQUE_ID',
+    ]
+
+    def _audit_view(frame):
+        if frame.empty:
+            return pd.DataFrame(columns=audit_base_cols)
+        cols = [col for col in audit_base_cols if col in frame.columns]
+        result = frame.loc[:, cols].copy()
+        if 'DATE' in result.columns:
+            result['DATE'] = pd.to_datetime(result['DATE'], errors='coerce').dt.strftime('%Y-%m-%d')
+        if 'BENCHMARK' in result.columns:
+            result['BENCHMARK'] = pd.to_numeric(result['BENCHMARK'], errors='coerce').round(3)
+        return result.reset_index(drop=True)
+
+    previous_training_view = _audit_view(previous_training)
+    current_national_view = _audit_view(current_national)
+
+    if previous_training.empty or current_national.empty:
+        upgrades = pd.DataFrame(columns=[
+            'NAME', 'GENDER', 'EVENT',
+            'PREVIOUS_RESULT', 'CURRENT_RESULT',
+            'PREVIOUS_WIND', 'CURRENT_WIND',
+            'PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK',
+            'PREVIOUS_RESULT_DATE', 'CURRENT_RESULT_DATE',
+            'PREVIOUS_COMPETITION', 'CURRENT_COMPETITION',
+            'UNIQUE_ID',
+        ])
+    else:
+        previous_cols = [
+            'PROGRAMME_KEY', 'NAME', 'GENDER', 'EVENT', 'RESULT', 'WIND',
+            'BENCHMARK', 'DATE', 'COMPETITION', 'UNIQUE_ID',
+        ]
+        current_cols = previous_cols.copy()
+        prev = previous_training.loc[:, [c for c in previous_cols if c in previous_training.columns]].copy()
+        curr = current_national.loc[:, [c for c in current_cols if c in current_national.columns]].copy()
+
+        upgrades = prev.merge(
+            curr,
+            on='PROGRAMME_KEY',
+            how='inner',
+            suffixes=('_PREVIOUS', '_CURRENT'),
+        )
+
+        if upgrades.empty:
+            upgrades = pd.DataFrame(columns=[
+                'NAME', 'GENDER', 'EVENT',
+                'PREVIOUS_RESULT', 'CURRENT_RESULT',
+                'PREVIOUS_WIND', 'CURRENT_WIND',
+                'PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK',
+                'PREVIOUS_RESULT_DATE', 'CURRENT_RESULT_DATE',
+                'PREVIOUS_COMPETITION', 'CURRENT_COMPETITION',
+                'UNIQUE_ID',
+            ])
+        else:
+            # Use the later-snapshot display identity, falling back to the earlier one.
+            upgrades_out = pd.DataFrame({
+                'NAME': upgrades.get('NAME_CURRENT', upgrades.get('NAME_PREVIOUS', '')),
+                'GENDER': upgrades.get('GENDER_CURRENT', upgrades.get('GENDER_PREVIOUS', '')),
+                'EVENT': upgrades.get('EVENT_CURRENT', upgrades.get('EVENT_PREVIOUS', '')),
+                'PREVIOUS_RESULT': upgrades.get('RESULT_PREVIOUS', ''),
+                'CURRENT_RESULT': upgrades.get('RESULT_CURRENT', ''),
+                'PREVIOUS_WIND': upgrades.get('WIND_PREVIOUS', ''),
+                'CURRENT_WIND': upgrades.get('WIND_CURRENT', ''),
+                'PREVIOUS_BENCHMARK': upgrades.get('BENCHMARK_PREVIOUS', ''),
+                'CURRENT_BENCHMARK': upgrades.get('BENCHMARK_CURRENT', ''),
+                'PREVIOUS_RESULT_DATE': upgrades.get('DATE_PREVIOUS', ''),
+                'CURRENT_RESULT_DATE': upgrades.get('DATE_CURRENT', ''),
+                'PREVIOUS_COMPETITION': upgrades.get('COMPETITION_PREVIOUS', ''),
+                'CURRENT_COMPETITION': upgrades.get('COMPETITION_CURRENT', ''),
+                'UNIQUE_ID': upgrades.get('UNIQUE_ID_CURRENT', upgrades.get('UNIQUE_ID_PREVIOUS', '')),
+            })
+
+            for col in ['PREVIOUS_RESULT_DATE', 'CURRENT_RESULT_DATE']:
+                upgrades_out[col] = pd.to_datetime(
+                    upgrades_out[col], errors='coerce'
+                ).dt.strftime('%Y-%m-%d')
+            for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
+                upgrades_out[col] = pd.to_numeric(
+                    upgrades_out[col], errors='coerce'
+                ).round(3)
+
+            upgrades = upgrades_out.sort_values(
+                ['EVENT', 'GENDER', 'NAME'],
+                ascending=[True, True, True],
+            ).reset_index(drop=True)
+
+    return {
+        'previous_training': previous_training_view,
+        'current_national': current_national_view,
+        'training_to_national': upgrades,
+    }
 
 # ============================================================
 # END JUMPS SELECTION REPORT HELPERS
@@ -4068,8 +4188,9 @@ elif benchmark_option == 'Jumps Selection':
             # calculated table to disappear immediately.  Store the dataframe and the
             # report-date pair in session_state, then render it outside the button-only
             # calculation block.
-            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v10'
-            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v10'
+            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v11'
+            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v11'
+            jumps_verification_state_key = 'jumps_programme_verification_20260825_v11'
 
             run_jumps_programme_changes = st.button(
                 'Run Programme Changes',
@@ -4088,6 +4209,7 @@ elif benchmark_option == 'Jumps Selection':
                 if jumps_data.empty:
                     st.session_state.pop(jumps_changes_state_key, None)
                     st.session_state.pop(jumps_changes_dates_key, None)
+                    st.session_state.pop(jumps_verification_state_key, None)
                     st.warning('No jump records were found for the configured report period.')
                 else:
                     with st.spinner('Calculating both Jumps Programme snapshots...'):
@@ -4105,6 +4227,10 @@ elif benchmark_option == 'Jumps Selection':
                             previous_jumps_snapshot,
                             current_jumps_snapshot,
                         )
+                        calculated_jumps_programme_verification = build_jumps_programme_verification(
+                            previous_jumps_snapshot,
+                            current_jumps_snapshot,
+                        )
 
                     for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
                         if col in calculated_jumps_programme_changes.columns:
@@ -4115,13 +4241,21 @@ elif benchmark_option == 'Jumps Selection':
                     st.session_state[jumps_changes_state_key] = (
                         calculated_jumps_programme_changes.copy()
                     )
+                    st.session_state[jumps_verification_state_key] = {
+                        key: value.copy()
+                        for key, value in calculated_jumps_programme_verification.items()
+                    }
                     st.session_state[jumps_changes_dates_key] = selected_date_pair
 
             stored_date_pair = st.session_state.get(jumps_changes_dates_key)
             if stored_date_pair == selected_date_pair:
                 jumps_programme_changes = st.session_state.get(jumps_changes_state_key)
+                jumps_programme_verification = st.session_state.get(
+                    jumps_verification_state_key
+                )
             else:
                 jumps_programme_changes = None
+                jumps_programme_verification = None
 
             if jumps_programme_changes is None:
                 st.info(
@@ -4141,8 +4275,10 @@ elif benchmark_option == 'Jumps Selection':
                 metric_3.metric('Total Changes', len(jumps_programme_changes))
 
                 st.caption(
-                    f'Previous snapshot: 1 Jan 2026 – {previous_jumps_report_date:%d %b %Y}  |  '
-                    f'Current snapshot: 1 Jan 2026 – {current_jumps_report_date:%d %b %Y}'
+                    f'Previous snapshot: {programme_lookback_start:%d %b %Y} – '
+                    f'{previous_jumps_report_date:%d %b %Y}  |  '
+                    f'Current snapshot: {programme_lookback_start:%d %b %Y} – '
+                    f'{current_jumps_report_date:%d %b %Y}'
                 )
 
                 if jumps_programme_changes.empty:
@@ -4174,6 +4310,83 @@ elif benchmark_option == 'Jumps Selection':
                         mime='text/csv',
                         key='download_jumps_programme_changes_20260825_v7',
                     )
+
+                if jumps_programme_verification is not None:
+                    with st.expander('Programme Change Verification'):
+                        previous_training_audit = jumps_programme_verification.get(
+                            'previous_training', pd.DataFrame()
+                        )
+                        current_national_audit = jumps_programme_verification.get(
+                            'current_national', pd.DataFrame()
+                        )
+                        upgrade_audit = jumps_programme_verification.get(
+                            'training_to_national', pd.DataFrame()
+                        )
+
+                        verify_col_1, verify_col_2, verify_col_3 = st.columns(3)
+                        verify_col_1.metric(
+                            'Earlier Training athlete-events',
+                            len(previous_training_audit),
+                        )
+                        verify_col_2.metric(
+                            'Later National athlete-events',
+                            len(current_national_audit),
+                        )
+                        verify_col_3.metric(
+                            'Training → National intersections',
+                            len(upgrade_audit),
+                        )
+
+                        if len(upgrade_audit) != upgrade_count:
+                            st.error(
+                                'Verification mismatch: the audit intersection does not '
+                                'match the UPGRADE count. Please review the programme-change '
+                                'identity/status logic before relying on this output.'
+                            )
+                        else:
+                            st.success(
+                                'Verification check passed: the audit intersection matches '
+                                'the UPGRADE count shown above.'
+                            )
+
+                        st.caption(
+                            'An UPGRADE exists only when the exact same canonical '
+                            'athlete + gender + event is classified as Training in '
+                            'the previous snapshot and National in the current snapshot.'
+                        )
+
+                        st.write('#### Earlier snapshot — Training members')
+                        if previous_training_audit.empty:
+                            st.info('No Training athlete-events were present in the earlier snapshot.')
+                        else:
+                            st.dataframe(
+                                previous_training_audit,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                        st.write('#### Current snapshot — National members')
+                        if current_national_audit.empty:
+                            st.info('No National athlete-events were present in the current snapshot.')
+                        else:
+                            st.dataframe(
+                                current_national_audit,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                        st.write('#### Exact Training → National intersection')
+                        if upgrade_audit.empty:
+                            st.info(
+                                'No exact Training → National athlete-event intersections '
+                                'were found for the selected dates.'
+                            )
+                        else:
+                            st.dataframe(
+                                upgrade_audit,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
 
             with st.expander('Show excluded spex athletes'):
                 st.write('#### spexPotential (excluded)')
