@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v14-jumps-data-verification
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v15-shared-jumps-standalone-date-state-fix
 
 import streamlit as st
 import pandas as pd
@@ -4082,20 +4082,28 @@ elif benchmark_option == 'Jumps Selection':
         # Default to the full 2026 calendar year.
         jumps_default_start = datetime.date(2026, 1, 1)
         jumps_default_end = datetime.date(2026, 12, 31)
-        jumps_date_key = squad.lower()
+
+        # Training and National share the SAME standalone date-range state.
+        # This prevents switching between the two sub-reports from silently
+        # restoring a different date range for one squad.
+        jumps_shared_start_key = 'jumps_standalone_start_date_v15'
+        jumps_shared_end_key = 'jumps_standalone_end_date_v15'
+
+        if jumps_shared_start_key not in st.session_state:
+            st.session_state[jumps_shared_start_key] = jumps_default_start
+        if jumps_shared_end_key not in st.session_state:
+            st.session_state[jumps_shared_end_key] = jumps_default_end
 
         jumps_date_col_1, jumps_date_col_2 = st.columns(2)
         with jumps_date_col_1:
             jumps_start_date = st.date_input(
                 'Start Date:',
-                value=jumps_default_start,
-                key=f'jumps_{jumps_date_key}_standalone_start_date_20260825',
+                key=jumps_shared_start_key,
             )
         with jumps_date_col_2:
             jumps_end_date = st.date_input(
                 'End Date:',
-                value=jumps_default_end,
-                key=f'jumps_{jumps_date_key}_standalone_end_date_20260825',
+                key=jumps_shared_end_key,
             )
 
         if jumps_start_date > jumps_end_date:
@@ -4126,6 +4134,10 @@ elif benchmark_option == 'Jumps Selection':
 
         if jumps_data.empty:
             with st.expander('Jumps Data Verification'):
+                st.write(
+                    f"**Requested Start Date:** {jumps_start_date:%d %b %Y}  \n"
+                    f"**Requested End Date:** {jumps_end_date:%d %b %Y}"
+                )
                 st.dataframe(
                     pd.DataFrame([raw_jumps_summary, filtered_jumps_summary]),
                     use_container_width=True,
@@ -4152,11 +4164,15 @@ elif benchmark_option == 'Jumps Selection':
             )
 
             with st.expander('Jumps Data Verification'):
+                st.write(
+                    f"**Requested Start Date:** {jumps_start_date:%d %b %Y}  \n"
+                    f"**Requested End Date:** {jumps_end_date:%d %b %Y}"
+                )
                 st.caption(
-                    'Use these checkpoints to identify where historical rows are lost. '
-                    'For a 01 Jan 2025–25 Aug 2026 run, checkpoint A should contain 2025 rows. '
-                    'Checkpoint B should retain them if the date filter is working, and checkpoint C '
-                    'shows what remains after name, nationality, event, wind and benchmark preprocessing.'
+                    'These are the exact dates passed into filter_report_date_range(). '
+                    'Checkpoint A is the raw BigQuery population; checkpoint B must retain all rows '
+                    'inside the requested range; checkpoint C shows what remains after name, nationality, '
+                    'event, wind and benchmark preprocessing.'
                 )
                 st.dataframe(
                     pd.DataFrame([
