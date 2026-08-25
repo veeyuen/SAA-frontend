@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v9-jumps-full-year-hide-seag
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v10-configurable-programme-lookback
 
 import streamlit as st
 import pandas as pd
@@ -1135,6 +1135,32 @@ JUMPS_PROGRAMME_EXCLUDED_NAMES = [
 ]
 
 
+# Configurable historical lookback used by Jumps Programme Changes.
+# Override in Streamlit secrets when the programme cycle changes, e.g.:
+# JUMPS_PROGRAMME_LOOKBACK_START = "2025-01-01"
+JUMPS_PROGRAMME_LOOKBACK_START_DEFAULT = datetime.date(2025, 1, 1)
+
+
+def get_jumps_programme_lookback_start():
+    """Return configured Programme Changes lookback start, defaulting to 2025-01-01."""
+    default_value = JUMPS_PROGRAMME_LOOKBACK_START_DEFAULT
+
+    try:
+        configured_value = st.secrets.get(
+            'JUMPS_PROGRAMME_LOOKBACK_START',
+            default_value.isoformat(),
+        )
+    except Exception:
+        # Keep local/notebook execution safe when Streamlit secrets are unavailable.
+        configured_value = default_value.isoformat()
+
+    parsed = pd.to_datetime(configured_value, errors='coerce')
+    if pd.isna(parsed):
+        return default_value
+
+    return parsed.date()
+
+
 def _jumps_programme_name_signature(value):
     """Order-insensitive token signature used only for the explicit spex list."""
     value = _octc_clean_base_name(value).casefold()
@@ -1223,15 +1249,20 @@ def _prepare_jumps_programme_identity(df_input):
     return df
 
 
-def build_jumps_programme_snapshot(df_input, report_end_date):
+def build_jumps_programme_snapshot(df_input, report_end_date, lookback_start=None):
     """Build one cumulative Jumps Programme snapshot through report_end_date.
 
-    Status precedence is National > Training > Not Selected.  A squad status
-    requires the athlete's best legal/eligible mark to meet that squad's actual
-    benchmark (Tier 1). Tier 2-5 remain monitoring bands in the standalone
-    selection reports and do not by themselves establish programme membership.
+    The snapshot includes results from the configurable historical lookback start
+    through report_end_date. Status precedence is National > Training > Not
+    Selected. A squad status requires the athlete's best legal/eligible mark to
+    meet that squad's actual benchmark (Tier 1). Tier 2-5 remain monitoring bands
+    in the standalone selection reports and do not by themselves establish
+    programme membership.
     """
-    programme_start = pd.Timestamp('2026-01-01')
+    if lookback_start is None:
+        lookback_start = get_jumps_programme_lookback_start()
+
+    programme_start = pd.Timestamp(lookback_start)
     report_end = pd.Timestamp(report_end_date)
 
     df_source = df_input.copy()
@@ -3991,20 +4022,22 @@ elif benchmark_option == 'Jumps Selection':
 
     elif jumps_report_option == 'Programme Changes':
         st.write('### Jumps Programme Changes')
+
+        programme_lookback_start = get_jumps_programme_lookback_start()
         st.caption(
-            'Compares two cumulative Jumps Programme snapshots from 1 January 2026 '
-            'through the selected report dates. Only new programme entries and '
-            'Training Squad → National Squad upgrades are shown. Programme membership '
-            'requires meeting the actual Training or National benchmark; Tier 2–5 remain '
-            'monitoring bands in the standalone selection reports. The specified '
-            'spexPotential and spexScholarship athletes are excluded from this comparison.'
+            f'Compares two cumulative Jumps Programme snapshots using results from '
+            f'{programme_lookback_start.strftime("%d %b %Y")} through each selected '
+            'report date. Only new programme entries and Training Squad → National '
+            'Squad upgrades are shown. Programme membership requires meeting the actual '
+            'Training or National benchmark; Tier 2–5 remain monitoring bands in the '
+            'standalone selection reports. The specified spexPotential and '
+            'spexScholarship athletes are excluded from this comparison.'
         )
 
-        programme_start_date = datetime.date(2026, 1, 1)
         programme_cutoff_date = datetime.date(2026, 8, 30)
         latest_programme_date = min(datetime.date.today(), programme_cutoff_date)
         default_previous_programme = max(
-            programme_start_date,
+            programme_lookback_start,
             latest_programme_date - datetime.timedelta(days=30),
         )
 
@@ -4013,7 +4046,7 @@ elif benchmark_option == 'Jumps Selection':
             previous_jumps_report_date = st.date_input(
                 'Previous report date:',
                 value=default_previous_programme,
-                min_value=programme_start_date,
+                min_value=programme_lookback_start,
                 max_value=latest_programme_date,
                 key='jumps_programme_previous_date_20260825',
             )
@@ -4021,7 +4054,7 @@ elif benchmark_option == 'Jumps Selection':
             current_jumps_report_date = st.date_input(
                 'Current report date:',
                 value=latest_programme_date,
-                min_value=programme_start_date,
+                min_value=programme_lookback_start,
                 max_value=latest_programme_date,
                 key='jumps_programme_current_date_20260825',
             )
@@ -4035,8 +4068,8 @@ elif benchmark_option == 'Jumps Selection':
             # calculated table to disappear immediately.  Store the dataframe and the
             # report-date pair in session_state, then render it outside the button-only
             # calculation block.
-            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v7'
-            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v7'
+            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v10'
+            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v10'
 
             run_jumps_programme_changes = st.button(
                 'Run Programme Changes',
@@ -4061,10 +4094,12 @@ elif benchmark_option == 'Jumps Selection':
                         previous_jumps_snapshot = build_jumps_programme_snapshot(
                             jumps_data,
                             previous_jumps_report_date,
+                            lookback_start=programme_lookback_start,
                         )
                         current_jumps_snapshot = build_jumps_programme_snapshot(
                             jumps_data,
                             current_jumps_report_date,
+                            lookback_start=programme_lookback_start,
                         )
                         calculated_jumps_programme_changes = compare_jumps_programme_snapshots(
                             previous_jumps_snapshot,
