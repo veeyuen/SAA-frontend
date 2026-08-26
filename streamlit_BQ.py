@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-26-v18-explicit-illegal-wind-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-26-v19-result-w-suffix-illegal-wind-fix
 
 import streamlit as st
 import pandas as pd
@@ -994,8 +994,9 @@ def _jumps_result_to_numeric(value):
     if value.upper() in {'', 'NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ', 'FOUL', 'NH'}:
         return np.nan
 
-    # The authoritative wind check is performed from the WIND column below.
-    # Strip common field-result suffixes only so the mark remains visible/auditable.
+    # Wind legality is evaluated explicitly below from BOTH the raw RESULT suffix
+    # and the WIND column. Strip suffixes here only so the mark remains
+    # numeric and visible/auditable even when it is ineligible for selection.
     value = re.sub(r'(?i)GR', '', value)
     value = re.sub(r'(?i)[mw]$', '', value)
     value = value.strip()
@@ -1067,6 +1068,22 @@ def build_jumps_selection(df_input, squad):
     # "Illegal" must be treated as illegal rather than falling through to Unknown.
     horizontal_jumps = {'Long Jump', 'Triple Jump'}
 
+    # A trailing ``w`` in the raw RESULT is itself an explicit illegal-wind
+    # marker in the source data (for example ``6.96w``).  Preserve the numeric
+    # mark via _jumps_result_to_numeric(), but exclude it from qualification.
+    result_text = (
+        df['RESULT']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    result_has_w = result_text.str.contains(
+        r'w\s*$',
+        case=False,
+        regex=True,
+        na=False,
+    )
+
     wind_text = (
         df['WIND']
         .fillna('')
@@ -1100,16 +1117,18 @@ def build_jumps_selection(df_input, squad):
 
     df['ILLEGAL_WIND'] = (
         horizontal_mask
-        & (explicit_illegal_wind | numeric_illegal_wind)
+        & (result_has_w | explicit_illegal_wind | numeric_illegal_wind)
     )
 
     df['WIND_STATUS'] = 'Not applicable'
 
-    # Unknown applies only where the horizontal-jump wind cannot be parsed and is
-    # not explicitly labelled illegal. These results remain eligible by design.
+    # Unknown applies only where the horizontal-jump wind cannot be parsed and
+    # neither RESULT nor WIND explicitly marks the attempt as illegal. These
+    # genuinely unknown-wind results remain eligible by design.
     df.loc[
         horizontal_mask
         & df['WIND_NUM'].isna()
+        & ~result_has_w
         & ~explicit_illegal_wind,
         'WIND_STATUS',
     ] = 'Unknown'
