@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-26-v19-result-w-suffix-illegal-wind-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-26-v20-programme-calendar-audit-hardening
 
 import streamlit as st
 import pandas as pd
@@ -915,6 +915,39 @@ def filter_report_date_range(df_input, start_date, end_date):
 
 
 
+def filter_jumps_calendar_date_range(df_input, start_date, end_date):
+    """Return Jumps rows whose calendar DATE is inside the inclusive range.
+
+    Jumps programme/selection eligibility is defined by competition calendar date,
+    not time-of-day. The source DATE column is deliberately left unchanged for
+    audit purposes; only a temporary parsed calendar-date Series is used for the
+    filter.
+    """
+    df = df_input.copy()
+
+    if 'DATE' not in df.columns:
+        return df.iloc[0:0].copy()
+
+    parsed_dates = pd.to_datetime(
+        df['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    )
+    calendar_dates = parsed_dates.dt.date
+
+    start_date = pd.Timestamp(start_date).date()
+    end_date = pd.Timestamp(end_date).date()
+
+    mask = (
+        calendar_dates.notna()
+        & (calendar_dates >= start_date)
+        & (calendar_dates <= end_date)
+    )
+    return df.loc[mask].copy()
+
+
 def summarize_jumps_data_checkpoint(df_input, checkpoint):
     """Return compact date/year diagnostics for a Jumps report pipeline checkpoint."""
     if df_input is None:
@@ -983,6 +1016,42 @@ def get_jumps_selection_benchmarks():
     benchmarks['5%'] = benchmarks['BENCHMARK'] * 0.95
     benchmarks['10%'] = benchmarks['BENCHMARK'] * 0.90
     return benchmarks
+
+
+def validate_jumps_programme_benchmark_order():
+    """Fail fast if any National benchmark is not above Training."""
+    benchmarks = get_jumps_selection_benchmarks().copy()
+    pivot = benchmarks.pivot_table(
+        index=['EVENT', 'GENDER'],
+        columns='SQUAD',
+        values='BENCHMARK',
+        aggfunc='first',
+    )
+
+    required = {'TRAINING', 'NATIONAL'}
+    missing = required.difference(set(pivot.columns))
+    if missing:
+        raise ValueError(
+            'Jumps Programme benchmark configuration is incomplete: missing '
+            + ', '.join(sorted(missing))
+        )
+
+    invalid = pivot.loc[
+        pivot['NATIONAL'].isna()
+        | pivot['TRAINING'].isna()
+        | (pivot['NATIONAL'] <= pivot['TRAINING'])
+    ]
+    if not invalid.empty:
+        invalid_pairs = [
+            f'{event} / {gender}'
+            for event, gender in invalid.index.tolist()
+        ]
+        raise ValueError(
+            'Jumps Programme benchmark configuration is invalid. National must '
+            'be strictly higher than Training for: ' + ', '.join(invalid_pairs)
+        )
+
+    return True
 
 
 def _jumps_result_to_numeric(value):
@@ -1115,10 +1184,27 @@ def build_jumps_selection(df_input, squad):
         & (df['WIND_NUM'] > 2.0)
     )
 
+    result_w_illegal = horizontal_mask & result_has_w
+    explicit_label_illegal = horizontal_mask & explicit_illegal_wind
+    numeric_limit_illegal = horizontal_mask & numeric_illegal_wind
+
     df['ILLEGAL_WIND'] = (
-        horizontal_mask
-        & (result_has_w | explicit_illegal_wind | numeric_illegal_wind)
+        result_w_illegal | explicit_label_illegal | numeric_limit_illegal
     )
+
+    # Keep all applicable exclusion reasons for audit.
+    df['ILLEGAL_WIND_REASON'] = ''
+    for reason_mask, reason_label in [
+        (result_w_illegal, 'RESULT ends in w'),
+        (explicit_label_illegal, 'WIND explicitly marked Illegal'),
+        (numeric_limit_illegal, 'Numeric wind > +2.0'),
+    ]:
+        existing = df.loc[reason_mask, 'ILLEGAL_WIND_REASON']
+        df.loc[reason_mask, 'ILLEGAL_WIND_REASON'] = np.where(
+            existing.eq(''),
+            reason_label,
+            existing + '; ' + reason_label,
+        )
 
     df['WIND_STATUS'] = 'Not applicable'
 
@@ -1364,31 +1450,17 @@ def build_jumps_programme_snapshot(df_input, report_end_date, lookback_start=Non
     if lookback_start is None:
         lookback_start = get_jumps_programme_lookback_start()
 
-    programme_start = pd.Timestamp(lookback_start)
-    report_end = pd.Timestamp(report_end_date)
-
-    df_source = df_input.copy()
-    if 'DATE' not in df_source.columns:
-        return pd.DataFrame()
-
-    source_dates = pd.to_datetime(
-        df_source['DATE'],
-        format='mixed',
-        dayfirst=False,
-        utc=True,
-        errors='coerce',
-    ).dt.tz_localize(None)
-
-    period_mask = (
-        source_dates.notna()
-        & (source_dates >= programme_start)
-        & (source_dates <= report_end)
+    # Eligibility is based on calendar date only; retain the source timestamp.
+    df_period = filter_jumps_calendar_date_range(
+        df_input,
+        lookback_start,
+        report_end_date,
     )
-    df_period = df_source.loc[period_mask].copy()
-    df_period['DATE'] = source_dates.loc[df_period.index]
 
     if df_period.empty:
         return pd.DataFrame()
+
+    validate_jumps_programme_benchmark_order()
 
     training_selection, _ = build_jumps_selection(df_period, squad='TRAINING')
     national_selection, _ = build_jumps_selection(df_period, squad='NATIONAL')
@@ -1501,7 +1573,7 @@ def compare_jumps_programme_snapshots(previous_snapshot, current_snapshot):
         previous_row = previous_by_key.get(key)
 
         previous_status = (
-            '' if previous_row is None
+            'Not Selected' if previous_row is None
             else str(_jumps_programme_value(previous_row, 'PROGRAMME_STATUS', '')).strip()
         )
         current_status = str(
@@ -1578,10 +1650,11 @@ def compare_jumps_programme_snapshots(previous_snapshot, current_snapshot):
 def build_jumps_programme_verification(previous_snapshot, current_snapshot):
     """Build audit tables proving the Training -> National intersection.
 
-    Returns three dataframes:
+    Returns four dataframes:
       1. athlete-events classified as Training in the earlier snapshot;
-      2. athlete-events classified as National in the later snapshot; and
-      3. the exact PROGRAMME_KEY intersection of those two populations.
+      2. athlete-events classified as National in the later snapshot;
+      3. the exact PROGRAMME_KEY intersection of those two populations; and
+      4. current-snapshot keys absent from the earlier snapshot (NEW ENTRY audit).
     """
     previous = previous_snapshot.copy()
     current = current_snapshot.copy()
@@ -1600,9 +1673,20 @@ def build_jumps_programme_verification(previous_snapshot, current_snapshot):
             current['PROGRAMME_STATUS'].eq('National')
         ].copy()
 
+    previous_keys = set(
+        previous.get('PROGRAMME_KEY', pd.Series(dtype='object')).dropna().tolist()
+    )
+    if current.empty:
+        current_new_entries = current.copy()
+    else:
+        current_new_entries = current.loc[
+            ~current['PROGRAMME_KEY'].isin(previous_keys)
+        ].copy()
+
     audit_base_cols = [
-        'PROGRAMME_KEY', 'NAME', 'GENDER', 'EVENT', 'RESULT', 'WIND',
-        'WIND_STATUS', 'BENCHMARK', 'DATE', 'COMPETITION', 'UNIQUE_ID',
+        'PROGRAMME_KEY', 'NAME', 'GENDER', 'EVENT', 'PROGRAMME_STATUS',
+        'RESULT', 'WIND', 'WIND_STATUS', 'BENCHMARK', 'DATE', 'COMPETITION',
+        'UNIQUE_ID',
     ]
 
     def _audit_view(frame):
@@ -1618,6 +1702,7 @@ def build_jumps_programme_verification(previous_snapshot, current_snapshot):
 
     previous_training_view = _audit_view(previous_training)
     current_national_view = _audit_view(current_national)
+    current_new_entries_view = _audit_view(current_new_entries)
 
     if previous_training.empty or current_national.empty:
         upgrades = pd.DataFrame(columns=[
@@ -1692,7 +1777,75 @@ def build_jumps_programme_verification(previous_snapshot, current_snapshot):
         'previous_training': previous_training_view,
         'current_national': current_national_view,
         'training_to_national': upgrades,
+        'new_entries': current_new_entries_view,
     }
+
+def build_jumps_programme_illegal_wind_audit(df_input, start_date, end_date):
+    """Return Programme-scope horizontal-jump rows excluded for illegal wind."""
+    audit_cols = [
+        'NAME', 'GENDER', 'EVENT', 'RESULT', 'RESULT_CONV', 'WIND', 'WIND_NUM',
+        'WIND_STATUS', 'ILLEGAL_WIND_REASON', 'DATE', 'COMPETITION', 'UNIQUE_ID',
+    ]
+
+    df_period = filter_jumps_calendar_date_range(df_input, start_date, end_date)
+    if df_period.empty:
+        return pd.DataFrame(columns=audit_cols)
+
+    # Wind legality is squad-independent; use TRAINING only to invoke the shared
+    # preprocessing engine and obtain the complete processed audit dataframe.
+    _, processed = build_jumps_selection(df_period, squad='TRAINING')
+    illegal = processed.loc[processed['ILLEGAL_WIND']].copy()
+
+    # Match the Programme Changes population by applying the same event-specific
+    # canonical identity and explicit spex exclusions.
+    illegal = _prepare_jumps_programme_identity(illegal)
+    if illegal.empty:
+        return pd.DataFrame(columns=audit_cols)
+
+    cols = [col for col in audit_cols if col in illegal.columns]
+    audit = illegal.loc[:, cols].copy()
+    if 'DATE' in audit.columns:
+        audit['DATE'] = pd.to_datetime(
+            audit['DATE'], format='mixed', errors='coerce'
+        ).dt.strftime('%Y-%m-%d')
+    if 'RESULT_CONV' in audit.columns:
+        audit['RESULT_CONV'] = pd.to_numeric(
+            audit['RESULT_CONV'], errors='coerce'
+        ).round(3)
+    if 'WIND_NUM' in audit.columns:
+        audit['WIND_NUM'] = pd.to_numeric(
+            audit['WIND_NUM'], errors='coerce'
+        ).round(3)
+
+    sort_cols = [
+        col for col in ['DATE', 'EVENT', 'GENDER', 'NAME']
+        if col in audit.columns
+    ]
+    if sort_cols:
+        ascending = [False] + [True] * (len(sort_cols) - 1)
+        audit = audit.sort_values(sort_cols, ascending=ascending)
+    return audit.reset_index(drop=True)
+
+
+def _is_calendar_month_end(value):
+    value = pd.Timestamp(value).date()
+    return (value + datetime.timedelta(days=1)).month != value.month
+
+
+def _latest_completed_month_end(reference_date=None):
+    """Return the most recent month-end on or before reference_date."""
+    if reference_date is None:
+        reference_date = datetime.date.today()
+    reference_date = pd.Timestamp(reference_date).date()
+    if _is_calendar_month_end(reference_date):
+        return reference_date
+    return reference_date.replace(day=1) - datetime.timedelta(days=1)
+
+
+def _previous_month_end(month_end_date):
+    month_end_date = pd.Timestamp(month_end_date).date()
+    return month_end_date.replace(day=1) - datetime.timedelta(days=1)
+
 
 # ============================================================
 # END JUMPS SELECTION REPORT HELPERS
@@ -4201,7 +4354,7 @@ elif benchmark_option == 'Jumps Selection':
             'A. Raw BigQuery jump rows',
         )
 
-        jumps_data = filter_report_date_range(
+        jumps_data = filter_jumps_calendar_date_range(
             raw_jumps_data,
             jumps_start_date,
             jumps_end_date,
@@ -4259,7 +4412,7 @@ elif benchmark_option == 'Jumps Selection':
                     f"**Active End Date:** {jumps_end_date:%d %b %Y}"
                 )
                 st.caption(
-                    'The ACTIVE_START_DATE / ACTIVE_END_DATE columns are the exact submitted dates passed into filter_report_date_range(). '
+                    'The ACTIVE_START_DATE / ACTIVE_END_DATE columns are the exact submitted dates passed into filter_jumps_calendar_date_range(). '
                     'Checkpoint A is the raw BigQuery population; checkpoint B must retain all rows '
                     'inside the requested range; checkpoint C shows what remains after name, nationality, '
                     'event, wind and benchmark preprocessing.'
@@ -4336,8 +4489,8 @@ elif benchmark_option == 'Jumps Selection':
                 else:
                     illegal_display_cols = [
                         'NAME', 'DATE', 'EVENT', 'COMPETITION', 'RESULT',
-                        'WIND', 'WIND_NUM', 'WIND_STATUS', 'GENDER',
-                        'UNIQUE_ID', 'NATIONALITY',
+                        'WIND', 'WIND_NUM', 'WIND_STATUS', 'ILLEGAL_WIND_REASON',
+                        'GENDER', 'UNIQUE_ID', 'NATIONALITY',
                     ]
                     for col in illegal_display_cols:
                         if col not in illegal_wind_results.columns:
@@ -4356,6 +4509,16 @@ elif benchmark_option == 'Jumps Selection':
                         use_container_width=True,
                         hide_index=True,
                     )
+                    st.download_button(
+                        'Download Illegal Wind Audit CSV',
+                        data=illegal_display.to_csv(index=False).encode('utf-8'),
+                        file_name=(
+                            f'jumps_{squad.lower()}_illegal_wind_'
+                            f'{jumps_start_date:%Y%m%d}_to_{jumps_end_date:%Y%m%d}.csv'
+                        ),
+                        mime='text/csv',
+                        key=f'download_jumps_{squad.lower()}_illegal_wind_20260826_v20',
+                    )
 
     elif jumps_report_option == 'Programme Changes':
         st.write('### Jumps Programme Changes')
@@ -4368,14 +4531,20 @@ elif benchmark_option == 'Jumps Selection':
             'Squad upgrades are shown. Programme membership requires meeting the actual '
             'Training or National benchmark; Tier 2–5 remain monitoring bands in the '
             'standalone selection reports. The specified spexPotential and '
-            'spexScholarship athletes are excluded from this comparison.'
+            'spexScholarship athletes are excluded from this comparison. Programme '
+            'status is assessed separately for each canonical athlete + gender + event, '
+            'and snapshot inclusion uses calendar date only (time-of-day is ignored).'
         )
 
-        programme_cutoff_date = datetime.date(2026, 8, 30)
-        latest_programme_date = min(datetime.date.today(), programme_cutoff_date)
+        # Month-end is the normal cadence, but both snapshot dates remain manual.
+        # There is deliberately no static programme cutoff.
+        default_current_programme = max(
+            programme_lookback_start,
+            _latest_completed_month_end(datetime.date.today()),
+        )
         default_previous_programme = max(
             programme_lookback_start,
-            latest_programme_date - datetime.timedelta(days=30),
+            _previous_month_end(default_current_programme),
         )
 
         jumps_delta_col_1, jumps_delta_col_2 = st.columns(2)
@@ -4384,16 +4553,25 @@ elif benchmark_option == 'Jumps Selection':
                 'Previous report date:',
                 value=default_previous_programme,
                 min_value=programme_lookback_start,
-                max_value=latest_programme_date,
-                key='jumps_programme_previous_date_20260825',
+                key='jumps_programme_previous_date_20260826_v20',
             )
         with jumps_delta_col_2:
             current_jumps_report_date = st.date_input(
                 'Current report date:',
-                value=latest_programme_date,
+                value=default_current_programme,
                 min_value=programme_lookback_start,
-                max_value=latest_programme_date,
-                key='jumps_programme_current_date_20260825',
+                key='jumps_programme_current_date_20260826_v20',
+            )
+
+        if not _is_calendar_month_end(previous_jumps_report_date):
+            st.info(
+                'Previous report date is not a calendar month-end. The report can '
+                'still be run because snapshot dates are intentionally manual.'
+            )
+        if not _is_calendar_month_end(current_jumps_report_date):
+            st.info(
+                'Current report date is not a calendar month-end. The report can '
+                'still be run because snapshot dates are intentionally manual.'
             )
 
         if previous_jumps_report_date >= current_jumps_report_date:
@@ -4405,14 +4583,14 @@ elif benchmark_option == 'Jumps Selection':
             # calculated table to disappear immediately.  Store the dataframe and the
             # report-date pair in session_state, then render it outside the button-only
             # calculation block.
-            jumps_changes_state_key = 'jumps_programme_changes_result_20260825_v12'
-            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260825_v12'
-            jumps_verification_state_key = 'jumps_programme_verification_20260825_v12'
+            jumps_changes_state_key = 'jumps_programme_changes_result_20260826_v20'
+            jumps_changes_dates_key = 'jumps_programme_changes_dates_20260826_v20'
+            jumps_verification_state_key = 'jumps_programme_verification_20260826_v20'
 
             run_jumps_programme_changes = st.button(
                 'Run Programme Changes',
                 type='primary',
-                key='run_jumps_programme_changes_20260825',
+                key='run_jumps_programme_changes_20260826_v20',
             )
 
             selected_date_pair = (
@@ -4447,6 +4625,28 @@ elif benchmark_option == 'Jumps Selection':
                         calculated_jumps_programme_verification = build_jumps_programme_verification(
                             previous_jumps_snapshot,
                             current_jumps_snapshot,
+                        )
+
+                        calculated_jumps_programme_verification['previous_illegal_wind'] = (
+                            build_jumps_programme_illegal_wind_audit(
+                                jumps_data,
+                                programme_lookback_start,
+                                previous_jumps_report_date,
+                            )
+                        )
+                        calculated_jumps_programme_verification['current_illegal_wind'] = (
+                            build_jumps_programme_illegal_wind_audit(
+                                jumps_data,
+                                programme_lookback_start,
+                                current_jumps_report_date,
+                            )
+                        )
+                        calculated_jumps_programme_verification['between_illegal_wind'] = (
+                            build_jumps_programme_illegal_wind_audit(
+                                jumps_data,
+                                previous_jumps_report_date + datetime.timedelta(days=1),
+                                current_jumps_report_date,
+                            )
                         )
 
                     for col in ['PREVIOUS_BENCHMARK', 'CURRENT_BENCHMARK']:
@@ -4525,7 +4725,7 @@ elif benchmark_option == 'Jumps Selection':
                             f'{current_jumps_report_date:%Y%m%d}.csv'
                         ),
                         mime='text/csv',
-                        key='download_jumps_programme_changes_20260825_v7',
+                        key='download_jumps_programme_changes_20260826_v20',
                     )
 
                 if jumps_programme_verification is not None:
@@ -4539,8 +4739,11 @@ elif benchmark_option == 'Jumps Selection':
                         upgrade_audit = jumps_programme_verification.get(
                             'training_to_national', pd.DataFrame()
                         )
+                        new_entry_audit = jumps_programme_verification.get(
+                            'new_entries', pd.DataFrame()
+                        )
 
-                        verify_col_1, verify_col_2, verify_col_3 = st.columns(3)
+                        verify_col_1, verify_col_2, verify_col_3, verify_col_4 = st.columns(4)
                         verify_col_1.metric(
                             'Earlier Training athlete-events',
                             len(previous_training_audit),
@@ -4553,6 +4756,10 @@ elif benchmark_option == 'Jumps Selection':
                             'Training → National intersections',
                             len(upgrade_audit),
                         )
+                        verify_col_4.metric(
+                            'Expected new entries',
+                            len(new_entry_audit),
+                        )
 
                         if len(upgrade_audit) != upgrade_count:
                             st.error(
@@ -4562,8 +4769,19 @@ elif benchmark_option == 'Jumps Selection':
                             )
                         else:
                             st.success(
-                                'Verification check passed: the audit intersection matches '
+                                'Upgrade verification passed: the audit intersection matches '
                                 'the UPGRADE count shown above.'
+                            )
+
+                        if len(new_entry_audit) != new_entry_count:
+                            st.error(
+                                'Verification mismatch: current programme keys absent from '
+                                'the previous snapshot do not match the NEW ENTRY count.'
+                            )
+                        else:
+                            st.success(
+                                'New-entry verification passed: current programme keys absent '
+                                'from the previous snapshot match the NEW ENTRY count.'
                             )
 
                         st.caption(
@@ -4604,6 +4822,115 @@ elif benchmark_option == 'Jumps Selection':
                                 use_container_width=True,
                                 hide_index=True,
                             )
+
+                        st.write('#### Independently expected NEW ENTRY athlete-events')
+                        if new_entry_audit.empty:
+                            st.info(
+                                'No current programme athlete-events are absent from the '
+                                'earlier snapshot.'
+                            )
+                        else:
+                            st.dataframe(
+                                new_entry_audit,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                    with st.expander('Illegal Wind Audit'):
+                        previous_illegal_audit = jumps_programme_verification.get(
+                            'previous_illegal_wind', pd.DataFrame()
+                        )
+                        current_illegal_audit = jumps_programme_verification.get(
+                            'current_illegal_wind', pd.DataFrame()
+                        )
+                        between_illegal_audit = jumps_programme_verification.get(
+                            'between_illegal_wind', pd.DataFrame()
+                        )
+
+                        wind_col_1, wind_col_2, wind_col_3 = st.columns(3)
+                        wind_col_1.metric(
+                            'Illegal-wind rows — previous cumulative',
+                            len(previous_illegal_audit),
+                        )
+                        wind_col_2.metric(
+                            'Illegal-wind rows — current cumulative',
+                            len(current_illegal_audit),
+                        )
+                        wind_col_3.metric(
+                            'Illegal-wind rows — between snapshots',
+                            len(between_illegal_audit),
+                        )
+
+                        st.caption(
+                            'These Long Jump / Triple Jump marks remain visible for audit but '
+                            'are excluded from best-performance, tier and programme-membership '
+                            'calculations. The reason column shows whether RESULT ended in w, '
+                            'WIND was explicitly marked Illegal, and/or numeric wind exceeded +2.0.'
+                        )
+
+                        illegal_tabs = st.tabs([
+                            'Between snapshots',
+                            'Previous cumulative',
+                            'Current cumulative',
+                        ])
+                        with illegal_tabs[0]:
+                            if between_illegal_audit.empty:
+                                st.info('No illegal-wind results occurred between the selected snapshots.')
+                            else:
+                                st.dataframe(
+                                    between_illegal_audit,
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+                                st.download_button(
+                                    'Download Between-Snapshots Illegal Wind Audit CSV',
+                                    data=between_illegal_audit.to_csv(index=False).encode('utf-8'),
+                                    file_name=(
+                                        'jumps_illegal_wind_between_'
+                                        f'{previous_jumps_report_date:%Y%m%d}_to_'
+                                        f'{current_jumps_report_date:%Y%m%d}.csv'
+                                    ),
+                                    mime='text/csv',
+                                    key='download_jumps_illegal_between_20260826_v20',
+                                )
+                        with illegal_tabs[1]:
+                            if previous_illegal_audit.empty:
+                                st.info('No illegal-wind results in the previous cumulative snapshot.')
+                            else:
+                                st.dataframe(
+                                    previous_illegal_audit,
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+                                st.download_button(
+                                    'Download Previous Cumulative Illegal Wind Audit CSV',
+                                    data=previous_illegal_audit.to_csv(index=False).encode('utf-8'),
+                                    file_name=(
+                                        'jumps_illegal_wind_previous_cumulative_to_'
+                                        f'{previous_jumps_report_date:%Y%m%d}.csv'
+                                    ),
+                                    mime='text/csv',
+                                    key='download_jumps_illegal_previous_20260826_v20',
+                                )
+                        with illegal_tabs[2]:
+                            if current_illegal_audit.empty:
+                                st.info('No illegal-wind results in the current cumulative snapshot.')
+                            else:
+                                st.dataframe(
+                                    current_illegal_audit,
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+                                st.download_button(
+                                    'Download Current Cumulative Illegal Wind Audit CSV',
+                                    data=current_illegal_audit.to_csv(index=False).encode('utf-8'),
+                                    file_name=(
+                                        'jumps_illegal_wind_current_cumulative_to_'
+                                        f'{current_jumps_report_date:%Y%m%d}.csv'
+                                    ),
+                                    mime='text/csv',
+                                    key='download_jumps_illegal_current_20260826_v20',
+                                )
 
             with st.expander('Show excluded spex athletes'):
                 st.write('#### spexPotential (excluded)')
