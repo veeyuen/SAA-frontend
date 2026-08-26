@@ -1,6 +1,6 @@
 # streamlit_BQ.py
 # OCTC Selection for SAA Athletes
-# JUMPS_SELECTION_PATCH_VERSION: 2026-08-25-v16-jumps-standalone-run-report-state-fix
+# JUMPS_SELECTION_PATCH_VERSION: 2026-08-26-v18-explicit-illegal-wind-fix
 
 import streamlit as st
 import pandas as pd
@@ -1062,30 +1062,65 @@ def build_jumps_selection(df_input, squad):
 
     df['RESULT_CONV'] = df['RESULT'].apply(_jumps_result_to_numeric)
 
-    # Wind legality applies only to horizontal jumps. Unknown wind remains eligible,
-    # matching the agreed Option A behaviour.
+    # Wind legality applies only to horizontal jumps. Unknown/blank wind remains
+    # eligible (agreed Option A behaviour), but explicit source labels such as
+    # "Illegal" must be treated as illegal rather than falling through to Unknown.
     horizontal_jumps = {'Long Jump', 'Triple Jump'}
-    df['WIND_NUM'] = pd.to_numeric(
+
+    wind_text = (
         df['WIND']
         .fillna('')
         .astype(str)
         .str.strip()
-        .str.replace('+', '', regex=False),
+    )
+    wind_key = (
+        wind_text
+        .str.casefold()
+        .str.replace(r'\s+', ' ', regex=True)
+    )
+
+    df['WIND_NUM'] = pd.to_numeric(
+        wind_text.str.replace('+', '', regex=False),
         errors='coerce',
     )
 
     horizontal_mask = df['EVENT'].isin(horizontal_jumps)
-    df['ILLEGAL_WIND'] = (
-        horizontal_mask
-        & df['WIND_NUM'].notna()
+
+    # Explicit non-numeric source labels that mean the mark is illegal.
+    # Keep this intentionally narrow so values such as blank/NWI remain Unknown.
+    explicit_illegal_wind = wind_key.isin({
+        'illegal',
+        'illegal wind',
+    })
+
+    numeric_illegal_wind = (
+        df['WIND_NUM'].notna()
         & (df['WIND_NUM'] > 2.0)
     )
+
+    df['ILLEGAL_WIND'] = (
+        horizontal_mask
+        & (explicit_illegal_wind | numeric_illegal_wind)
+    )
+
     df['WIND_STATUS'] = 'Not applicable'
-    df.loc[horizontal_mask & df['WIND_NUM'].isna(), 'WIND_STATUS'] = 'Unknown'
+
+    # Unknown applies only where the horizontal-jump wind cannot be parsed and is
+    # not explicitly labelled illegal. These results remain eligible by design.
     df.loc[
-        horizontal_mask & df['WIND_NUM'].notna() & ~df['ILLEGAL_WIND'],
+        horizontal_mask
+        & df['WIND_NUM'].isna()
+        & ~explicit_illegal_wind,
+        'WIND_STATUS',
+    ] = 'Unknown'
+
+    df.loc[
+        horizontal_mask
+        & df['WIND_NUM'].notna()
+        & ~df['ILLEGAL_WIND'],
         'WIND_STATUS',
     ] = 'Legal'
+
     df.loc[df['ILLEGAL_WIND'], 'WIND_STATUS'] = 'Illegal wind'
     df['RESULT_ELIGIBLE'] = ~df['ILLEGAL_WIND']
 
@@ -4078,41 +4113,42 @@ elif benchmark_option == 'Jumps Selection':
             "Long/Triple Jump marks above +2.0 m/s are retained for audit but excluded from selection."
         )
 
-        # Standalone Jumps reports use an explicit submitted result-date slice.
-        # Draft calendar values are kept separate from the ACTIVE dates used by
-        # the calculation. This prevents component / Streamlit reruns from
-        # silently reverting the report to the default period.
+        # Standalone Jumps reports use explicit submitted dates.
+        # Calendar widget state is kept separate from ACTIVE report state, but
+        # no Streamlit form is used here: the normal button promotes the exact
+        # current calendar values directly into ACTIVE state. This avoids form
+        # submission/rerun behaviour reverting the report to its defaults.
         jumps_default_start = datetime.date(2026, 1, 1)
         jumps_default_end = datetime.date(2026, 12, 31)
 
-        jumps_draft_start_key = 'jumps_standalone_draft_start_date_v16'
-        jumps_draft_end_key = 'jumps_standalone_draft_end_date_v16'
-        jumps_active_start_key = 'jumps_standalone_active_start_date_v16'
-        jumps_active_end_key = 'jumps_standalone_active_end_date_v16'
+        jumps_draft_start_key = 'jumps_standalone_draft_start_date_v17'
+        jumps_draft_end_key = 'jumps_standalone_draft_end_date_v17'
+        jumps_active_start_key = 'jumps_standalone_active_start_date_v17'
+        jumps_active_end_key = 'jumps_standalone_active_end_date_v17'
 
         if jumps_active_start_key not in st.session_state:
             st.session_state[jumps_active_start_key] = jumps_default_start
         if jumps_active_end_key not in st.session_state:
             st.session_state[jumps_active_end_key] = jumps_default_end
-        if jumps_draft_start_key not in st.session_state:
-            st.session_state[jumps_draft_start_key] = st.session_state[jumps_active_start_key]
-        if jumps_draft_end_key not in st.session_state:
-            st.session_state[jumps_draft_end_key] = st.session_state[jumps_active_end_key]
 
-        with st.form('jumps_standalone_date_form_v16'):
-            jumps_date_col_1, jumps_date_col_2 = st.columns(2)
-            with jumps_date_col_1:
-                selected_jumps_start_date = st.date_input(
-                    'Start Date:',
-                    key=jumps_draft_start_key,
-                )
-            with jumps_date_col_2:
-                selected_jumps_end_date = st.date_input(
-                    'End Date:',
-                    key=jumps_draft_end_key,
-                )
+        jumps_date_col_1, jumps_date_col_2 = st.columns(2)
+        with jumps_date_col_1:
+            selected_jumps_start_date = st.date_input(
+                'Start Date:',
+                value=st.session_state[jumps_active_start_key],
+                key=jumps_draft_start_key,
+            )
+        with jumps_date_col_2:
+            selected_jumps_end_date = st.date_input(
+                'End Date:',
+                value=st.session_state[jumps_active_end_key],
+                key=jumps_draft_end_key,
+            )
 
-            run_jumps_report = st.form_submit_button('Run Report')
+        run_jumps_report = st.button(
+            'Run Report',
+            key='run_jumps_standalone_report_v17',
+        )
 
         if run_jumps_report:
             if selected_jumps_start_date > selected_jumps_end_date:
@@ -4157,6 +4193,8 @@ elif benchmark_option == 'Jumps Selection':
         )
 
         active_date_diagnostics = {
+            'REQUESTED_START_DATE': selected_jumps_start_date.isoformat(),
+            'REQUESTED_END_DATE': selected_jumps_end_date.isoformat(),
             'ACTIVE_START_DATE': jumps_start_date.isoformat(),
             'ACTIVE_END_DATE': jumps_end_date.isoformat(),
         }
