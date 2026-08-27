@@ -190,7 +190,7 @@ def _octc_clean_replacement_name(value):
 
 # ============================================================
 # OCTC VALIDATION / WIND ELIGIBILITY HELPERS
-# OCTC_HARDENING_PATCH_VERSION: 2026-08-27-v21
+# OCTC_HARDENING_PATCH_VERSION: 2026-08-27-v22-track-wind-only
 # Mirrors the validated OCTC_PRODUCTION.ipynb logic.
 # ============================================================
 OCTC_WIND_SENSITIVE_EVENTS = {
@@ -198,8 +198,6 @@ OCTC_WIND_SENSITIVE_EVENTS = {
     '200m',
     '100m Hurdles',
     '110m Hurdles',
-    'Long Jump',
-    'Triple Jump',
 }
 
 
@@ -1365,26 +1363,11 @@ def build_jumps_selection(df_input, squad):
 
     df['RESULT_CONV'] = df['RESULT'].apply(_jumps_result_to_numeric)
 
-    # Wind legality applies only to horizontal jumps. Unknown/blank wind remains
-    # eligible (agreed Option A behaviour), but explicit source labels such as
-    # "Illegal" must be treated as illegal rather than falling through to Unknown.
+    # Wind is informational only for Jumps Selection / Programme Changes.
+    # Per current business clarification, wind assistance does NOT make Long Jump
+    # or Triple Jump results ineligible. Preserve numeric/raw wind for display and
+    # audit context, but never exclude a Jumps result because of wind.
     horizontal_jumps = {'Long Jump', 'Triple Jump'}
-
-    # A trailing ``w`` in the raw RESULT is itself an explicit illegal-wind
-    # marker in the source data (for example ``6.96w``).  Preserve the numeric
-    # mark via _jumps_result_to_numeric(), but exclude it from qualification.
-    result_text = (
-        df['RESULT']
-        .fillna('')
-        .astype(str)
-        .str.strip()
-    )
-    result_has_w = result_text.str.contains(
-        r'w\s*$',
-        case=False,
-        regex=True,
-        na=False,
-    )
 
     wind_text = (
         df['WIND']
@@ -1392,75 +1375,26 @@ def build_jumps_selection(df_input, squad):
         .astype(str)
         .str.strip()
     )
-    wind_key = (
-        wind_text
-        .str.casefold()
-        .str.replace(r'\s+', ' ', regex=True)
-    )
-
     df['WIND_NUM'] = pd.to_numeric(
         wind_text.str.replace('+', '', regex=False),
         errors='coerce',
     )
 
     horizontal_mask = df['EVENT'].isin(horizontal_jumps)
-
-    # Explicit non-numeric source labels that mean the mark is illegal.
-    # Keep this intentionally narrow so values such as blank/NWI remain Unknown.
-    explicit_illegal_wind = wind_key.isin({
-        'illegal',
-        'illegal wind',
-    })
-
-    numeric_illegal_wind = (
-        df['WIND_NUM'].notna()
-        & (df['WIND_NUM'] > 2.0)
+    wind_missing = (
+        wind_text.eq('')
+        | wind_text.str.casefold().isin({'nan', 'none', '-', 'nwi'})
     )
-
-    result_w_illegal = horizontal_mask & result_has_w
-    explicit_label_illegal = horizontal_mask & explicit_illegal_wind
-    numeric_limit_illegal = horizontal_mask & numeric_illegal_wind
-
-    df['ILLEGAL_WIND'] = (
-        result_w_illegal | explicit_label_illegal | numeric_limit_illegal
-    )
-
-    # Keep all applicable exclusion reasons for audit.
-    df['ILLEGAL_WIND_REASON'] = ''
-    for reason_mask, reason_label in [
-        (result_w_illegal, 'RESULT ends in w'),
-        (explicit_label_illegal, 'WIND explicitly marked Illegal'),
-        (numeric_limit_illegal, 'Numeric wind > +2.0'),
-    ]:
-        existing = df.loc[reason_mask, 'ILLEGAL_WIND_REASON']
-        df.loc[reason_mask, 'ILLEGAL_WIND_REASON'] = np.where(
-            existing.eq(''),
-            reason_label,
-            existing + '; ' + reason_label,
-        )
 
     df['WIND_STATUS'] = 'Not applicable'
+    df.loc[horizontal_mask & wind_missing, 'WIND_STATUS'] = 'Unknown'
+    df.loc[horizontal_mask & ~wind_missing, 'WIND_STATUS'] = 'Recorded'
 
-    # Unknown applies only where the horizontal-jump wind cannot be parsed and
-    # neither RESULT nor WIND explicitly marks the attempt as illegal. These
-    # genuinely unknown-wind results remain eligible by design.
-    df.loc[
-        horizontal_mask
-        & df['WIND_NUM'].isna()
-        & ~result_has_w
-        & ~explicit_illegal_wind,
-        'WIND_STATUS',
-    ] = 'Unknown'
-
-    df.loc[
-        horizontal_mask
-        & df['WIND_NUM'].notna()
-        & ~df['ILLEGAL_WIND'],
-        'WIND_STATUS',
-    ] = 'Legal'
-
-    df.loc[df['ILLEGAL_WIND'], 'WIND_STATUS'] = 'Illegal wind'
-    df['RESULT_ELIGIBLE'] = ~df['ILLEGAL_WIND']
+    # Compatibility columns retained so existing downstream verification code
+    # continues to run, but Jumps wind never makes a result ineligible.
+    df['ILLEGAL_WIND'] = False
+    df['ILLEGAL_WIND_REASON'] = ''
+    df['RESULT_ELIGIBLE'] = True
 
     benchmarks = get_jumps_selection_benchmarks()
     benchmarks = benchmarks.loc[benchmarks['SQUAD'] == squad].copy()
@@ -1482,10 +1416,10 @@ def build_jumps_selection(df_input, squad):
     df['Delta_Benchmark'] = df['RESULT_CONV'] - df['BENCHMARK']
     df['PERF_SCALAR'] = df['Delta5'] / df['BENCHMARK'] * 100
 
-    # Preserve all processed rows for the audit table; only eligible results may
-    # become the selected best result.
+    # Wind does not affect Jumps eligibility. Any finite result with a configured
+    # benchmark may become the selected best result.
     finite_mask = np.isfinite(pd.to_numeric(df['PERF_SCALAR'], errors='coerce'))
-    eligible_mask = finite_mask & df['RESULT_ELIGIBLE'] & df['BENCHMARK'].notna()
+    eligible_mask = finite_mask & df['BENCHMARK'].notna()
     df_best_candidates = df.loc[eligible_mask].copy()
 
     top_performers = (
@@ -1675,7 +1609,7 @@ def build_jumps_programme_snapshot(df_input, report_end_date, lookback_start=Non
 
     The snapshot includes results from the configurable historical lookback start
     through report_end_date. Status precedence is National > Training > Not
-    Selected. A squad status requires the athlete's best legal/eligible mark to
+    Selected. A squad status requires the athlete's best eligible mark to
     meet that squad's actual benchmark (Tier 1). Tier 2-5 remain monitoring bands
     in the standalone selection reports and do not by themselves establish
     programme membership.
@@ -4710,48 +4644,6 @@ elif benchmark_option == 'Jumps Selection':
 
                 final_dfs, code = spreadsheet(jumps_display)
 
-            illegal_wind_results = processed_jumps.loc[
-                processed_jumps['ILLEGAL_WIND']
-            ].copy()
-
-            with st.expander(
-                f"Illegal Wind Results Excluded From Selection ({len(illegal_wind_results)})"
-            ):
-                if illegal_wind_results.empty:
-                    st.info('No illegal-wind Long Jump / Triple Jump results were found.')
-                else:
-                    illegal_display_cols = [
-                        'NAME', 'DATE', 'EVENT', 'COMPETITION', 'RESULT',
-                        'WIND', 'WIND_NUM', 'WIND_STATUS', 'ILLEGAL_WIND_REASON',
-                        'GENDER', 'UNIQUE_ID', 'NATIONALITY',
-                    ]
-                    for col in illegal_display_cols:
-                        if col not in illegal_wind_results.columns:
-                            illegal_wind_results[col] = ''
-
-                    illegal_display = illegal_wind_results[illegal_display_cols].copy()
-                    illegal_display['DATE'] = pd.to_datetime(
-                        illegal_display['DATE'], errors='coerce'
-                    ).dt.strftime('%Y-%m-%d')
-                    illegal_display['WIND_NUM'] = pd.to_numeric(
-                        illegal_display['WIND_NUM'], errors='coerce'
-                    ).round(2)
-
-                    st.dataframe(
-                        illegal_display,
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-                    st.download_button(
-                        'Download Illegal Wind Audit CSV',
-                        data=illegal_display.to_csv(index=False).encode('utf-8'),
-                        file_name=(
-                            f'jumps_{squad.lower()}_illegal_wind_'
-                            f'{jumps_start_date:%Y%m%d}_to_{jumps_end_date:%Y%m%d}.csv'
-                        ),
-                        mime='text/csv',
-                        key=f'download_jumps_{squad.lower()}_illegal_wind_20260826_v20',
-                    )
 
     elif jumps_report_option == 'Programme Changes':
         st.write('### Jumps Programme Changes')
@@ -5069,101 +4961,6 @@ elif benchmark_option == 'Jumps Selection':
                                 hide_index=True,
                             )
 
-                    with st.expander('Illegal Wind Audit'):
-                        previous_illegal_audit = jumps_programme_verification.get(
-                            'previous_illegal_wind', pd.DataFrame()
-                        )
-                        current_illegal_audit = jumps_programme_verification.get(
-                            'current_illegal_wind', pd.DataFrame()
-                        )
-                        between_illegal_audit = jumps_programme_verification.get(
-                            'between_illegal_wind', pd.DataFrame()
-                        )
-
-                        wind_col_1, wind_col_2, wind_col_3 = st.columns(3)
-                        wind_col_1.metric(
-                            'Illegal-wind rows — previous cumulative',
-                            len(previous_illegal_audit),
-                        )
-                        wind_col_2.metric(
-                            'Illegal-wind rows — current cumulative',
-                            len(current_illegal_audit),
-                        )
-                        wind_col_3.metric(
-                            'Illegal-wind rows — between snapshots',
-                            len(between_illegal_audit),
-                        )
-
-                        st.caption(
-                            'These Long Jump / Triple Jump marks remain visible for audit but '
-                            'are excluded from best-performance, tier and programme-membership '
-                            'calculations. The reason column shows whether RESULT ended in w, '
-                            'WIND was explicitly marked Illegal, and/or numeric wind exceeded +2.0.'
-                        )
-
-                        illegal_tabs = st.tabs([
-                            'Between snapshots',
-                            'Previous cumulative',
-                            'Current cumulative',
-                        ])
-                        with illegal_tabs[0]:
-                            if between_illegal_audit.empty:
-                                st.info('No illegal-wind results occurred between the selected snapshots.')
-                            else:
-                                st.dataframe(
-                                    between_illegal_audit,
-                                    use_container_width=True,
-                                    hide_index=True,
-                                )
-                                st.download_button(
-                                    'Download Between-Snapshots Illegal Wind Audit CSV',
-                                    data=between_illegal_audit.to_csv(index=False).encode('utf-8'),
-                                    file_name=(
-                                        'jumps_illegal_wind_between_'
-                                        f'{previous_jumps_report_date:%Y%m%d}_to_'
-                                        f'{current_jumps_report_date:%Y%m%d}.csv'
-                                    ),
-                                    mime='text/csv',
-                                    key='download_jumps_illegal_between_20260826_v20',
-                                )
-                        with illegal_tabs[1]:
-                            if previous_illegal_audit.empty:
-                                st.info('No illegal-wind results in the previous cumulative snapshot.')
-                            else:
-                                st.dataframe(
-                                    previous_illegal_audit,
-                                    use_container_width=True,
-                                    hide_index=True,
-                                )
-                                st.download_button(
-                                    'Download Previous Cumulative Illegal Wind Audit CSV',
-                                    data=previous_illegal_audit.to_csv(index=False).encode('utf-8'),
-                                    file_name=(
-                                        'jumps_illegal_wind_previous_cumulative_to_'
-                                        f'{previous_jumps_report_date:%Y%m%d}.csv'
-                                    ),
-                                    mime='text/csv',
-                                    key='download_jumps_illegal_previous_20260826_v20',
-                                )
-                        with illegal_tabs[2]:
-                            if current_illegal_audit.empty:
-                                st.info('No illegal-wind results in the current cumulative snapshot.')
-                            else:
-                                st.dataframe(
-                                    current_illegal_audit,
-                                    use_container_width=True,
-                                    hide_index=True,
-                                )
-                                st.download_button(
-                                    'Download Current Cumulative Illegal Wind Audit CSV',
-                                    data=current_illegal_audit.to_csv(index=False).encode('utf-8'),
-                                    file_name=(
-                                        'jumps_illegal_wind_current_cumulative_to_'
-                                        f'{current_jumps_report_date:%Y%m%d}.csv'
-                                    ),
-                                    mime='text/csv',
-                                    key='download_jumps_illegal_current_20260826_v20',
-                                )
 
             with st.expander('Show excluded spex athletes'):
                 st.write('#### spexPotential (excluded)')
