@@ -188,6 +188,218 @@ def _octc_clean_replacement_name(value):
     return value.strip().casefold()
 
 
+# ============================================================
+# OCTC VALIDATION / WIND ELIGIBILITY HELPERS
+# OCTC_HARDENING_PATCH_VERSION: 2026-08-27-v21
+# Mirrors the validated OCTC_PRODUCTION.ipynb logic.
+# ============================================================
+OCTC_WIND_SENSITIVE_EVENTS = {
+    '100m',
+    '200m',
+    '100m Hurdles',
+    '110m Hurdles',
+    'Long Jump',
+    'Triple Jump',
+}
+
+
+def validate_octc_name_variations(names_input):
+    """Fail if one cleaned variation key maps to multiple canonical names."""
+    names_reference = names_input.copy()
+    required_cols = {'VARIATION', 'NAME'}
+    if not required_cols.issubset(names_reference.columns):
+        return pd.DataFrame()
+
+    names_reference['VARIATION_KEY'] = (
+        names_reference['VARIATION'].apply(_octc_name_match_key)
+    )
+    names_reference['NAME_CLEAN'] = (
+        names_reference['NAME'].apply(_octc_clean_replacement_name)
+    )
+
+    nonblank = names_reference.loc[
+        names_reference['VARIATION_KEY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .ne('')
+    ].copy()
+
+    ambiguity_counts = (
+        nonblank
+        .groupby('VARIATION_KEY')['NAME_CLEAN']
+        .nunique()
+    )
+    ambiguous_keys = ambiguity_counts.loc[ambiguity_counts > 1].index
+
+    ambiguity_details = (
+        nonblank.loc[
+            nonblank['VARIATION_KEY'].isin(ambiguous_keys),
+            ['VARIATION_KEY', 'VARIATION', 'NAME', 'NAME_CLEAN'],
+        ]
+        .sort_values(['VARIATION_KEY', 'NAME_CLEAN'])
+        .reset_index(drop=True)
+    )
+
+    if not ambiguity_details.empty:
+        raise ValueError(
+            'Ambiguous OCTC name-variation keys detected. '
+            'Resolve the name-variation file before producing OCTC selection.'
+        )
+
+    return ambiguity_details
+
+
+def validate_octc_benchmarks(benchmark_input):
+    """Validate one numeric 2025 SEAG Bronze benchmark per event/gender."""
+    benchmark_check = benchmark_input.copy()
+    required_cols = {
+        'EVENT', 'GENDER', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%'
+    }
+    missing_cols = sorted(required_cols.difference(benchmark_check.columns))
+    if missing_cols:
+        raise ValueError(
+            'OCTC benchmark table is missing required columns: '
+            + ', '.join(missing_cols)
+        )
+
+    duplicate_keys = (
+        benchmark_check
+        .groupby(['EVENT', 'GENDER'], dropna=False)
+        .size()
+        .reset_index(name='ROW_COUNT')
+    )
+    duplicate_keys = duplicate_keys.loc[duplicate_keys['ROW_COUNT'] > 1].copy()
+    if not duplicate_keys.empty:
+        duplicate_preview = duplicate_keys.to_dict('records')[:10]
+        raise ValueError(
+            'Duplicate OCTC event/gender benchmark keys detected: '
+            f'{duplicate_preview}'
+        )
+
+    numeric_cols = ['STANDARDISED_BENCHMARK', '2%', '3.50%', '5%']
+    numeric_check = benchmark_check[numeric_cols].apply(
+        pd.to_numeric,
+        errors='coerce',
+    )
+    invalid_mask = numeric_check.isna().any(axis=1)
+    if invalid_mask.any():
+        invalid_preview = benchmark_check.loc[
+            invalid_mask,
+            ['EVENT', 'GENDER'] + numeric_cols,
+        ].head(10).to_dict('records')
+        raise ValueError(
+            'Invalid numeric OCTC benchmark values detected: '
+            f'{invalid_preview}'
+        )
+
+    return benchmark_check
+
+
+def prepare_octc_results_for_conversion(df_input):
+    """Preserve raw RESULT while stripping a trailing w only for conversion.
+
+    functions.py historically returns a blank RESULT_CONV whenever RESULT
+    contains ``w``. The enhanced OCTC notebook instead retains the numeric mark
+    for audit, then explicitly marks it ineligible. This helper reproduces that
+    behaviour without changing functions.py globally.
+    """
+    df_output = df_input.copy()
+    df_output['OCTC_RAW_RESULT'] = df_output['RESULT'].copy()
+    df_output['RESULT'] = (
+        df_output['RESULT']
+        .fillna('')
+        .astype(str)
+        .str.replace(r'(?i)w\s*$', '', regex=True)
+        .str.strip()
+    )
+    return df_output
+
+
+def apply_octc_wind_eligibility(df_input):
+    """Add explicit OCTC wind legality flags without discarding audit rows."""
+    df_output = df_input.copy()
+
+    raw_result_col = (
+        'OCTC_RAW_RESULT'
+        if 'OCTC_RAW_RESULT' in df_output.columns
+        else 'RESULT'
+    )
+    result_text = (
+        df_output[raw_result_col]
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    result_has_w = result_text.str.contains(
+        r'w\s*$',
+        case=False,
+        regex=True,
+        na=False,
+    )
+
+    if 'WIND' in df_output.columns:
+        wind_text = (
+            df_output['WIND']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+        )
+    else:
+        wind_text = pd.Series('', index=df_output.index, dtype='object')
+
+    wind_key = (
+        wind_text
+        .str.casefold()
+        .str.replace(r'\s+', ' ', regex=True)
+    )
+    df_output['WIND_NUM'] = pd.to_numeric(
+        wind_text.str.replace('+', '', regex=False),
+        errors='coerce',
+    )
+
+    wind_event_mask = (
+        df_output['MAPPED_EVENT']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .isin(OCTC_WIND_SENSITIVE_EVENTS)
+    )
+    explicit_illegal = wind_key.isin({'illegal', 'illegal wind'})
+    numeric_illegal = (
+        df_output['WIND_NUM'].notna()
+        & (df_output['WIND_NUM'] > 2.0)
+    )
+
+    df_output['ILLEGAL_WIND'] = (
+        wind_event_mask
+        & (result_has_w | explicit_illegal | numeric_illegal)
+    )
+
+    reasons = pd.Series('', index=df_output.index, dtype='object')
+    signals = [
+        (wind_event_mask & result_has_w, 'RESULT ends in w'),
+        (wind_event_mask & explicit_illegal, 'WIND explicitly marked Illegal'),
+        (wind_event_mask & numeric_illegal, 'Numeric wind > +2.0'),
+    ]
+    for signal_mask, label in signals:
+        append_mask = signal_mask & reasons.ne('')
+        first_mask = signal_mask & reasons.eq('')
+        reasons.loc[append_mask] = reasons.loc[append_mask] + '; ' + label
+        reasons.loc[first_mask] = label
+
+    df_output['ILLEGAL_WIND_REASON'] = reasons
+    df_output['RESULT_ELIGIBLE'] = ~df_output['ILLEGAL_WIND']
+    return df_output
+
+
+def octc_illegal_wind_audit(df_input):
+    """Return illegal OCTC marks retained for transparency/audit."""
+    if df_input is None or df_input.empty or 'ILLEGAL_WIND' not in df_input.columns:
+        return pd.DataFrame()
+    return df_input.loc[df_input['ILLEGAL_WIND']].copy()
+
+
 def standardize_octc_names_like_notebook(df_input, names_input):
     """Return a copy with NAME standardised exactly like the OCTC notebook."""
     df_output = df_input.copy()
@@ -214,7 +426,11 @@ def standardize_octc_names_like_notebook(df_input, names_input):
         names_reference["NAME"].apply(_octc_clean_replacement_name)
     )
 
-    # The notebook keeps the last row for a duplicated variation key.
+    # Harden the notebook-equivalent mapping: never silently resolve a cleaned
+    # variation key that points to more than one canonical athlete.
+    validate_octc_name_variations(names_reference)
+
+    # The notebook keeps the last row for harmless duplicate variation keys.
     name_map = (
         names_reference
         .loc[names_reference["VARIATION_KEY"].astype(str).str.strip() != ""]
@@ -261,32 +477,37 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
     once. Each snapshot still filters this prepared data to its own report date
     BEFORE best-result selection, tier assignment and Rule E ranking.
     """
-    start_date_delta = pd.Timestamp('2025-01-01')
-    octc_cutoff_delta = pd.Timestamp('2026-12-31')
+    start_date_delta = datetime.date(2025, 1, 1)
+    octc_cutoff_delta = datetime.date(2026, 12, 31)
     current_end_date_delta = min(
-        pd.Timestamp(current_report_end_date),
+        pd.Timestamp(current_report_end_date).date(),
         octc_cutoff_delta,
     )
 
-    parsed_dates = pd.to_datetime(
+    parsed_dates_utc = pd.to_datetime(
         data_input['DATE'],
         format='mixed',
         dayfirst=False,
         utc=True,
         errors='coerce',
-    ).dt.tz_localize(None)
+    )
+    calendar_dates = parsed_dates_utc.dt.date
 
     current_mask = (
-        (parsed_dates >= start_date_delta)
-        & (parsed_dates <= current_end_date_delta)
+        calendar_dates.notna()
+        & (calendar_dates >= start_date_delta)
+        & (calendar_dates <= current_end_date_delta)
     )
 
     athletes_selected_delta = data_input.loc[current_mask].copy()
-    athletes_selected_delta['DATE'] = parsed_dates.loc[current_mask]
+    athletes_selected_delta['DATE'] = (
+        parsed_dates_utc.loc[current_mask].dt.tz_localize(None)
+    )
 
     benchmark_delta = benchmarks_input.loc[
         benchmarks_input['BENCHMARK_COMPETITION'] == '2025 SEAG Bronze'
     ].copy()
+    validate_octc_benchmarks(benchmark_delta)
 
     df_delta = pd.merge(
         left=athletes_selected_delta,
@@ -303,7 +524,12 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         normalize_excel_track_time_for_selection
     )
 
+    # Preserve raw wind-assisted marks for audit while allowing the numeric
+    # value to be converted. Eligibility is applied explicitly afterwards.
+    df_delta = prepare_octc_results_for_conversion(df_delta)
     process_results(df_delta)
+    df_delta['RESULT'] = df_delta['OCTC_RAW_RESULT']
+    df_delta = apply_octc_wind_eligibility(df_delta)
 
     df_delta['PERF_SCALAR'] = (
         df_delta['Delta5'] / df_delta['STANDARDISED_BENCHMARK'] * 100
@@ -368,27 +594,34 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
     The date filter happens before best-result selection, tiering and Rule E,
     so later results cannot influence an earlier snapshot.
     """
-    octc_cutoff_delta = pd.Timestamp('2026-12-31')
-    end_date_delta = min(pd.Timestamp(report_end_date), octc_cutoff_delta)
+    octc_cutoff_delta = datetime.date(2026, 12, 31)
+    end_date_delta = min(pd.Timestamp(report_end_date).date(), octc_cutoff_delta)
 
-    # Defensive conversion in case a cached/older prepared dataframe carries
-    # DATE as string/Arrow string. This prevents str-vs-Timestamp comparisons.
-    snapshot_dates = pd.to_datetime(
+    # Eligibility is based on competition calendar date, not midnight timestamps.
+    snapshot_dates_utc = pd.to_datetime(
         prepared_delta_base['DATE'],
         format='mixed',
         dayfirst=False,
         utc=True,
         errors='coerce',
-    ).dt.tz_localize(None)
+    )
+    snapshot_calendar_dates = snapshot_dates_utc.dt.date
 
     df_local_delta = prepared_delta_base.loc[
-        snapshot_dates.notna() & (snapshot_dates <= end_date_delta)
+        snapshot_calendar_dates.notna()
+        & (snapshot_calendar_dates <= end_date_delta)
     ].copy()
-    df_local_delta['DATE'] = snapshot_dates.loc[df_local_delta.index]
+    df_local_delta['DATE'] = (
+        snapshot_dates_utc.loc[df_local_delta.index].dt.tz_localize(None)
+    )
 
     finite_mask_delta = np.isfinite(df_local_delta['PERF_SCALAR'])
+    if 'RESULT_ELIGIBLE' in df_local_delta.columns:
+        eligible_mask_delta = df_local_delta['RESULT_ELIGIBLE'].fillna(True).astype(bool)
+    else:
+        eligible_mask_delta = pd.Series(True, index=df_local_delta.index)
     df_best_candidates_delta = df_local_delta.loc[
-        finite_mask_delta
+        finite_mask_delta & eligible_mask_delta
     ].copy()
 
     # Rebuild ATHLETE_KEY defensively in case Streamlit serves an older cached
@@ -489,8 +722,8 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
     ].copy()
 
     all_ranking_delta = final_tiered_delta.sort_values(
-        ['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'],
-        ascending=[False, False, False],
+        ['MAPPED_EVENT', 'GENDER', 'TIER', 'PERF_SCALAR', 'DATE', 'ATHLETE_KEY'],
+        ascending=[True, True, True, False, False, True],
     ).copy()
 
     all_ranking_delta['Rank'] = (
@@ -518,8 +751,8 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
     )
 
     rerank_delta = all_ranking_delta.sort_values(
-        ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'],
-        ascending=[False, False, False, False],
+        ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR', 'DATE', 'ATHLETE_KEY'],
+        ascending=[True, True, True, False, False, True],
     ).copy()
 
     rerank_delta['Rank_ADJ'] = (
@@ -5175,27 +5408,32 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                 st.stop()
 
             with st.spinner('Preparing OCTC data and calculating both snapshots...'):
-                prepared_delta_base = prepare_octc_delta_base(
-                    data,
-                    benchmarks,
-                    current_report_date,
-                )
+                try:
+                    prepared_delta_base = prepare_octc_delta_base(
+                        data,
+                        benchmarks,
+                        current_report_date,
+                    )
+                except ValueError as error:
+                    st.error(str(error))
+                    st.stop()
 
-                prepared_delta_dates = pd.to_datetime(
+                prepared_delta_dates_utc = pd.to_datetime(
                     prepared_delta_base['DATE'],
                     format='mixed',
                     dayfirst=False,
                     utc=True,
                     errors='coerce',
-                ).dt.tz_localize(None)
+                )
+                prepared_delta_calendar_dates = prepared_delta_dates_utc.dt.date
 
                 previous_source_rows = int(
                     (
-                        prepared_delta_dates.notna()
-                        & (prepared_delta_dates <= pd.Timestamp(previous_report_date))
+                        prepared_delta_calendar_dates.notna()
+                        & (prepared_delta_calendar_dates <= previous_report_date)
                     ).sum()
                 )
-                current_source_rows = int(prepared_delta_dates.notna().sum())
+                current_source_rows = int(prepared_delta_calendar_dates.notna().sum())
 
                 previous_snapshot = build_octc_snapshot_for_delta(
                     prepared_delta_base,
@@ -5217,6 +5455,35 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                 f'Current snapshot: 1 Jan 2025 – {current_report_date:%d %b %Y} '
                 f'({current_source_rows:,} prepared result rows)'
             )
+
+            delta_illegal_wind_audit = octc_illegal_wind_audit(prepared_delta_base)
+            with st.expander(
+                f'OCTC Illegal Wind Audit ({len(delta_illegal_wind_audit):,} rows)',
+                expanded=False,
+            ):
+                if delta_illegal_wind_audit.empty:
+                    st.caption('No illegal-wind OCTC results were found through the current snapshot date.')
+                else:
+                    delta_audit_cols = [
+                        col for col in [
+                            'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'RESULT_CONV',
+                            'WIND', 'WIND_NUM', 'ILLEGAL_WIND_REASON', 'DATE',
+                            'COMPETITION', 'UNIQUE_ID', 'NATIONALITY',
+                        ]
+                        if col in delta_illegal_wind_audit.columns
+                    ]
+                    delta_audit_display = delta_illegal_wind_audit[delta_audit_cols].copy()
+                    st.dataframe(delta_audit_display, use_container_width=True, hide_index=True)
+                    st.download_button(
+                        'Download OCTC Illegal Wind Audit CSV',
+                        data=delta_audit_display.to_csv(index=False).encode('utf-8'),
+                        file_name=(
+                            f'octc_illegal_wind_audit_'
+                            f'{current_report_date:%Y%m%d}.csv'
+                        ),
+                        mime='text/csv',
+                        key='download_octc_delta_illegal_wind_audit_20260827',
+                    )
 
             if delta_report.empty:
                 st.success(
@@ -5279,11 +5546,19 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
         f"Results period: {start_date:%d %b %Y} – {end_date:%d %b %Y}"
     )
 
-    athletes_selected = filter_report_date_range(
-        data,
-        start_date,
-        end_date,
-    )
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Match the enhanced OCTC notebook: eligibility is based on calendar date.
+        athletes_selected = filter_jumps_calendar_date_range(
+            data,
+            start_date,
+            end_date,
+        )
+    else:
+        athletes_selected = filter_report_date_range(
+            data,
+            start_date,
+            end_date,
+        )
     athletes_selected.reset_index(drop=True, inplace=True)
 
     # Fast lookup for benchmarks
@@ -5301,6 +5576,13 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
 
     bench_name = bench_map.get(benchmark_option, None)
     benchmark = benchmarks[benchmarks['BENCHMARK_COMPETITION'] == bench_name] if bench_name else pd.DataFrame()
+
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        try:
+            validate_octc_benchmarks(benchmark)
+        except ValueError as error:
+            st.error(str(error))
+            st.stop()
 
 
 ## Map relevant events to a standard description ##
@@ -5336,9 +5618,15 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
         df['RESULT'] = df['RESULT'].apply(
             normalize_excel_track_time_for_selection
         )
+        # Preserve the original result for display/audit, but strip a trailing
+        # ``w`` only during numerical conversion. Wind legality is explicit below.
+        df = prepare_octc_results_for_conversion(df)
 
     process_results(df) # call function to convert results to standard float64 format
 
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        df['RESULT'] = df['OCTC_RAW_RESULT']
+        df = apply_octc_wind_eligibility(df)
 
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
@@ -5352,7 +5640,11 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 # SEAG retains the existing regex replacement behaviour.
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
         names_for_report = name_variations().copy()
-        df = standardize_octc_names_like_notebook(df, names_for_report)
+        try:
+            df = standardize_octc_names_like_notebook(df, names_for_report)
+        except ValueError as error:
+            st.error(str(error))
+            st.stop()
     else:
         df['NAME'] = df['NAME'].apply(normalize_text)
 
@@ -5427,35 +5719,68 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             .str.strip()
             .str.upper()
             .isin(allowed_nationalities)
-    ]
+    ].copy()
+
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        octc_nationality_audit = df_local_teams.loc[
+            df_local_teams['NATIONALITY']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .isin(['NONE', ''])
+        ].copy()
+        octc_selection_illegal_wind_audit = octc_illegal_wind_audit(df_local_teams)
 
     # Find the best performance for each athlete and event.
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # Mirror OCTC_PRODUCTION.ipynb cell 86.
-        df_local_teams = df_local_teams.copy()
+        # Mirror the enhanced OCTC_PRODUCTION.ipynb best-result selection.
         df_local_teams['PERF_SCALAR'] = pd.to_numeric(
             df_local_teams['PERF_SCALAR'],
             errors='coerce',
         )
+        df_local_teams['ATHLETE_KEY'] = (
+            df_local_teams['NAME']
+            .apply(_octc_name_match_key)
+            .fillna('')
+            .astype(str)
+            .str.strip()
+        )
+        df_local_teams['DATE_DT'] = pd.to_datetime(
+            df_local_teams['DATE'],
+            format='mixed',
+            dayfirst=False,
+            utc=True,
+            errors='coerce',
+        ).dt.tz_localize(None)
 
         finite_mask = np.isfinite(df_local_teams['PERF_SCALAR'])
-        df_best_candidates = df_local_teams.loc[finite_mask].copy()
+        eligible_mask = df_local_teams['RESULT_ELIGIBLE'].fillna(True).astype(bool)
+        df_best_candidates = df_local_teams.loc[
+            finite_mask & eligible_mask
+        ].copy()
 
-        for grouping_col in ['NAME', 'MAPPED_EVENT']:
+        for grouping_col in ['NAME', 'MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY']:
             df_best_candidates[grouping_col] = (
                 df_best_candidates[grouping_col]
+                .fillna('')
                 .astype(str)
                 .str.strip()
             )
 
+        df_best_candidates = df_best_candidates.loc[
+            df_best_candidates['ATHLETE_KEY'].ne('')
+            & df_best_candidates['MAPPED_EVENT'].ne('')
+        ].copy()
+
         top_performers_clean = (
             df_best_candidates
             .sort_values(
-                ['MAPPED_EVENT', 'NAME', 'PERF_SCALAR'],
-                ascending=[True, True, False],
+                ['MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY', 'PERF_SCALAR', 'DATE_DT'],
+                ascending=[True, True, True, False, False],
             )
             .drop_duplicates(
-                subset=['MAPPED_EVENT', 'NAME'],
+                subset=['MAPPED_EVENT', 'GENDER', 'ATHLETE_KEY'],
                 keep='first',
             )
             .reset_index(drop=True)
@@ -5535,13 +5860,19 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     #st.write(top_performers_clean.columns)
 
     df_no_na = top_performers_clean[top_performers_clean['STANDARDISED_BENCHMARK'].notna()]
-    df_no_na = df_no_na[['NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'WIND', 'EVENT_x', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'YEAR', 'COMPETITION', 'DOB', 'CATEGORY_EVENT',
+    base_output_cols = ['NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'WIND', 'EVENT_x', 'DIVISION', 'STAGE', 'AGE', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULTS', 'DATE', 'YEAR', 'COMPETITION', 'DOB', 'CATEGORY_EVENT',
                         'REGION', 'SOURCE', 'REMARKS', 'SUB_EVENT', 'DISTANCE', 'MAPPED_EVENT', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
-                        '10%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']]
+                        '10%', 'RESULT_CONV', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        base_output_cols += ['ATHLETE_KEY', 'DATE_DT']
+    df_no_na = df_no_na[base_output_cols]
 
-    df_no_na = df_no_na.reindex(columns= ['NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'RESULT_CONV', 'WIND', 'EVENT_x', 'MAPPED_EVENT', 'CATEGORY_EVENT', 'SUB_EVENT', 'DISTANCE', 'DIVISION', 'STAGE', 'AGE',  'DOB', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULTS', 'YEAR', 'DATE', 'COMPETITION',
+    output_reindex_cols = ['NAME', 'COMPETITION_RANK', 'TEAM', 'RESULT', 'RESULT_CONV', 'WIND', 'EVENT_x', 'MAPPED_EVENT', 'CATEGORY_EVENT', 'SUB_EVENT', 'DISTANCE', 'DIVISION', 'STAGE', 'AGE',  'DOB', 'GENDER', 'UNIQUE_ID', 'NATIONALITY', 'DICT_RESULTS', 'YEAR', 'DATE', 'COMPETITION',
                         'REGION', 'SOURCE', 'REMARKS', 'BENCHMARK_COMPETITION', 'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%', '3.50%', '5%',
-                        '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER'])
+                        '10%', 'Delta2', 'Delta3.5', 'Delta5', 'Delta10', 'Delta_Benchmark', 'PERF_SCALAR', 'TIER']
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        output_reindex_cols += ['ATHLETE_KEY', 'DATE_DT']
+    df_no_na = df_no_na.reindex(columns=output_reindex_cols)
 
   #  st.write('Tiered')
   #  st.write(len(df_no_na))
@@ -5561,8 +5892,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
         # athletes are moved down by one tier.
         # ------------------------------------------------------------
         all_ranking = final_tiered_selection.sort_values(
-            ['MAPPED_EVENT', 'GENDER', 'PERF_SCALAR'],
-            ascending=[False, False, False],
+            ['MAPPED_EVENT', 'GENDER', 'TIER', 'PERF_SCALAR', 'DATE_DT', 'ATHLETE_KEY'],
+            ascending=[True, True, True, False, False, True],
         ).copy()
 
         all_ranking['Rank'] = (
@@ -5588,8 +5919,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
         # Re-rank after the tier adjustment.
         rerank = all_ranking.sort_values(
-            ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR'],
-            ascending=[False, False, False, False],
+            ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR', 'DATE_DT', 'ATHLETE_KEY'],
+            ascending=[True, True, True, False, False, True],
         ).copy()
 
         rerank['Rank_ADJ'] = (
@@ -5605,7 +5936,19 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             & (rerank['TIER_ADJ'] != 'Tier 4')
         ].reset_index(drop=True)
 
-
+        # Diagnostic only: do not change one-step Rule E behaviour here.
+        octc_rule_e_tier_counts = (
+            rerank.loc[rerank['TIER_ADJ'] != ' ']
+            .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
+            .size()
+            .reset_index(name='ATHLETE_COUNT')
+        )
+        octc_rule_e_overflow = octc_rule_e_tier_counts.loc[
+            octc_rule_e_tier_counts['ATHLETE_COUNT'] > 2
+        ].copy()
+        octc_adjusted_tier4_audit = rerank.loc[
+            rerank['TIER_ADJ'] == 'Tier 4'
+        ].copy()
 
 
 # Show resulting OCTC dataframe
@@ -5627,6 +5970,89 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
         ].copy()
 
     final_df = final_df.reset_index(drop=True)
+
+    if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Tie-break helper columns are intentionally internal only.
+        final_df = final_df.drop(
+            columns=['ATHLETE_KEY', 'DATE_DT'],
+            errors='ignore',
+        )
+
+        with st.expander(
+            f'OCTC Illegal Wind Audit ({len(octc_selection_illegal_wind_audit):,} rows)',
+            expanded=False,
+        ):
+            if octc_selection_illegal_wind_audit.empty:
+                st.caption('No illegal-wind OCTC results were found in the selected report period.')
+            else:
+                wind_audit_cols = [
+                    col for col in [
+                        'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'RESULT_CONV',
+                        'WIND', 'WIND_NUM', 'ILLEGAL_WIND_REASON', 'DATE',
+                        'COMPETITION', 'UNIQUE_ID', 'NATIONALITY',
+                    ]
+                    if col in octc_selection_illegal_wind_audit.columns
+                ]
+                wind_audit_display = octc_selection_illegal_wind_audit[wind_audit_cols].copy()
+                st.dataframe(wind_audit_display, use_container_width=True, hide_index=True)
+                st.download_button(
+                    'Download Illegal Wind Audit CSV',
+                    data=wind_audit_display.to_csv(index=False).encode('utf-8'),
+                    file_name=f'octc_illegal_wind_audit_{end_date:%Y%m%d}.csv',
+                    mime='text/csv',
+                    key='download_octc_selection_illegal_wind_audit_20260827',
+                )
+
+        with st.expander(
+            f'OCTC Nationality Audit - blank/NONE ({len(octc_nationality_audit):,} rows)',
+            expanded=False,
+        ):
+            nationality_audit_cols = [
+                col for col in [
+                    'NAME', 'GENDER', 'MAPPED_EVENT', 'NATIONALITY', 'TEAM',
+                    'COMPETITION', 'DATE', 'UNIQUE_ID',
+                ]
+                if col in octc_nationality_audit.columns
+            ]
+            nationality_audit_display = octc_nationality_audit[nationality_audit_cols].copy()
+            st.dataframe(nationality_audit_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download Nationality Audit CSV',
+                data=nationality_audit_display.to_csv(index=False).encode('utf-8'),
+                file_name=f'octc_nationality_audit_{end_date:%Y%m%d}.csv',
+                mime='text/csv',
+                key='download_octc_selection_nationality_audit_20260827',
+            )
+
+        with st.expander(
+            f'OCTC Rule E Audit ({len(octc_adjusted_tier4_audit):,} adjusted Tier 4 rows)',
+            expanded=False,
+        ):
+            st.caption(
+                'Rule E remains one-step demotion. The overflow table is diagnostic only.'
+            )
+            if octc_rule_e_overflow.empty:
+                st.caption('No adjusted event/gender/tier group contains more than two athletes.')
+            else:
+                st.write('Adjusted groups containing more than two athletes:')
+                st.dataframe(octc_rule_e_overflow, use_container_width=True, hide_index=True)
+            tier4_cols = [
+                col for col in [
+                    'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
+                    'TIER', 'Rank', 'TIER_ADJ', 'Rank_ADJ', 'PERF_SCALAR',
+                    'DATE', 'COMPETITION', 'UNIQUE_ID',
+                ]
+                if col in octc_adjusted_tier4_audit.columns
+            ]
+            tier4_display = octc_adjusted_tier4_audit[tier4_cols].copy()
+            st.dataframe(tier4_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download Rule E Tier 4 Audit CSV',
+                data=tier4_display.to_csv(index=False).encode('utf-8'),
+                file_name=f'octc_rule_e_tier4_audit_{end_date:%Y%m%d}.csv',
+                mime='text/csv',
+                key='download_octc_rule_e_tier4_audit_20260827',
+            )
 
     # Format SEAG / OCTC report output using the same formatter as the
     # Search Database Records by Name or Competition section.
