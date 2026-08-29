@@ -190,7 +190,7 @@ def _octc_clean_replacement_name(value):
 
 # ============================================================
 # OCTC VALIDATION / WIND ELIGIBILITY HELPERS
-# OCTC_HARDENING_PATCH_VERSION: 2026-08-27-v22-track-wind-only
+# OCTC_HARDENING_PATCH_VERSION: 2026-08-29-v23-track-wind-only
 # Mirrors the validated OCTC_PRODUCTION.ipynb logic.
 # ============================================================
 OCTC_WIND_SENSITIVE_EVENTS = {
@@ -398,8 +398,24 @@ def octc_illegal_wind_audit(df_input):
     return df_input.loc[df_input['ILLEGAL_WIND']].copy()
 
 
+
+def _octc_name_token_signature(value):
+    """Return a conservative order-insensitive token signature for name fallback."""
+    value = _octc_clean_base_name(value)
+    value = _octc_strip_punctuation(value)
+    tokens = re.findall(r'[a-z0-9]+', value.casefold())
+    return '|'.join(sorted(tokens))
+
+
 def standardize_octc_names_like_notebook(df_input, names_input):
-    """Return a copy with NAME standardised exactly like the OCTC notebook."""
+    """Return a copy with NAME standardised like the notebook.
+
+    Exact cleaned variation-key matching remains primary. If that fails, an
+    order-insensitive token signature is used only when that signature maps to
+    exactly one canonical athlete in the name-variation table. This safely
+    resolves variants such as "Shyen Joshua Lee" to "Lee Joshua Shyen" when
+    another known variation such as "Joshua Shyen Lee" is present.
+    """
     df_output = df_input.copy()
     names_reference = names_input.copy()
 
@@ -416,6 +432,9 @@ def standardize_octc_names_like_notebook(df_input, names_input):
         return df_output
 
     df_output["NAME_KEY"] = df_output["NAME"].apply(_octc_name_match_key)
+    df_output["NAME_TOKEN_SIGNATURE"] = (
+        df_output["NAME"].apply(_octc_name_token_signature)
+    )
 
     names_reference["VARIATION_KEY"] = (
         names_reference["VARIATION"].apply(_octc_name_match_key)
@@ -423,12 +442,15 @@ def standardize_octc_names_like_notebook(df_input, names_input):
     names_reference["NAME_CLEAN"] = (
         names_reference["NAME"].apply(_octc_clean_replacement_name)
     )
+    names_reference["TOKEN_SIGNATURE"] = (
+        names_reference["VARIATION"].apply(_octc_name_token_signature)
+    )
 
-    # Harden the notebook-equivalent mapping: never silently resolve a cleaned
-    # variation key that points to more than one canonical athlete.
+    # Never silently resolve an exact cleaned variation key that points to
+    # more than one canonical athlete.
     validate_octc_name_variations(names_reference)
 
-    # The notebook keeps the last row for harmless duplicate variation keys.
+    # Exact variation matching remains the primary method.
     name_map = (
         names_reference
         .loc[names_reference["VARIATION_KEY"].astype(str).str.strip() != ""]
@@ -437,12 +459,50 @@ def standardize_octc_names_like_notebook(df_input, names_input):
         .to_dict()
     )
 
-    df_output["NAME"] = df_output["NAME_KEY"].map(name_map).fillna(
-        df_output["NAME"].apply(_octc_clean_replacement_name)
+    # Conservative token-order fallback: only signatures with exactly one
+    # canonical target are eligible. Ambiguous token signatures are ignored.
+    signature_candidates = (
+        names_reference
+        .loc[
+            names_reference["TOKEN_SIGNATURE"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne("")
+        ]
+        .groupby("TOKEN_SIGNATURE")["NAME_CLEAN"]
+        .agg(
+            lambda values: sorted({
+                str(value).strip()
+                for value in values
+                if str(value).strip()
+            })
+        )
     )
-    df_output["NAME"] = df_output["NAME"].str.title()
 
-    return df_output.drop(columns=["NAME_KEY"])
+    token_signature_map = {
+        signature: canonical_names[0]
+        for signature, canonical_names in signature_candidates.items()
+        if len(canonical_names) == 1
+    }
+
+    exact_match = df_output["NAME_KEY"].map(name_map)
+    token_order_fallback = (
+        df_output["NAME_TOKEN_SIGNATURE"].map(token_signature_map)
+    )
+
+    df_output["NAME"] = (
+        exact_match
+        .fillna(token_order_fallback)
+        .fillna(
+            df_output["NAME"].apply(_octc_clean_replacement_name)
+        )
+        .str.title()
+    )
+
+    return df_output.drop(
+        columns=["NAME_KEY", "NAME_TOKEN_SIGNATURE"]
+    )
 
 # ============================================================
 # END OCTC NOTEBOOK-EQUIVALENT NAME STANDARDISATION
@@ -1310,8 +1370,9 @@ def _jumps_result_to_numeric(value):
 def build_jumps_selection(df_input, squad):
     """Build a Training or National jumps selection from one shared pipeline.
 
-    Illegal-wind Long Jump / Triple Jump results remain in the processed audit
-    dataframe but are excluded from best-performance selection and tiering.
+    Wind is informational only for Jumps Selection. SPEX exclusions are applied
+    before best-performance selection so standalone reports and Programme Changes
+    use the same eligible athlete population.
     """
     squad = str(squad).strip().upper()
     if squad not in {'TRAINING', 'NATIONAL'}:
@@ -1356,6 +1417,19 @@ def build_jumps_selection(df_input, squad):
         .str.upper()
     )
     df = df.loc[nationality_key.isin(allowed_nationalities)].copy()
+
+    # Exclude the same 12 spexPotential / spexScholarship athletes used by
+    # Programme Changes, so standalone Training/National reports and programme
+    # snapshots use the same athlete population.
+    excluded_keys, excluded_signatures = _jumps_programme_excluded_identity_sets()
+    df_name_keys = df['NAME'].apply(_octc_name_match_key)
+    df_name_signatures = df['NAME'].apply(_jumps_programme_name_signature)
+    df = df.loc[
+        ~(
+            df_name_keys.isin(excluded_keys)
+            | df_name_signatures.isin(excluded_signatures)
+        )
+    ].copy()
 
     # Pole Vault is intentionally excluded from this report.
     jump_events = {'Long Jump', 'Triple Jump', 'High Jump'}
