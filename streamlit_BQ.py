@@ -190,7 +190,7 @@ def _octc_clean_replacement_name(value):
 
 # ============================================================
 # OCTC VALIDATION / WIND ELIGIBILITY HELPERS
-# OCTC_HARDENING_PATCH_VERSION: 2026-08-29-v23-track-wind-only
+# OCTC_HARDENING_PATCH_VERSION: 2026-08-29-v24-spex-aligned
 # Mirrors the validated OCTC_PRODUCTION.ipynb logic.
 # ============================================================
 OCTC_WIND_SENSITIVE_EVENTS = {
@@ -199,6 +199,28 @@ OCTC_WIND_SENSITIVE_EVENTS = {
     '100m Hurdles',
     '110m Hurdles',
 }
+
+
+# Shared explicit SPEX exclusion list used by OCTC Selection, OCTC Delta,
+# Jumps Selection and Jumps Programme Changes.  Keep this as the single
+# source of truth so the four report paths cannot drift apart.
+OCTC_SPEX_EXCLUDED_NAMES = [
+    # spexPotential
+    'Tia Louise Rozario',
+    'Andrew George Medina',
+    'Gabriel Lee Jing Yi',
+    'Mark Lee Ren',
+    'Reuben Rainer Lee Siong En',
+    'Elizabeth Ann Tan Shee Ru',
+    'Thiruben S/O Thana Rajan',
+
+    # spexScholarship
+    'Pereira Veronica Shanti',
+    'Kampton Kam',
+    'Ang Chen Xiang',
+    'Quek Jun Jie Calvin',
+    'Marc Brian Louis',
+]
 
 
 def validate_octc_name_variations(names_input):
@@ -504,6 +526,78 @@ def standardize_octc_names_like_notebook(df_input, names_input):
         columns=["NAME_KEY", "NAME_TOKEN_SIGNATURE"]
     )
 
+
+def _octc_spex_name_signature(value):
+    """Order-insensitive signature used only for the explicit SPEX list."""
+    return _octc_name_token_signature(value)
+
+
+def _octc_spex_excluded_identity_sets(names_input):
+    """Return canonical keys and signatures for the shared SPEX exclusions.
+
+    Each explicit exclusion is canonicalised through the same exact-name plus
+    unambiguous token-order fallback used for athlete rows.  Signatures from
+    both supplied and canonicalised names are retained as a narrow fallback
+    limited to these 12 known SPEX athletes.
+    """
+    raw_excluded = pd.DataFrame({'NAME': OCTC_SPEX_EXCLUDED_NAMES})
+    canonical_excluded = standardize_octc_names_like_notebook(
+        raw_excluded,
+        names_input.copy(),
+    )
+
+    excluded_keys = set(
+        canonical_excluded['NAME']
+        .apply(_octc_name_match_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .loc[lambda series: series.ne('')]
+        .tolist()
+    )
+
+    excluded_signatures = {
+        _octc_spex_name_signature(name)
+        for name in OCTC_SPEX_EXCLUDED_NAMES
+        if _octc_spex_name_signature(name)
+    }
+    excluded_signatures.update(
+        {
+            _octc_spex_name_signature(name)
+            for name in canonical_excluded['NAME'].tolist()
+            if _octc_spex_name_signature(name)
+        }
+    )
+
+    return excluded_keys, excluded_signatures
+
+
+def exclude_octc_spex_athletes(df_input, names_input):
+    """Remove the 12 SPEX athletes before OCTC best-result/Rule E logic.
+
+    Returns (filtered_dataframe, exclusion_audit).  Athlete result rows should
+    already have been canonicalised by standardize_octc_names_like_notebook().
+    """
+    df_output = df_input.copy()
+    if df_output.empty or 'NAME' not in df_output.columns:
+        return df_output, pd.DataFrame()
+
+    excluded_keys, excluded_signatures = _octc_spex_excluded_identity_sets(
+        names_input
+    )
+
+    name_keys = df_output['NAME'].apply(_octc_name_match_key)
+    name_signatures = df_output['NAME'].apply(_octc_spex_name_signature)
+    exclusion_mask = (
+        name_keys.isin(excluded_keys)
+        | name_signatures.isin(excluded_signatures)
+    )
+
+    audit = df_output.loc[exclusion_mask].copy()
+    filtered = df_output.loc[~exclusion_mask].copy()
+    return filtered, audit
+
+
 # ============================================================
 # END OCTC NOTEBOOK-EQUIVALENT NAME STANDARDISATION
 # ============================================================
@@ -587,7 +681,6 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
     df_delta = prepare_octc_results_for_conversion(df_delta)
     process_results(df_delta)
     df_delta['RESULT'] = df_delta['OCTC_RAW_RESULT']
-    df_delta = apply_octc_wind_eligibility(df_delta)
 
     df_delta['PERF_SCALAR'] = (
         df_delta['Delta5'] / df_delta['STANDARDISED_BENCHMARK'] * 100
@@ -609,6 +702,18 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         .str.upper()
         .isin(allowed_nationalities)
     ].copy()
+
+    # Match OCTC_PRODUCTION.ipynb: remove the 12 SPEX athletes after name
+    # standardisation / Singapore filtering and before either snapshot chooses
+    # a best performance, assigns tiers, or applies Rule E.
+    df_local_delta, _octc_delta_spex_audit = exclude_octc_spex_athletes(
+        df_local_delta,
+        names_for_delta,
+    )
+
+    # Wind legality is evaluated only after the eligible OCTC athlete
+    # population has been established, matching the amended notebook order.
+    df_local_delta = apply_octc_wind_eligibility(df_local_delta)
 
     df_local_delta['PERF_SCALAR'] = pd.to_numeric(
         df_local_delta['PERF_SCALAR'],
@@ -1545,23 +1650,9 @@ def build_jumps_selection(df_input, squad):
 # actually meeting the respective squad BENCHMARK (Tier 1), while the
 # standalone Training / National reports continue to show Tier 1-5.
 # ============================================================
-JUMPS_PROGRAMME_EXCLUDED_NAMES = [
-    # spexPotential
-    'Tia Louise Rozario',
-    'Andrew George Medina',
-    'Gabriel Lee Jing Yi',
-    'Mark Lee Ren',
-    'Reuben Rainer Lee Siong En',
-    'Elizabeth Ann Tan Shee Ru',
-    'Thiruben S/O Thana Rajan',
-
-    # spexScholarship
-    'Pereira Veronica Shanti',
-    'Kampton Kam',
-    'Ang Chen Xiang',
-    'Quek Jun Jie Calvin',
-    'Marc Brian Louis',
-]
+# Reuse the same explicit 12-athlete SPEX list as OCTC so Selection, Delta,
+# Jumps standalone reports and Programme Changes cannot drift apart.
+JUMPS_PROGRAMME_EXCLUDED_NAMES = OCTC_SPEX_EXCLUDED_NAMES.copy()
 
 
 # Configurable historical lookback used by Jumps Programme Changes.
@@ -5497,7 +5588,6 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
         df['RESULT'] = df['OCTC_RAW_RESULT']
-        df = apply_octc_wind_eligibility(df)
 
 
 ## Create scalar to measure relative performance - distance events are reversed from timed events ##
@@ -5593,6 +5683,18 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     ].copy()
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Match the amended OCTC notebook: remove the 12 SPEX athletes after
+        # name standardisation / Singapore filtering and before wind audit,
+        # best-performance selection, tier assignment and Rule E.
+        df_local_teams, octc_spex_exclusion_audit = exclude_octc_spex_athletes(
+            df_local_teams,
+            names_for_report,
+        )
+
+        # Match OCTC_PRODUCTION.ipynb ordering: wind legality is evaluated only
+        # after name standardisation, Singapore filtering and SPEX exclusion.
+        df_local_teams = apply_octc_wind_eligibility(df_local_teams)
+
         octc_nationality_audit = df_local_teams.loc[
             df_local_teams['NATIONALITY']
             .fillna('')
@@ -5872,6 +5974,29 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
                     file_name=f'octc_illegal_wind_audit_{end_date:%Y%m%d}.csv',
                     mime='text/csv',
                     key='download_octc_selection_illegal_wind_audit_20260827',
+                )
+
+        with st.expander(
+            f'OCTC SPEX Exclusion Audit ({len(octc_spex_exclusion_audit):,} rows)',
+            expanded=False,
+        ):
+            if octc_spex_exclusion_audit.empty:
+                st.caption('No SPEX athletes were present in the selected OCTC report period.')
+            else:
+                spex_audit_cols = [
+                    col for col in [
+                        'NAME', 'MAPPED_EVENT', 'GENDER', 'RESULT', 'DATE',
+                        'COMPETITION', 'UNIQUE_ID', 'NATIONALITY'
+                    ]
+                    if col in octc_spex_exclusion_audit.columns
+                ]
+                st.dataframe(
+                    octc_spex_exclusion_audit[spex_audit_cols]
+                    .drop_duplicates()
+                    .sort_values(
+                        [col for col in ['NAME', 'MAPPED_EVENT', 'DATE'] if col in spex_audit_cols]
+                    ),
+                    use_container_width=True,
                 )
 
         with st.expander(
