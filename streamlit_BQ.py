@@ -1172,7 +1172,6 @@ marathon_sql="""
 SELECT NAME, RESULT, TEAM, EVENT, DATE, GENDER, COMPETITION, YEAR, NATIONALITY
 FROM `saa-analytics.results.PRODUCTION`
 WHERE EVENT IN ('Marathon', 'Half Marathon')
-AND CAST(YEAR AS STRING) IN ('2025', '2026')
 AND RESULT NOT IN ('NM', '-', 'DNS', 'DNF', 'DNQ', 'DQ')
 AND RESULT IS NOT NULL
 """
@@ -5157,12 +5156,26 @@ elif benchmark_option == 'Marathon Ranking Report':
     st.subheader('Marathon Ranking Report')
 
     ranking_events = ['Marathon', 'Half Marathon']
-    selected_years = ['2025', '2026']
+    MARATHON_START_DATE = datetime.date(2025, 1, 1)
+    marathon_today = datetime.date.today()
+
+    as_of_date = st.date_input(
+        'As of date',
+        value=marathon_today,
+        min_value=MARATHON_START_DATE,
+        max_value=marathon_today,
+        key='marathon_ranking_as_of_date'
+    )
+
+    st.caption(
+        f"Results from 1 Jan 2025 to "
+        f"{as_of_date.strftime('%d %b %Y')}, inclusive."
+    )
 
     competitors = fetch_marathon_ranking_data().copy()
 
     if competitors.empty:
-        st.warning('No Marathon / Half Marathon records were found for 2025 or 2026.')
+        st.warning('No Marathon / Half Marathon records were found.')
     else:
         competitors = clean_columns(competitors)
 
@@ -5179,22 +5192,25 @@ elif benchmark_option == 'Marathon Ranking Report':
         competitors['EVENT'] = competitors['EVENT'].fillna('').astype(str).str.strip()
         competitors['YEAR'] = competitors['YEAR'].fillna('').astype(str).str.strip()
 
+        # Marathon rankings always start on 1 Jan 2025 and include all results
+        # up to and including the user-selected As of date.  Filtering by DATE
+        # rather than YEAR also keeps the report correct when a source YEAR is
+        # blank or malformed.
         marathoners = competitors[
             competitors['EVENT'].isin(ranking_events)
-            & competitors['YEAR'].isin(selected_years)
         ].copy()
 
-        # If YEAR is blank or malformed, fall back to DATE-derived year.
-        if marathoners.empty:
-            competitors['DATE_DT'] = pd.to_datetime(competitors['DATE'], errors='coerce')
-            competitors['YEAR_FROM_DATE'] = competitors['DATE_DT'].dt.year.astype('Int64').astype(str)
-            marathoners = competitors[
-                competitors['EVENT'].isin(ranking_events)
-                & competitors['YEAR_FROM_DATE'].isin(selected_years)
-            ].copy()
+        marathoners = filter_report_date_range(
+            marathoners,
+            MARATHON_START_DATE,
+            as_of_date,
+        )
 
         if marathoners.empty:
-            st.warning('No Marathon / Half Marathon records were available after applying the 2025/2026 filter.')
+            st.warning(
+                'No Marathon / Half Marathon records were available from '
+                f"1 Jan 2025 to {as_of_date.strftime('%d %b %Y')}."
+            )
         else:
             # Standardise athlete names using the same name-variation source used
             # by the SEAG / OCTC reports.
@@ -5282,7 +5298,11 @@ elif benchmark_option == 'Marathon Ranking Report':
                 marathon_report = marathon_ranked[display_cols].copy()
 
                 st.write('### Marathon and Half Marathon Rankings')
-                st.caption('Ranking is fastest to slowest, ranked separately for Marathon and Half Marathon. Years included: 2025 and 2026.')
+                st.caption(
+                    'Ranking is fastest to slowest, ranked separately for '
+                    'Marathon and Half Marathon. '
+                    f"Results included: 1 Jan 2025 to {as_of_date.strftime('%d %b %Y')}, inclusive."
+                )
 
                 final_dfs, code = spreadsheet(marathon_report)
 
