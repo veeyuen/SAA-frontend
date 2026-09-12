@@ -23,6 +23,8 @@ from mitosheet.streamlit.v1 import spreadsheet
 
 st.set_page_config(layout="wide")
 
+# OCTC_RAW_TIER_PATCH_VERSION: 2026-09-12-v1-rule-e-removed
+
 
 # ============================================================
 # SINGAPORE ATHLETICS FIXED BANNER PATCH
@@ -573,7 +575,7 @@ def _octc_spex_excluded_identity_sets(names_input):
 
 
 def exclude_octc_spex_athletes(df_input, names_input):
-    """Remove the 12 SPEX athletes before OCTC best-result/Rule E logic.
+    """Remove the 12 SPEX athletes before OCTC best-result / tier logic.
 
     Returns (filtered_dataframe, exclusion_audit).  Athlete result rows should
     already have been canonicalised by standardize_octc_names_like_notebook().
@@ -627,7 +629,7 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
     Expensive row-level work (result conversion, benchmark merge and name
     standardisation) is independent of the snapshot date, so it is performed
     once. Each snapshot still filters this prepared data to its own report date
-    BEFORE best-result selection, tier assignment and Rule E ranking.
+    BEFORE best-result selection and raw tier assignment.
     """
     start_date_delta = datetime.date(2025, 1, 1)
     octc_cutoff_delta = datetime.date(2026, 12, 31)
@@ -703,9 +705,9 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         .isin(allowed_nationalities)
     ].copy()
 
-    # Match OCTC_PRODUCTION.ipynb: remove the 12 SPEX athletes after name
-    # standardisation / Singapore filtering and before either snapshot chooses
-    # a best performance, assigns tiers, or applies Rule E.
+    # Remove the 12 SPEX athletes after name standardisation / Singapore
+    # filtering and before either snapshot chooses a best performance or
+    # assigns the raw OCTC tier.
     df_local_delta, _octc_delta_spex_audit = exclude_octc_spex_athletes(
         df_local_delta,
         names_for_delta,
@@ -752,10 +754,10 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
 
 
 def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
-    """Build one OCTC Rule E snapshot from the once-prepared delta base.
+    """Build one raw-tier OCTC snapshot from the once-prepared delta base.
 
-    The date filter happens before best-result selection, tiering and Rule E,
-    so later results cannot influence an earlier snapshot.
+    The date filter happens before best-result selection and raw tiering, so
+    later results cannot influence an earlier snapshot.
     """
     octc_cutoff_delta = datetime.date(2026, 12, 31)
     end_date_delta = min(pd.Timestamp(report_end_date).date(), octc_cutoff_delta)
@@ -884,6 +886,9 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
         df_no_na_delta['TIER'] != ' '
     ].copy()
 
+    # Raw-tier ranking only. Rule E has been removed from OCTC reporting.
+    # Rank remains useful as a diagnostic ordering within each raw tier, but it
+    # does not alter an athlete's tier or eligibility.
     all_ranking_delta = final_tiered_delta.sort_values(
         ['MAPPED_EVENT', 'GENDER', 'TIER', 'PERF_SCALAR', 'DATE', 'ATHLETE_KEY'],
         ascending=[True, True, True, False, False, True],
@@ -896,36 +901,7 @@ def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
         + 1
     )
 
-    all_ranking_delta['TIER_ADJ'] = np.where(
-        (all_ranking_delta['TIER'] == 'Tier 1')
-        & (all_ranking_delta['Rank'] >= 3),
-        'Tier 2',
-        np.where(
-            (all_ranking_delta['TIER'] == 'Tier 2')
-            & (all_ranking_delta['Rank'] >= 3),
-            'Tier 3',
-            np.where(
-                (all_ranking_delta['TIER'] == 'Tier 3')
-                & (all_ranking_delta['Rank'] >= 3),
-                'Tier 4',
-                all_ranking_delta['TIER'],
-            ),
-        ),
-    )
-
-    rerank_delta = all_ranking_delta.sort_values(
-        ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR', 'DATE', 'ATHLETE_KEY'],
-        ascending=[True, True, True, False, False, True],
-    ).copy()
-
-    rerank_delta['Rank_ADJ'] = (
-        rerank_delta
-        .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
-        .cumcount()
-        + 1
-    )
-
-    return rerank_delta.reset_index(drop=True)
+    return all_ranking_delta.reset_index(drop=True)
 
 
 def _octc_delta_athlete_key(row):
@@ -949,7 +925,7 @@ def _octc_delta_athlete_key(row):
 
 
 def compare_octc_snapshots(previous_snapshot, current_snapshot):
-    """Return new OCTC entries and adjusted-tier upgrades between snapshots."""
+    """Return new OCTC entries and raw-tier upgrades between snapshots."""
     previous = previous_snapshot.copy()
     current = current_snapshot.copy()
 
@@ -1014,9 +990,11 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
     previous = _dedupe_delta_snapshot(previous)
     current = _dedupe_delta_snapshot(current)
 
-    # Current delta candidates must be visible in the normal OCTC report.
+    # Current delta candidates must qualify for the normal OCTC report on
+    # their RAW tier. Tier 4 remains in the previous snapshot internally so
+    # raw Tier 4 -> Tier 3 can be reported as an upgrade.
     current = current.loc[
-        current['TIER_ADJ'].isin(visible_tiers)
+        current['TIER'].isin(visible_tiers)
     ].copy()
 
     previous_by_key = previous.set_index(
@@ -1025,7 +1003,7 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
 
     previous_visible_athletes = set(
         previous.loc[
-            previous['TIER_ADJ'].isin(visible_tiers),
+            previous['TIER'].isin(visible_tiers),
             'ATHLETE_KEY',
         ]
         .fillna('')
@@ -1037,7 +1015,7 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
 
     for _, current_row in current.iterrows():
         delta_key = current_row['DELTA_KEY']
-        current_tier = str(current_row.get('TIER_ADJ', '')).strip()
+        current_tier = str(current_row.get('TIER', '')).strip()
         current_tier_num = tier_order.get(current_tier)
 
         previous_row = None
@@ -1059,7 +1037,7 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
             previous_date = pd.NaT
             previous_competition = ''
         else:
-            previous_tier = str(previous_row.get('TIER_ADJ', '')).strip()
+            previous_tier = str(previous_row.get('TIER', '')).strip()
             previous_tier_num = tier_order.get(previous_tier)
 
             if (
@@ -1070,7 +1048,7 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
                 continue
 
             change_type = 'TIER UPGRADE'
-            previous_rank = previous_row.get('Rank_ADJ', np.nan)
+            previous_rank = previous_row.get('Rank', np.nan)
             previous_result = previous_row.get('RESULT', '')
             previous_date = previous_row.get('DATE', pd.NaT)
             previous_competition = previous_row.get('COMPETITION', '')
@@ -1083,7 +1061,7 @@ def compare_octc_snapshots(previous_snapshot, current_snapshot):
             'PREVIOUS_TIER': previous_tier,
             'CURRENT_TIER': current_tier,
             'PREVIOUS_RANK': previous_rank,
-            'CURRENT_RANK': current_row.get('Rank_ADJ', np.nan),
+            'CURRENT_RANK': current_row.get('Rank', np.nan),
             'PREVIOUS_RESULT': previous_result,
             'CURRENT_RESULT': current_row.get('RESULT', ''),
             'PREVIOUS_RESULT_DATE': previous_date,
@@ -5346,7 +5324,7 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
             st.caption(
                 'Compares two OCTC snapshots. Each snapshot uses results from '
                 '1 January 2025 through the selected report date and independently '
-                'recalculates Rule E ranking and adjusted tiers.'
+                "recalculates each athlete's best performance and raw OCTC tier."
             )
 
             today_for_delta = datetime.date.today()
@@ -5485,9 +5463,9 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
             metric_col_4.metric('Tier Upgrades', upgrade_count)
 
             st.caption(
-                'Tier upgrades are based on adjusted Rule E tiers. Tier 4 is '
-                'retained internally for comparison, so Tier 4 → Tier 3 is shown '
-                'as an upgrade rather than a new entry.'
+                'Tier upgrades are based on RAW OCTC tiers. Tier 4 is retained '
+                'internally for comparison, so a raw Tier 4 → Tier 3 change is '
+                'shown as an upgrade rather than a new entry.'
             )
 
             st.dataframe(delta_report, use_container_width=True, hide_index=True)
@@ -5703,9 +5681,9 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     ].copy()
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # Match the amended OCTC notebook: remove the 12 SPEX athletes after
-        # name standardisation / Singapore filtering and before wind audit,
-        # best-performance selection, tier assignment and Rule E.
+        # Remove the 12 SPEX athletes after name standardisation / Singapore
+        # filtering and before wind audit, best-performance selection and raw
+        # tier assignment.
         df_local_teams, octc_spex_exclusion_audit = exclude_octc_spex_athletes(
             df_local_teams,
             names_for_report,
@@ -5879,10 +5857,10 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
         ].copy()
 
         # ------------------------------------------------------------
-        # OCTC RULE E RANKING AND TIER ADJUSTMENT
-        # Rank athletes within each gender / event / original tier.
-        # Only two athletes may remain in each tier; third and later
-        # athletes are moved down by one tier.
+        # OCTC RAW-TIER RANKING
+        # Rule E has been removed. Every athlete keeps the tier earned from
+        # the benchmark calculation. Rank is diagnostic only and does not
+        # change tier or eligibility.
         # ------------------------------------------------------------
         all_ranking = final_tiered_selection.sort_values(
             ['MAPPED_EVENT', 'GENDER', 'TIER', 'PERF_SCALAR', 'DATE_DT', 'ATHLETE_KEY'],
@@ -5896,52 +5874,11 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
             + 1
         )
 
-        all_ranking['TIER_ADJ'] = np.where(
-            (all_ranking['TIER'] == 'Tier 1') & (all_ranking['Rank'] >= 3),
-            'Tier 2',
-            np.where(
-                (all_ranking['TIER'] == 'Tier 2') & (all_ranking['Rank'] >= 3),
-                'Tier 3',
-                np.where(
-                    (all_ranking['TIER'] == 'Tier 3') & (all_ranking['Rank'] >= 3),
-                    'Tier 4',
-                    all_ranking['TIER'],
-                ),
-            ),
-        )
-
-        # Re-rank after the tier adjustment.
-        rerank = all_ranking.sort_values(
-            ['MAPPED_EVENT', 'GENDER', 'TIER_ADJ', 'PERF_SCALAR', 'DATE_DT', 'ATHLETE_KEY'],
-            ascending=[True, True, True, False, False, True],
-        ).copy()
-
-        rerank['Rank_ADJ'] = (
-            rerank
-            .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
-            .cumcount()
-            + 1
-        )
-
-        # Final OCTC output: exclude blank tiers and Tier 4 after Rule E.
-        rerank_filtered = rerank.loc[
-            (rerank['TIER_ADJ'] != ' ')
-            & (rerank['TIER_ADJ'] != 'Tier 4')
+        # OCTC qualifiers are raw Tier 1, Tier 2 or Tier 3. Raw Tier 4 is
+        # retained only in delta snapshots so Tier 4 -> Tier 3 can be detected.
+        raw_tier_filtered = all_ranking.loc[
+            all_ranking['TIER'].isin(['Tier 1', 'Tier 2', 'Tier 3'])
         ].reset_index(drop=True)
-
-        # Diagnostic only: do not change one-step Rule E behaviour here.
-        octc_rule_e_tier_counts = (
-            rerank.loc[rerank['TIER_ADJ'] != ' ']
-            .groupby(['MAPPED_EVENT', 'GENDER', 'TIER_ADJ'])
-            .size()
-            .reset_index(name='ATHLETE_COUNT')
-        )
-        octc_rule_e_overflow = octc_rule_e_tier_counts.loc[
-            octc_rule_e_tier_counts['ATHLETE_COUNT'] > 2
-        ].copy()
-        octc_adjusted_tier4_audit = rerank.loc[
-            rerank['TIER_ADJ'] == 'Tier 4'
-        ].copy()
 
 
 # Show resulting OCTC dataframe
@@ -5954,8 +5891,8 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
 
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
-        # Final OCTC output after Rule E ranking and tier adjustment.
-        final_df = rerank_filtered.copy()
+        # Final OCTC output uses RAW benchmark tiers only.
+        final_df = raw_tier_filtered.copy()
     else:
         # SEAG report uses all records with a tier value.
         final_df = df_no_na[
@@ -6040,43 +5977,11 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
                 key='download_octc_selection_nationality_audit_20260827',
             )
 
-        with st.expander(
-            f'OCTC Rule E Audit ({len(octc_adjusted_tier4_audit):,} adjusted Tier 4 rows)',
-            expanded=False,
-        ):
-            st.caption(
-                'Rule E remains one-step demotion. The overflow table is diagnostic only.'
-            )
-            if octc_rule_e_overflow.empty:
-                st.caption('No adjusted event/gender/tier group contains more than two athletes.')
-            else:
-                st.write('Adjusted groups containing more than two athletes:')
-                st.dataframe(octc_rule_e_overflow, use_container_width=True, hide_index=True)
-            tier4_cols = [
-                col for col in [
-                    'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
-                    'TIER', 'Rank', 'TIER_ADJ', 'Rank_ADJ', 'PERF_SCALAR',
-                    'DATE', 'COMPETITION', 'UNIQUE_ID',
-                ]
-                if col in octc_adjusted_tier4_audit.columns
-            ]
-            tier4_display = octc_adjusted_tier4_audit[tier4_cols].copy()
-            st.dataframe(tier4_display, use_container_width=True, hide_index=True)
-            st.download_button(
-                'Download Rule E Tier 4 Audit CSV',
-                data=tier4_display.to_csv(index=False).encode('utf-8'),
-                file_name=f'octc_rule_e_tier4_audit_{end_date:%Y%m%d}.csv',
-                mime='text/csv',
-                key='download_octc_rule_e_tier4_audit_20260827',
-            )
-
     # Format SEAG / OCTC report output using the same formatter as the
     # Search Database Records by Name or Competition section.
     # This standardises RESULT_C, date, name casing, wind handling, etc.
     report_extra_cols = [
         'UNIQUE_ID',
-        'TIER_ADJ',
-        'Rank_ADJ',
         'TIER',
         'Rank',
         'TEAM',
