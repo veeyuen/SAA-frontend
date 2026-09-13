@@ -192,7 +192,7 @@ def _octc_clean_replacement_name(value):
 
 # ============================================================
 # OCTC VALIDATION / WIND ELIGIBILITY HELPERS
-# OCTC_HARDENING_PATCH_VERSION: 2026-08-29-v24-spex-aligned
+# OCTC_HARDENING_PATCH_VERSION: 2026-09-13-v25-foreign-team-audit
 # Mirrors the validated OCTC_PRODUCTION.ipynb logic.
 # ============================================================
 OCTC_WIND_SENSITIVE_EVENTS = {
@@ -223,6 +223,115 @@ OCTC_SPEX_EXCLUDED_NAMES = [
     'Quek Jun Jie Calvin',
     'Marc Brian Louis',
 ]
+
+
+# Foreign-country indicators used ONLY when NATIONALITY is blank / NONE.
+# The rule is deliberately conservative: a row is excluded only when the TEAM
+# text itself names a foreign country/territory. Club/team names with no country
+# indicator remain eligible for the normal blank-nationality audit.
+OCTC_FOREIGN_TEAM_COUNTRY_ALIASES = {
+    'malaysia': 'Malaysia',
+    'thailand': 'Thailand',
+    'china': 'China',
+    'chinese taipei': 'Chinese Taipei',
+    'taiwan': 'Chinese Taipei',
+    'hong kong': 'Hong Kong',
+    'south korea': 'South Korea',
+    'republic of korea': 'South Korea',
+    'korea': 'Korea',
+    'laos': 'Laos',
+    'lao pdr': 'Laos',
+    'myanmar': 'Myanmar',
+    'philippines': 'Philippines',
+    'australia': 'Australia',
+    'sri lanka': 'Sri Lanka',
+    'indonesia': 'Indonesia',
+    'vietnam': 'Vietnam',
+    'india': 'India',
+    'japan': 'Japan',
+    'cambodia': 'Cambodia',
+    'brunei': 'Brunei',
+    'new zealand': 'New Zealand',
+    'united states': 'United States',
+    'usa': 'United States',
+    'great britain': 'Great Britain',
+    'united kingdom': 'United Kingdom',
+    'canada': 'Canada',
+}
+
+
+def _octc_foreign_country_from_team(value):
+    """Return the foreign-country indicator found in TEAM, else blank.
+
+    Matching uses punctuation-insensitive whole words/phrases so values such as
+    ``NJAC Malaysia`` and ``Waseda Japan`` are caught, while unrelated strings
+    are not removed merely because NATIONALITY is blank.
+    """
+    if pd.isna(value):
+        return ''
+
+    team_text = str(value).strip().casefold()
+    if team_text == '':
+        return ''
+
+    team_text = re.sub(r'[^a-z0-9]+', ' ', team_text)
+    team_text = re.sub(r'\s+', ' ', team_text).strip()
+    padded_team = f' {team_text} '
+
+    # Longest aliases first so "Chinese Taipei" is reported before any shorter
+    # overlapping token and "South Korea" before "Korea".
+    for alias in sorted(
+        OCTC_FOREIGN_TEAM_COUNTRY_ALIASES,
+        key=len,
+        reverse=True,
+    ):
+        if f' {alias} ' in padded_team:
+            return OCTC_FOREIGN_TEAM_COUNTRY_ALIASES[alias]
+
+    return ''
+
+
+def exclude_octc_blank_nationality_foreign_team(df_input):
+    """Exclude blank/NONE-nationality rows whose TEAM names a foreign country.
+
+    Returns ``(filtered_dataframe, exclusion_audit)``.  The audit preserves the
+    complete excluded result rows and adds ``FOREIGN_TEAM_COUNTRY`` explaining
+    which country indicator triggered the exclusion.
+    """
+    df_output = df_input.copy()
+
+    if df_output.empty:
+        return df_output, pd.DataFrame()
+
+    if 'NATIONALITY' not in df_output.columns:
+        df_output['NATIONALITY'] = ''
+    if 'TEAM' not in df_output.columns:
+        df_output['TEAM'] = ''
+
+    nationality_key = (
+        df_output['NATIONALITY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    foreign_team_country = df_output['TEAM'].apply(
+        _octc_foreign_country_from_team
+    )
+
+    exclusion_mask = (
+        nationality_key.isin(['', 'NONE'])
+        & foreign_team_country.ne('')
+    )
+
+    audit = df_output.loc[exclusion_mask].copy()
+    audit['FOREIGN_TEAM_COUNTRY'] = foreign_team_country.loc[
+        exclusion_mask
+    ].values
+
+    filtered = df_output.loc[~exclusion_mask].copy()
+    return filtered, audit
 
 
 def validate_octc_name_variations(names_input):
@@ -607,7 +716,7 @@ def exclude_octc_spex_athletes(df_input, names_input):
 
 # ============================================================
 # OCTC DELTA REPORT HELPERS
-# OCTC_DELTA_PATCH_VERSION: 2026-08-21-v3-stable-athlete-identity
+# OCTC_DELTA_PATCH_VERSION: 2026-09-13-v4-foreign-team-audit
 # ------------------------------------------------------------
 # The normal OCTC report below remains unchanged.  These helpers rebuild the
 # same OCTC selection pipeline for any chosen report end date so two snapshots
@@ -705,6 +814,15 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         .isin(allowed_nationalities)
     ].copy()
 
+    # A blank/NONE nationality is not sufficient evidence of Singapore
+    # eligibility when TEAM explicitly identifies a foreign country. Exclude
+    # those rows before SPEX, wind, best-performance and tier logic, while
+    # preserving them for the Delta Report audit.
+    (
+        df_local_delta,
+        octc_delta_foreign_team_audit,
+    ) = exclude_octc_blank_nationality_foreign_team(df_local_delta)
+
     # Remove the 12 SPEX athletes after name standardisation / Singapore
     # filtering and before either snapshot chooses a best performance or
     # assigns the raw OCTC tier.
@@ -750,7 +868,10 @@ def prepare_octc_delta_base(data_input, benchmarks_input, current_report_end_dat
         df_local_delta['ATHLETE_KEY'].ne('')
     ].copy()
 
-    return df_local_delta.reset_index(drop=True)
+    return (
+        df_local_delta.reset_index(drop=True),
+        octc_delta_foreign_team_audit.reset_index(drop=True),
+    )
 
 
 def build_octc_snapshot_for_delta(prepared_delta_base, report_end_date):
@@ -5369,7 +5490,10 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
 
             with st.spinner('Preparing OCTC data and calculating both snapshots...'):
                 try:
-                    prepared_delta_base = prepare_octc_delta_base(
+                    (
+                        prepared_delta_base,
+                        octc_delta_foreign_team_audit,
+                    ) = prepare_octc_delta_base(
                         data,
                         benchmarks,
                         current_report_date,
@@ -5415,6 +5539,45 @@ elif benchmark_option in ['2025 SEAG Bronze - SEAG Selection', '2025 SEAG Bronze
                 f'Current snapshot: 1 Jan 2025 – {current_report_date:%d %b %Y} '
                 f'({current_source_rows:,} prepared result rows)'
             )
+
+            with st.expander(
+                f'OCTC Foreign-Team Exclusion Audit '
+                f'({len(octc_delta_foreign_team_audit):,} rows)',
+                expanded=False,
+            ):
+                if octc_delta_foreign_team_audit.empty:
+                    st.caption(
+                        'No blank/NONE-nationality results with a foreign-country '
+                        'TEAM indicator were excluded through the current snapshot date.'
+                    )
+                else:
+                    foreign_team_audit_cols = [
+                        col for col in [
+                            'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
+                            'NATIONALITY', 'TEAM', 'FOREIGN_TEAM_COUNTRY', 'DATE',
+                            'COMPETITION', 'UNIQUE_ID',
+                        ]
+                        if col in octc_delta_foreign_team_audit.columns
+                    ]
+                    foreign_team_audit_display = (
+                        octc_delta_foreign_team_audit[foreign_team_audit_cols]
+                        .copy()
+                    )
+                    st.dataframe(
+                        foreign_team_audit_display,
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                    st.download_button(
+                        'Download OCTC Foreign-Team Exclusion Audit CSV',
+                        data=foreign_team_audit_display.to_csv(index=False).encode('utf-8'),
+                        file_name=(
+                            f'octc_foreign_team_exclusion_audit_'
+                            f'{current_report_date:%Y%m%d}.csv'
+                        ),
+                        mime='text/csv',
+                        key='download_octc_delta_foreign_team_audit_20260913',
+                    )
 
             delta_illegal_wind_audit = octc_illegal_wind_audit(prepared_delta_base)
             with st.expander(
@@ -5681,6 +5844,13 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
     ].copy()
 
     if benchmark_option == '2025 SEAG Bronze - OCTC Selection':
+        # Exclude only blank/NONE-nationality rows whose TEAM explicitly names
+        # a foreign country. Preserve the excluded results for audit.
+        (
+            df_local_teams,
+            octc_foreign_team_exclusion_audit,
+        ) = exclude_octc_blank_nationality_foreign_team(df_local_teams)
+
         # Remove the 12 SPEX athletes after name standardisation / Singapore
         # filtering and before wind audit, best-performance selection and raw
         # tier assignment.
@@ -5954,6 +6124,42 @@ if benchmark_option == '2025 SEAG Bronze - SEAG Selection' or benchmark_option =
                         [col for col in ['NAME', 'MAPPED_EVENT', 'DATE'] if col in spex_audit_cols]
                     ),
                     use_container_width=True,
+                )
+
+        with st.expander(
+            f'OCTC Foreign-Team Exclusion Audit '
+            f'({len(octc_foreign_team_exclusion_audit):,} rows)',
+            expanded=False,
+        ):
+            if octc_foreign_team_exclusion_audit.empty:
+                st.caption(
+                    'No blank/NONE-nationality results with a foreign-country '
+                    'TEAM indicator were excluded in the selected report period.'
+                )
+            else:
+                foreign_team_audit_cols = [
+                    col for col in [
+                        'NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
+                        'NATIONALITY', 'TEAM', 'FOREIGN_TEAM_COUNTRY', 'DATE',
+                        'COMPETITION', 'UNIQUE_ID',
+                    ]
+                    if col in octc_foreign_team_exclusion_audit.columns
+                ]
+                foreign_team_audit_display = (
+                    octc_foreign_team_exclusion_audit[foreign_team_audit_cols]
+                    .copy()
+                )
+                st.dataframe(
+                    foreign_team_audit_display,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                st.download_button(
+                    'Download OCTC Foreign-Team Exclusion Audit CSV',
+                    data=foreign_team_audit_display.to_csv(index=False).encode('utf-8'),
+                    file_name=f'octc_foreign_team_exclusion_audit_{end_date:%Y%m%d}.csv',
+                    mime='text/csv',
+                    key='download_octc_selection_foreign_team_audit_20260913',
                 )
 
         with st.expander(
