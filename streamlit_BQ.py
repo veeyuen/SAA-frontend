@@ -2387,14 +2387,23 @@ def fetch_results_for_mapped_event(selected_mapped_event):
     data = _standardize_names_like_fetch_all_data(data)
 
     # Standardize DATE column consistently with fetch_all_data().
+    # BigQuery can return a mixture of date / timestamp string representations.
+    # format="mixed" prevents valid rows from being coerced to NaT simply because
+    # their representation differs from the first value Pandas inspects.
     if "DATE" in data.columns:
-        data["DATE"] = pd.to_datetime(data["DATE"], errors="coerce")
-        try:
-            if isinstance(data["DATE"].dtype, pd.DatetimeTZDtype):
-                data["DATE"] = data["DATE"].dt.tz_localize(None)
-        except Exception:
-            pass
-        data["DATE"] = data["DATE"].dt.strftime("%Y-%m-%d")
+        raw_date = data["DATE"].copy()
+        parsed_date = pd.to_datetime(
+            raw_date,
+            format="mixed",
+            errors="coerce",
+            utc=True,
+        )
+        fallback_date = raw_date.astype(object).where(raw_date.notna(), np.nan)
+        data["DATE"] = np.where(
+            parsed_date.notna(),
+            parsed_date.dt.strftime("%Y-%m-%d"),
+            fallback_date,
+        )
 
     data["STATUS"] = ""
     data["RESULT_CONV"] = np.nan
@@ -2440,14 +2449,25 @@ def fetch_all_data():   # for database access
     # Casefold for consistency
     all_data['NAME'] = all_data['NAME'].str.casefold()
 
-    # Standardize DATE column → always YYYY-MM-DD string
-    all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # NEW
+    # Standardize DATE column safely across mixed BigQuery date formats.
+    # Preserve the original value as a fallback so a genuinely unusual but
+    # populated DATE is never silently replaced by NaN in the search display.
+    raw_date = all_data['DATE'].copy()
+    parsed_date = pd.to_datetime(
+        raw_date,
+        format='mixed',
+        errors='coerce',
+        utc=True,
+    )
 
-    if pd.api.types.is_datetime64tz_dtype(all_data['DATE']): #NEW
-        all_data['DATE'] = all_data['DATE'].dt.tz_localize(None)  #NEW
-
-    # Convert to YYYY-MM-DD string
-    all_data['DATE'] = all_data['DATE'].dt.strftime("%Y-%m-%d")
+    # Convert successfully parsed values to a consistent YYYY-MM-DD string.
+    # If parsing fails, retain the original populated source value for audit.
+    fallback_date = raw_date.astype(object).where(raw_date.notna(), np.nan)
+    all_data['DATE'] = np.where(
+        parsed_date.notna(),
+        parsed_date.dt.strftime('%Y-%m-%d'),
+        fallback_date,
+    )
 
     # Load name variations lazily only when database records are actually requested.
     names = gspread_names()
@@ -2844,18 +2864,24 @@ def format_results_like_search(df_input, include_result_conv=False, extra_cols=N
     # --------------------------------------------------------
     # Date formatting
     # --------------------------------------------------------
-    date_converted = pd.to_datetime(df_search['DATE'], errors='coerce')
+    # DATE may contain mixed valid representations after retrieval from BigQuery.
+    # Use Pandas' mixed-format parser rather than inferring one format for the
+    # entire Series, which can otherwise turn valid dates into NaT / NaN.
+    date_converted = pd.to_datetime(
+        df_search['DATE'],
+        format='mixed',
+        errors='coerce',
+        utc=True,
+    )
 
-    try:
-        if pd.api.types.is_datetime64tz_dtype(date_converted):
-            date_converted = date_converted.dt.tz_convert(None)
-    except Exception:
-        pass
-
+    fallback_date = df_search['DATE'].astype(object).where(
+        df_search['DATE'].notna(),
+        np.nan,
+    )
     df_search['DATE'] = np.where(
         date_converted.notna(),
         date_converted.dt.strftime('%Y-%m-%d'),
-        df_search['DATE'].astype(str)
+        fallback_date
     )
 
     # --------------------------------------------------------
@@ -3658,10 +3684,7 @@ if benchmark_option == 'Search Database Records by Name or Competition':
             st.write("Keyword Does Not Exist in Database")
             m2 = all_data["COMPETITION_case"].notnull()
 
-     #   all_data['DATE'] = pd.to_datetime(all_data['DATE'], errors='coerce') # convert date column so mitosheet can search on dates
-
-        if pd.api.types.is_datetime64tz_dtype(all_data['DATE']):  # remove timezone awareness
-            all_data['DATE'] = all_data['DATE'].dt.tz_convert(None)
+     # DATE has already been normalized safely inside fetch_all_data().
 
         df_search = all_data[m2].copy()
 
