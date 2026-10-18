@@ -2702,15 +2702,14 @@ def format_road_race_duration(value):
 
 # ============================================================
 # 2026 U18 / U20 QUALIFYING REPORT
-# YOUTH_QUALIFYING_PATCH_VERSION: 2026-10-16-v1
+# YOUTH_QUALIFYING_PATCH_VERSION: 2026-10-18-v2-published-mark-only
 # ------------------------------------------------------------
 # Fixed qualifying window requested by SAA:
 #   1 Oct 2025 through 1 Oct 2026, inclusive.
 #
 # U18: DOB years 2009-2010; athlete must meet the stated mark.
-# U20: DOB years 2007-2008; results up to 2% off the stated mark qualify.
-#       Timed events: result <= mark * 1.02
-#       Field events: result >= mark * 0.98
+# U20: DOB years 2007-2008; athlete must also meet the stated mark.
+#       The generic benchmark-table percentage bands are not used by this report.
 #
 # Implement / hurdle / steeplechase classes are matched explicitly so a result
 # achieved with the wrong implement weight or hurdle height cannot qualify.
@@ -2734,8 +2733,9 @@ YOUTH_2026_WIND_SENSITIVE_EVENTS = {
 # fetch_benchmarks() from GCS:
 #   competition_benchmarks/All_Benchmarks_latest.csv
 #
-# The benchmark CSV remains the single source of truth for the marks and the
-# U20 2%-off threshold. Only report structure that does not exist in that CSV
+# The benchmark CSV remains the single source of truth for the published marks.
+# Percentage-band columns in the generic benchmark table are deliberately ignored
+# by this report. Only report structure that does not exist in that CSV
 # (age group, implement/hurdle class, and display order) remains configured here.
 YOUTH_2026_BENCHMARK_NAMES = {
     'U18': '18th SEA Youth U18',
@@ -2845,8 +2845,8 @@ def prepare_youth_2026_benchmarks(benchmarks_input):
       RESULT    -> RESULT_BENCHMARK
       Metric    -> STANDARDISED_BENCHMARK
 
-    U18 qualification uses STANDARDISED_BENCHMARK directly.
-    U20 qualification uses the shared benchmark table's 2% column directly.
+    Both U18 and U20 qualification use STANDARDISED_BENCHMARK directly.
+    Generic percentage-band columns in the benchmark table are not used.
     """
     benchmarks = benchmarks_input.copy()
 
@@ -2856,7 +2856,6 @@ def prepare_youth_2026_benchmarks(benchmarks_input):
         'GENDER',
         'RESULT_BENCHMARK',
         'STANDARDISED_BENCHMARK',
-        '2%',
     }
     missing_cols = sorted(required_cols.difference(benchmarks.columns))
     if missing_cols:
@@ -2967,30 +2966,21 @@ def prepare_youth_2026_benchmarks(benchmarks_input):
             axis=1,
         )
 
-        # The GCS benchmark table itself carries the U20 2%-off threshold.
-        # U18 has no tolerance and therefore uses the benchmark mark directly.
-        if age_group == 'U20':
-            subset['ALLOWED_THRESHOLD'] = pd.to_numeric(
-                subset['2%'],
-                errors='coerce',
-            )
-        else:
-            subset['ALLOWED_THRESHOLD'] = subset['BENCHMARK_VALUE']
+        # Both age groups must meet the published qualifying mark.
+        # The generic 2% / 3.5% / 5% / 10% benchmark bands are not eligibility rules.
+        subset['ALLOWED_THRESHOLD'] = subset['BENCHMARK_VALUE']
 
-        invalid_numeric = (
-            subset['BENCHMARK_VALUE'].isna()
-            | subset['ALLOWED_THRESHOLD'].isna()
-        )
+        invalid_numeric = subset['BENCHMARK_VALUE'].isna()
         if invalid_numeric.any():
             bad_rows = subset.loc[
                 invalid_numeric,
                 [
                     'BENCHMARK_COMPETITION', 'EVENT', 'GENDER',
-                    'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%',
+                    'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK',
                 ],
             ]
             raise ValueError(
-                'SEA Youth benchmark rows contain non-numeric Metric/2% values: '
+                'SEA Youth benchmark rows contain non-numeric Metric values: '
                 + bad_rows.to_dict(orient='records').__repr__()
             )
 
@@ -3294,6 +3284,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     ].copy()
     candidates = candidates.loc[candidates['RESULT_VALUE'].notna()].copy()
 
+    # Published mark is the eligibility threshold for both U18 and U20.
     timed_mask = candidates['IS_TIMED'].astype(bool)
     candidates['QUALIFIES'] = np.where(
         timed_mask,
@@ -3381,11 +3372,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     )
     qualifiers['DATE_C'] = qualifiers['DATE_DT'].dt.strftime('%Y-%m-%d')
     qualifiers['DOB_C'] = qualifiers['DOB_PARSED'].dt.strftime('%Y-%m-%d')
-    qualifiers['QUALIFICATION_RULE'] = np.where(
-        qualifiers['AGE_GROUP'].eq('U20'),
-        'Up to 2% off qualifying mark',
-        'Meet qualifying mark',
-    )
+    qualifiers['QUALIFICATION_RULE'] = 'Meet qualifying mark'
 
     return qualifiers.reset_index(drop=True), {
         'foreign_team': foreign_team_audit,
@@ -6009,8 +5996,9 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
     st.caption(
         'Qualifying window: 1 Oct 2025 to 1 Oct 2026, inclusive. '
         'U18 = DOB 2009-2010 and must meet the stated mark. '
-        'U20 = DOB 2007-2008 and may be up to 2% off the stated mark. '
-        'Marks are loaded from GCS benchmark rows 18th SEA Youth U18 / U20.'
+        'U20 = DOB 2007-2008 and must also meet the stated mark. '
+        'Marks are loaded from GCS benchmark rows 18th SEA Youth U18 / U20; '
+        'percentage-band columns are not used for qualification.'
     )
 
     with st.spinner('Preparing U18 / U20 qualifying report...'):
@@ -6057,9 +6045,8 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
     with u20_tab:
         st.write('### U20 athletes - DOB 2007-2008')
         st.caption(
-            'Athletes qualify if the best result is within 2% of the stated mark. '
-            'For timed events the allowable threshold is 2% slower; for field '
-            'events it is 2% lower.'
+            'Athletes must meet or better the stated qualifying mark. '
+            'The best qualifying performance per athlete/event is shown.'
         )
         if u20_display.empty:
             st.info('No U20 qualifying performances were found in the requested window.')
