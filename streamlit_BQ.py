@@ -24,6 +24,7 @@ from mitosheet.streamlit.v1 import spreadsheet
 st.set_page_config(layout="wide")
 
 # OCTC_RAW_TIER_PATCH_VERSION: 2026-09-12-v1-rule-e-removed
+# YOUTH_QUALIFYING_REPORT_VERSION: 2026-10-18-v2-gcs-benchmarks
 
 
 # ============================================================
@@ -1313,7 +1314,7 @@ def fetch_benchmarks():
         'Metric': 'STANDARDISED_BENCHMARK',
     })
     return benchmarks
-# Benchmarks are loaded lazily only for Display Benchmark Tables or SEAG/OCTC reports.
+# Benchmarks are loaded lazily for Display Benchmark Tables, SEAG/OCTC, and SEA Youth reports.
 
 ## Download all athlete data from BQ
 
@@ -2699,6 +2700,733 @@ def format_road_race_duration(value):
 
     return f"{sec:.2f}"
 
+# ============================================================
+# 2026 U18 / U20 QUALIFYING REPORT
+# YOUTH_QUALIFYING_PATCH_VERSION: 2026-10-16-v1
+# ------------------------------------------------------------
+# Fixed qualifying window requested by SAA:
+#   1 Oct 2025 through 1 Oct 2026, inclusive.
+#
+# U18: DOB years 2009-2010; athlete must meet the stated mark.
+# U20: DOB years 2007-2008; results up to 2% off the stated mark qualify.
+#       Timed events: result <= mark * 1.02
+#       Field events: result >= mark * 0.98
+#
+# Implement / hurdle / steeplechase classes are matched explicitly so a result
+# achieved with the wrong implement weight or hurdle height cannot qualify.
+# ============================================================
+YOUTH_2026_WINDOW_START = datetime.date(2025, 10, 1)
+YOUTH_2026_WINDOW_END = datetime.date(2026, 10, 1)
+
+YOUTH_2026_TIME_EVENTS = {
+    '100m', '200m', '400m', '800m', '1500m', '3000m',
+    '100m Hurdles', '110m Hurdles', '400m Hurdles',
+    '2000m Steeplechase', '3000m Steeplechase',
+}
+
+YOUTH_2026_WIND_SENSITIVE_EVENTS = {
+    '100m', '200m', '100m Hurdles', '110m Hurdles',
+    'Long Jump', 'Triple Jump',
+}
+
+
+# Benchmark values are NOT hard-coded in this report. They are loaded through
+# fetch_benchmarks() from GCS:
+#   competition_benchmarks/All_Benchmarks_latest.csv
+#
+# The benchmark CSV remains the single source of truth for the marks and the
+# U20 2%-off threshold. Only report structure that does not exist in that CSV
+# (age group, implement/hurdle class, and display order) remains configured here.
+YOUTH_2026_BENCHMARK_NAMES = {
+    'U18': '18th SEA Youth U18',
+    'U20': '18th SEA Youth U20',
+}
+
+YOUTH_2026_EXPECTED_EVENTS = {
+    ('U18', 'Female'): [
+        '100m', '200m', '400m', '800m', '1500m', '3000m',
+        '100m Hurdles', '400m Hurdles', '2000m Steeplechase',
+        'Long Jump', 'Triple Jump', 'High Jump', 'Pole Vault',
+        'Shot Put', 'Discus Throw', 'Javelin Throw', 'Hammer Throw',
+    ],
+    ('U18', 'Male'): [
+        '100m', '200m', '400m', '800m', '1500m', '3000m',
+        '110m Hurdles', '400m Hurdles', '2000m Steeplechase',
+        'Long Jump', 'Triple Jump', 'High Jump', 'Pole Vault',
+        'Shot Put', 'Discus Throw', 'Javelin Throw', 'Hammer Throw',
+    ],
+    ('U20', 'Female'): [
+        '100m', '200m', '400m', '1500m', '100m Hurdles',
+        '3000m Steeplechase', 'Long Jump', 'Triple Jump', 'High Jump',
+        'Discus Throw', 'Javelin Throw',
+    ],
+    ('U20', 'Male'): [
+        '100m', '200m', '400m', '1500m', '110m Hurdles',
+        '3000m Steeplechase', 'Long Jump', 'Triple Jump', 'High Jump',
+        'Discus Throw', 'Javelin Throw',
+    ],
+}
+
+YOUTH_2026_EVENT_ORDER = {
+    'U18': {
+        '100m': 1,
+        '200m': 2,
+        '400m': 3,
+        '800m': 4,
+        '1500m': 5,
+        '3000m': 6,
+        '100m Hurdles': 7,
+        '110m Hurdles': 7,
+        '400m Hurdles': 8,
+        '2000m Steeplechase': 9,
+        'Long Jump': 10,
+        'Triple Jump': 11,
+        'High Jump': 12,
+        'Pole Vault': 13,
+        'Shot Put': 14,
+        'Discus Throw': 15,
+        'Javelin Throw': 16,
+        'Hammer Throw': 17,
+    },
+    'U20': {
+        '100m': 1,
+        '200m': 2,
+        '400m': 3,
+        '1500m': 4,
+        '100m Hurdles': 5,
+        '110m Hurdles': 5,
+        '3000m Steeplechase': 6,
+        'Long Jump': 7,
+        'Triple Jump': 8,
+        'High Jump': 9,
+        'Discus Throw': 10,
+        'Javelin Throw': 11,
+    },
+}
+
+YOUTH_2026_EXPECTED_EVENT_CLASS = {
+    # U18 hurdles / steeplechase
+    ('U18', 'Female', '100m Hurdles'): '0.762m',
+    ('U18', 'Male', '110m Hurdles'): '0.914m',
+    ('U18', 'Female', '400m Hurdles'): '0.762m',
+    ('U18', 'Male', '400m Hurdles'): '0.838m',
+    ('U18', 'Female', '2000m Steeplechase'): '0.762m',
+    ('U18', 'Male', '2000m Steeplechase'): '0.838m',
+
+    # U18 throws
+    ('U18', 'Female', 'Shot Put'): '3kg',
+    ('U18', 'Male', 'Shot Put'): '5kg',
+    ('U18', 'Female', 'Discus Throw'): '1kg',
+    ('U18', 'Male', 'Discus Throw'): '1.5kg',
+    ('U18', 'Female', 'Javelin Throw'): '500g',
+    ('U18', 'Male', 'Javelin Throw'): '700g',
+    ('U18', 'Female', 'Hammer Throw'): '3kg',
+    ('U18', 'Male', 'Hammer Throw'): '5kg',
+
+    # U20 hurdles / steeplechase
+    ('U20', 'Female', '100m Hurdles'): '0.838m',
+    ('U20', 'Male', '110m Hurdles'): '0.991m',
+    ('U20', 'Female', '3000m Steeplechase'): '0.762m',
+    ('U20', 'Male', '3000m Steeplechase'): '0.914m',
+
+    # U20 throws
+    ('U20', 'Female', 'Discus Throw'): '1kg',
+    ('U20', 'Male', 'Discus Throw'): '1.75kg',
+    ('U20', 'Female', 'Javelin Throw'): '600g',
+    ('U20', 'Male', 'Javelin Throw'): '800g',
+}
+
+
+def prepare_youth_2026_benchmarks(benchmarks_input):
+    """Load and validate SEA Youth marks from the shared GCS benchmark table.
+
+    fetch_benchmarks() already renames the source CSV columns as follows:
+      BENCHMARK -> BENCHMARK_COMPETITION
+      RESULT    -> RESULT_BENCHMARK
+      Metric    -> STANDARDISED_BENCHMARK
+
+    U18 qualification uses STANDARDISED_BENCHMARK directly.
+    U20 qualification uses the shared benchmark table's 2% column directly.
+    """
+    benchmarks = benchmarks_input.copy()
+
+    required_cols = {
+        'BENCHMARK_COMPETITION',
+        'EVENT',
+        'GENDER',
+        'RESULT_BENCHMARK',
+        'STANDARDISED_BENCHMARK',
+        '2%',
+    }
+    missing_cols = sorted(required_cols.difference(benchmarks.columns))
+    if missing_cols:
+        raise ValueError(
+            'SEA Youth benchmark table is missing required columns: '
+            + ', '.join(missing_cols)
+        )
+
+    benchmarks['BENCHMARK_COMPETITION'] = (
+        benchmarks['BENCHMARK_COMPETITION']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    benchmarks['EVENT'] = (
+        benchmarks['EVENT']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    benchmarks['GENDER'] = (
+        benchmarks['GENDER']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.title()
+    )
+
+    prepared_frames = []
+
+    for age_group, benchmark_name in YOUTH_2026_BENCHMARK_NAMES.items():
+        subset = benchmarks.loc[
+            benchmarks['BENCHMARK_COMPETITION'].eq(benchmark_name)
+        ].copy()
+
+        if subset.empty:
+            raise ValueError(
+                f"No benchmark rows found for '{benchmark_name}' in "
+                "competition_benchmarks/All_Benchmarks_latest.csv."
+            )
+
+        duplicate_mask = subset.duplicated(
+            subset=['EVENT', 'GENDER'],
+            keep=False,
+        )
+        if duplicate_mask.any():
+            duplicate_pairs = (
+                subset.loc[duplicate_mask, ['EVENT', 'GENDER']]
+                .drop_duplicates()
+                .sort_values(['EVENT', 'GENDER'])
+            )
+            raise ValueError(
+                f"Duplicate {benchmark_name} benchmark rows detected for: "
+                + '; '.join(
+                    f"{row.EVENT} / {row.GENDER}"
+                    for row in duplicate_pairs.itertuples(index=False)
+                )
+            )
+
+        expected_pairs = {
+            (event, gender)
+            for (group, gender), events in YOUTH_2026_EXPECTED_EVENTS.items()
+            if group == age_group
+            for event in events
+        }
+        actual_pairs = set(
+            zip(subset['EVENT'].tolist(), subset['GENDER'].tolist())
+        )
+
+        missing_pairs = sorted(expected_pairs - actual_pairs)
+        unexpected_pairs = sorted(actual_pairs - expected_pairs)
+
+        if missing_pairs:
+            raise ValueError(
+                f"{benchmark_name} is missing expected benchmark rows: "
+                + '; '.join(f"{event} / {gender}" for event, gender in missing_pairs)
+            )
+
+        if unexpected_pairs:
+            raise ValueError(
+                f"{benchmark_name} contains unexpected benchmark rows: "
+                + '; '.join(f"{event} / {gender}" for event, gender in unexpected_pairs)
+            )
+
+        subset['AGE_GROUP'] = age_group
+        subset['MAPPED_EVENT'] = subset['EVENT']
+        subset['QUALIFYING_MARK'] = (
+            subset['RESULT_BENCHMARK']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+        )
+        subset['BENCHMARK_VALUE'] = pd.to_numeric(
+            subset['STANDARDISED_BENCHMARK'],
+            errors='coerce',
+        )
+        subset['IS_TIMED'] = subset['MAPPED_EVENT'].isin(
+            YOUTH_2026_TIME_EVENTS
+        )
+        subset['EVENT_ORDER'] = subset['MAPPED_EVENT'].map(
+            YOUTH_2026_EVENT_ORDER[age_group]
+        )
+        subset['EXPECTED_EVENT_CLASS'] = subset.apply(
+            lambda row: YOUTH_2026_EXPECTED_EVENT_CLASS.get(
+                (age_group, row['GENDER'], row['MAPPED_EVENT']),
+                '',
+            ),
+            axis=1,
+        )
+
+        # The GCS benchmark table itself carries the U20 2%-off threshold.
+        # U18 has no tolerance and therefore uses the benchmark mark directly.
+        if age_group == 'U20':
+            subset['ALLOWED_THRESHOLD'] = pd.to_numeric(
+                subset['2%'],
+                errors='coerce',
+            )
+        else:
+            subset['ALLOWED_THRESHOLD'] = subset['BENCHMARK_VALUE']
+
+        invalid_numeric = (
+            subset['BENCHMARK_VALUE'].isna()
+            | subset['ALLOWED_THRESHOLD'].isna()
+        )
+        if invalid_numeric.any():
+            bad_rows = subset.loc[
+                invalid_numeric,
+                [
+                    'BENCHMARK_COMPETITION', 'EVENT', 'GENDER',
+                    'RESULT_BENCHMARK', 'STANDARDISED_BENCHMARK', '2%',
+                ],
+            ]
+            raise ValueError(
+                'SEA Youth benchmark rows contain non-numeric Metric/2% values: '
+                + bad_rows.to_dict(orient='records').__repr__()
+            )
+
+        prepared_frames.append(
+            subset[[
+                'AGE_GROUP', 'GENDER', 'MAPPED_EVENT',
+                'EXPECTED_EVENT_CLASS', 'QUALIFYING_MARK',
+                'BENCHMARK_VALUE', 'ALLOWED_THRESHOLD', 'IS_TIMED',
+                'EVENT_ORDER', 'BENCHMARK_COMPETITION',
+            ]].copy()
+        )
+
+    prepared = pd.concat(prepared_frames, ignore_index=True)
+
+    expected_row_count = sum(
+        len(events)
+        for events in YOUTH_2026_EXPECTED_EVENTS.values()
+    )
+    if len(prepared) != expected_row_count:
+        raise ValueError(
+            'Unexpected SEA Youth benchmark row count after validation: '
+            f"expected {expected_row_count}, found {len(prepared)}."
+        )
+
+    return prepared
+
+def _youth_2026_normalize_event_class(value):
+    """Canonicalise hurdle heights and implement weights used by this report."""
+    if pd.isna(value):
+        return ''
+
+    text = str(value).strip().casefold()
+    if text in {'', 'nan', 'none', '<na>', 'null'}:
+        return ''
+
+    compact = re.sub(r'\s+', '', text)
+
+    # Hurdle / steeple heights: accept common metre and centimetre variants.
+    height_patterns = [
+        ('0.762m', (r'0\.762', r'76\.2cm', r'^762(?:mm)?$', r'76\.2')),
+        ('0.838m', (r'0\.838', r'83\.8cm', r'^838(?:mm)?$', r'83\.8')),
+        ('0.914m', (r'0\.914', r'91\.4cm', r'^914(?:mm)?$', r'91\.4')),
+        ('0.991m', (r'0\.991', r'99\.1cm', r'^991(?:mm)?$', r'99\.1')),
+    ]
+    for canonical, patterns in height_patterns:
+        if any(re.search(pattern, compact) for pattern in patterns):
+            return canonical
+
+    # Convert explicit grams to the report's preferred unit where applicable.
+    gram_match = re.fullmatch(r'(\d+(?:\.\d+)?)g', compact)
+    if gram_match:
+        grams = float(gram_match.group(1))
+        gram_map = {
+            500.0: '500g',
+            600.0: '600g',
+            700.0: '700g',
+            800.0: '800g',
+            1000.0: '1kg',
+            1500.0: '1.5kg',
+            1750.0: '1.75kg',
+            3000.0: '3kg',
+            5000.0: '5kg',
+        }
+        if grams in gram_map:
+            return gram_map[grams]
+
+    kg_match = re.fullmatch(r'(\d+(?:\.\d+)?)kg', compact)
+    if kg_match:
+        kg = float(kg_match.group(1))
+        kg_map = {
+            0.5: '500g',
+            0.6: '600g',
+            0.7: '700g',
+            0.8: '800g',
+            1.0: '1kg',
+            1.5: '1.5kg',
+            1.75: '1.75kg',
+            3.0: '3kg',
+            5.0: '5kg',
+        }
+        if kg in kg_map:
+            return kg_map[kg]
+
+    # Some historical records store the numeric kg value without a suffix.
+    numeric_only = pd.to_numeric(compact, errors='coerce')
+    if pd.notna(numeric_only):
+        numeric_map = {
+            1.0: '1kg',
+            1.5: '1.5kg',
+            1.75: '1.75kg',
+            3.0: '3kg',
+            5.0: '5kg',
+        }
+        if float(numeric_only) in numeric_map:
+            return numeric_map[float(numeric_only)]
+
+    # Keep an unmatched value visible in the class-mismatch audit.
+    return str(value).strip()
+
+
+def _youth_2026_convert_result(row):
+    """Convert one result into seconds (timed) or metres (field)."""
+    raw_result = row.get('RESULT', np.nan)
+    if pd.isna(raw_result):
+        return np.nan
+
+    result_text = str(raw_result).strip()
+    if result_text == '':
+        return np.nan
+
+    # Retain the mark for wind audit but remove trailing w for numeric parsing.
+    conversion_text = re.sub(r'(?i)w\s*$', '', result_text).strip()
+
+    if bool(row.get('IS_TIMED', False)):
+        conversion_text = normalize_excel_track_time_for_selection(conversion_text)
+        return parse_performance_seconds(conversion_text)
+
+    # Field results may occasionally carry a trailing metres suffix.
+    conversion_text = re.sub(r'(?i)m\s*$', '', conversion_text).strip()
+    return pd.to_numeric(conversion_text, errors='coerce')
+
+
+def _youth_2026_format_threshold(row):
+    value = row.get('ALLOWED_THRESHOLD', np.nan)
+    if pd.isna(value):
+        return ''
+    if bool(row.get('IS_TIMED', False)):
+        return format_seconds_no_leading_zeros(value)
+    return f"{float(value):.2f}"
+
+
+def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
+    """Return qualifiers plus transparent audit tables for the 2026 youth report."""
+    data = data_input.copy()
+
+    required_cols = [
+        'NAME', 'RESULT', 'TEAM', 'EVENT', 'MAPPED_EVENT', 'EVENT_CLASS',
+        'UNIQUE_ID', 'DOB', 'NATIONALITY', 'WIND', 'GENDER', 'COMPETITION',
+        'DATE', 'STAGE', 'SOURCE',
+    ]
+    for col in required_cols:
+        if col not in data.columns:
+            data[col] = ''
+
+    # Fixed requested competition-result qualifying window, inclusive.
+    data = filter_report_date_range(
+        data,
+        YOUTH_2026_WINDOW_START,
+        YOUTH_2026_WINDOW_END,
+    )
+
+    if data.empty:
+        return pd.DataFrame(), {
+            'foreign_team': pd.DataFrame(),
+            'blank_nationality': pd.DataFrame(),
+            'missing_dob': pd.DataFrame(),
+            'class_mismatch': pd.DataFrame(),
+            'illegal_wind': pd.DataFrame(),
+            'unparseable_result': pd.DataFrame(),
+        }
+
+    # Standardise names using the same authoritative name-variation source as OCTC.
+    names_reference = name_variations().copy()
+    try:
+        data = standardize_octc_names_like_notebook(data, names_reference)
+    except ValueError:
+        # Preserve report availability if the reference file itself has a conflict;
+        # the existing OCTC report remains the authoritative place that blocks on it.
+        data['NAME'] = data['NAME'].fillna('').astype(str).str.strip().str.title()
+
+    # Singapore eligibility follows the existing OCTC convention, but SPEX
+    # exclusions are deliberately NOT applied to this age-group qualifying report.
+    nationality_key = (
+        data['NATIONALITY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    data = data.loc[nationality_key.isin(['SGP', 'SIN', 'NONE', ''])].copy()
+
+    data, foreign_team_audit = exclude_octc_blank_nationality_foreign_team(data)
+
+    blank_nationality_audit = data.loc[
+        data['NATIONALITY']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .isin(['NONE', ''])
+    ].copy()
+
+    # DOB-year eligibility is defined explicitly by the request, not by AGE.
+    dob_parsed = pd.to_datetime(
+        data['DOB'],
+        format='mixed',
+        dayfirst=True,
+        errors='coerce',
+        utc=True,
+    )
+    data['DOB_PARSED'] = dob_parsed.dt.tz_localize(None)
+    data['BIRTH_YEAR'] = dob_parsed.dt.year
+    data['AGE_GROUP'] = np.select(
+        [
+            data['BIRTH_YEAR'].isin([2009, 2010]),
+            data['BIRTH_YEAR'].isin([2007, 2008]),
+        ],
+        ['U18', 'U20'],
+        default='',
+    )
+
+    benchmark_df = prepare_youth_2026_benchmarks(benchmarks_input)
+    supported_events = set(
+        benchmark_df['MAPPED_EVENT']
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .tolist()
+    )
+    relevant_event_mask = (
+        data['MAPPED_EVENT']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .isin(supported_events)
+    )
+    missing_dob_audit = data.loc[
+        relevant_event_mask & data['BIRTH_YEAR'].isna()
+    ].copy()
+
+    data = data.loc[
+        data['AGE_GROUP'].isin(['U18', 'U20'])
+        & relevant_event_mask
+    ].copy()
+
+    if data.empty:
+        return pd.DataFrame(), {
+            'foreign_team': foreign_team_audit,
+            'blank_nationality': blank_nationality_audit,
+            'missing_dob': missing_dob_audit,
+            'class_mismatch': pd.DataFrame(),
+            'illegal_wind': pd.DataFrame(),
+            'unparseable_result': pd.DataFrame(),
+        }
+
+    candidates = data.merge(
+        benchmark_df,
+        how='inner',
+        on=['AGE_GROUP', 'GENDER', 'MAPPED_EVENT'],
+    )
+
+    candidates['EVENT_CLASS_NORM'] = candidates['EVENT_CLASS'].apply(
+        _youth_2026_normalize_event_class
+    )
+    candidates['EXPECTED_EVENT_CLASS'] = (
+        candidates['EXPECTED_EVENT_CLASS']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+
+    class_required = candidates['EXPECTED_EVENT_CLASS'].ne('')
+    class_match = (
+        ~class_required
+        | candidates['EVENT_CLASS_NORM'].eq(candidates['EXPECTED_EVENT_CLASS'])
+    )
+    class_mismatch_audit = candidates.loc[class_required & ~class_match].copy()
+    candidates = candidates.loc[class_match].copy()
+
+    # Explicit legal-wind rule. Unknown/NWI is retained; clearly illegal wind is not.
+    raw_result_text = candidates['RESULT'].fillna('').astype(str).str.strip()
+    result_has_w = raw_result_text.str.contains(
+        r'w\s*$', case=False, regex=True, na=False
+    )
+    wind_text = candidates['WIND'].fillna('').astype(str).str.strip()
+    wind_key = wind_text.str.casefold().str.replace(r'\s+', ' ', regex=True)
+    wind_num = pd.to_numeric(
+        wind_text.str.replace('+', '', regex=False),
+        errors='coerce',
+    )
+    wind_sensitive = candidates['MAPPED_EVENT'].isin(
+        YOUTH_2026_WIND_SENSITIVE_EVENTS
+    )
+    illegal_wind_mask = (
+        wind_sensitive
+        & (
+            result_has_w
+            | wind_key.isin({'illegal', 'illegal wind'})
+            | (wind_num.notna() & (wind_num > 2.0))
+        )
+    )
+    illegal_wind_audit = candidates.loc[illegal_wind_mask].copy()
+    candidates = candidates.loc[~illegal_wind_mask].copy()
+
+    candidates['RESULT_VALUE'] = candidates.apply(
+        _youth_2026_convert_result,
+        axis=1,
+    )
+    unparseable_result_audit = candidates.loc[
+        candidates['RESULT_VALUE'].isna()
+    ].copy()
+    candidates = candidates.loc[candidates['RESULT_VALUE'].notna()].copy()
+
+    timed_mask = candidates['IS_TIMED'].astype(bool)
+    candidates['QUALIFIES'] = np.where(
+        timed_mask,
+        candidates['RESULT_VALUE'] <= candidates['ALLOWED_THRESHOLD'],
+        candidates['RESULT_VALUE'] >= candidates['ALLOWED_THRESHOLD'],
+    )
+
+    # Positive performance margin means better than the original qualifying mark.
+    candidates['MARK_MARGIN_PCT'] = np.where(
+        timed_mask,
+        (candidates['BENCHMARK_VALUE'] - candidates['RESULT_VALUE'])
+        / candidates['BENCHMARK_VALUE'] * 100.0,
+        (candidates['RESULT_VALUE'] - candidates['BENCHMARK_VALUE'])
+        / candidates['BENCHMARK_VALUE'] * 100.0,
+    )
+
+    qualifiers = candidates.loc[candidates['QUALIFIES']].copy()
+    if qualifiers.empty:
+        return qualifiers, {
+            'foreign_team': foreign_team_audit,
+            'blank_nationality': blank_nationality_audit,
+            'missing_dob': missing_dob_audit,
+            'class_mismatch': class_mismatch_audit,
+            'illegal_wind': illegal_wind_audit,
+            'unparseable_result': unparseable_result_audit,
+        }
+
+    qualifiers['ATHLETE_KEY'] = (
+        qualifiers['NAME']
+        .apply(_octc_name_match_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    qualifiers['DATE_DT'] = pd.to_datetime(
+        qualifiers['DATE'],
+        format='mixed',
+        dayfirst=False,
+        utc=True,
+        errors='coerce',
+    ).dt.tz_localize(None)
+
+    # One best qualifying performance per athlete/event.
+    qualifiers['PERF_SORT'] = np.where(
+        qualifiers['IS_TIMED'].astype(bool),
+        -qualifiers['RESULT_VALUE'],
+        qualifiers['RESULT_VALUE'],
+    )
+    qualifiers = (
+        qualifiers
+        .sort_values(
+            [
+                'AGE_GROUP', 'GENDER', 'EVENT_ORDER', 'ATHLETE_KEY',
+                'PERF_SORT', 'DATE_DT',
+            ],
+            ascending=[True, True, True, True, False, False],
+        )
+        .drop_duplicates(
+            subset=['AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'ATHLETE_KEY'],
+            keep='first',
+        )
+        .reset_index(drop=True)
+    )
+
+    # Rank within each age-group / gender / event using performance direction.
+    qualifiers = qualifiers.sort_values(
+        ['AGE_GROUP', 'GENDER', 'EVENT_ORDER', 'PERF_SORT', 'DATE_DT', 'ATHLETE_KEY'],
+        ascending=[True, True, True, False, False, True],
+    ).copy()
+    qualifiers['RANK'] = (
+        qualifiers
+        .groupby(['AGE_GROUP', 'GENDER', 'MAPPED_EVENT'])
+        .cumcount()
+        + 1
+    )
+
+    qualifiers['RESULT_C'] = np.where(
+        qualifiers['IS_TIMED'].astype(bool),
+        qualifiers['RESULT_VALUE'].apply(format_seconds_no_leading_zeros),
+        qualifiers['RESULT_VALUE'].apply(format_numeric_two_dp),
+    )
+    qualifiers['ALLOWED_THRESHOLD_C'] = qualifiers.apply(
+        _youth_2026_format_threshold,
+        axis=1,
+    )
+    qualifiers['DATE_C'] = qualifiers['DATE_DT'].dt.strftime('%Y-%m-%d')
+    qualifiers['DOB_C'] = qualifiers['DOB_PARSED'].dt.strftime('%Y-%m-%d')
+    qualifiers['QUALIFICATION_RULE'] = np.where(
+        qualifiers['AGE_GROUP'].eq('U20'),
+        'Up to 2% off qualifying mark',
+        'Meet qualifying mark',
+    )
+
+    return qualifiers.reset_index(drop=True), {
+        'foreign_team': foreign_team_audit,
+        'blank_nationality': blank_nationality_audit,
+        'missing_dob': missing_dob_audit,
+        'class_mismatch': class_mismatch_audit,
+        'illegal_wind': illegal_wind_audit,
+        'unparseable_result': unparseable_result_audit,
+    }
+
+
+def _youth_2026_display_table(qualifiers, age_group):
+    subset = qualifiers.loc[qualifiers['AGE_GROUP'] == age_group].copy()
+    if subset.empty:
+        return pd.DataFrame()
+
+    display_cols = [
+        'RANK', 'NAME', 'GENDER', 'DOB_C', 'MAPPED_EVENT',
+        'EXPECTED_EVENT_CLASS', 'RESULT_C', 'WIND', 'QUALIFYING_MARK',
+        'ALLOWED_THRESHOLD_C', 'MARK_MARGIN_PCT', 'DATE_C', 'COMPETITION',
+        'TEAM', 'UNIQUE_ID', 'NATIONALITY', 'SOURCE',
+    ]
+    for col in display_cols:
+        if col not in subset.columns:
+            subset[col] = ''
+
+    output = subset[display_cols].copy().rename(columns={
+        'DOB_C': 'DOB',
+        'MAPPED_EVENT': 'EVENT',
+        'EXPECTED_EVENT_CLASS': 'EVENT_CLASS_REQUIRED',
+        'RESULT_C': 'BEST_RESULT',
+        'ALLOWED_THRESHOLD_C': 'QUALIFYING_THRESHOLD',
+        'MARK_MARGIN_PCT': 'MARGIN_VS_MARK_PCT',
+        'DATE_C': 'DATE',
+    })
+    output['MARGIN_VS_MARK_PCT'] = pd.to_numeric(
+        output['MARGIN_VS_MARK_PCT'], errors='coerce'
+    ).round(2)
+    return output.reset_index(drop=True)
+
+
 def format_results_like_search(df_input, include_result_conv=False, extra_cols=None):
     """
     Format database search results before display.
@@ -3591,6 +4319,7 @@ if benchmark_option == "Ranking & Selection Reports":
             "",
             "2025 SEAG Bronze - OCTC Selection",
             "Jumps Selection",
+            "2026 U18/U20 Qualifying Report",
             "Marathon Ranking Report",
         ),
         index=0,
@@ -5270,6 +5999,140 @@ elif benchmark_option == 'Jumps Selection':
                         'Quek Jun Jie Calvin',
                         'Marc Brian Louis',
                     ]
+                )
+
+
+
+elif benchmark_option == '2026 U18/U20 Qualifying Report':
+
+    st.subheader('2026 U18 / U20 Qualifying Report')
+    st.caption(
+        'Qualifying window: 1 Oct 2025 to 1 Oct 2026, inclusive. '
+        'U18 = DOB 2009-2010 and must meet the stated mark. '
+        'U20 = DOB 2007-2008 and may be up to 2% off the stated mark. '
+        'Marks are loaded from GCS benchmark rows 18th SEA Youth U18 / U20.'
+    )
+
+    with st.spinner('Preparing U18 / U20 qualifying report...'):
+        youth_data = fetch_data().copy()
+        youth_benchmarks = fetch_benchmarks().copy()
+        youth_qualifiers, youth_audits = prepare_youth_2026_qualifying_report(
+            youth_data,
+            youth_benchmarks,
+        )
+
+    u18_display = _youth_2026_display_table(youth_qualifiers, 'U18')
+    u20_display = _youth_2026_display_table(youth_qualifiers, 'U20')
+
+    summary_col_1, summary_col_2 = st.columns(2)
+    with summary_col_1:
+        st.metric('U18 qualifying athlete/event entries', len(u18_display))
+    with summary_col_2:
+        st.metric('U20 qualifying athlete/event entries', len(u20_display))
+
+    u18_tab, u20_tab, audit_tab = st.tabs([
+        'U18 (16-17 years)',
+        'U20 (18-19 years)',
+        'Audit',
+    ])
+
+    with u18_tab:
+        st.write('### U18 athletes - DOB 2009-2010')
+        st.caption(
+            'Athletes must meet or better the stated qualifying mark. '
+            'The best qualifying performance per athlete/event is shown.'
+        )
+        if u18_display.empty:
+            st.info('No U18 qualifying performances were found in the requested window.')
+        else:
+            st.dataframe(u18_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download U18 Qualifiers CSV',
+                data=u18_display.to_csv(index=False).encode('utf-8'),
+                file_name='u18_2026_qualifiers_20251001_to_20261001.csv',
+                mime='text/csv',
+                key='download_youth_2026_u18_qualifiers',
+            )
+
+    with u20_tab:
+        st.write('### U20 athletes - DOB 2007-2008')
+        st.caption(
+            'Athletes qualify if the best result is within 2% of the stated mark. '
+            'For timed events the allowable threshold is 2% slower; for field '
+            'events it is 2% lower.'
+        )
+        if u20_display.empty:
+            st.info('No U20 qualifying performances were found in the requested window.')
+        else:
+            st.dataframe(u20_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download U20 Qualifiers CSV',
+                data=u20_display.to_csv(index=False).encode('utf-8'),
+                file_name='u20_2026_qualifiers_20251001_to_20261001.csv',
+                mime='text/csv',
+                key='download_youth_2026_u20_qualifiers',
+            )
+
+    with audit_tab:
+        st.write('### Youth Qualifying Report Audits')
+        st.caption(
+            'Audit tables show rows excluded or requiring review before qualification.'
+        )
+
+        audit_specs = [
+            (
+                'Foreign-team exclusions',
+                youth_audits.get('foreign_team', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND', 'NATIONALITY',
+                 'TEAM', 'FOREIGN_TEAM_COUNTRY', 'DOB', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Blank/NONE nationality retained for review',
+                youth_audits.get('blank_nationality', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'NATIONALITY', 'TEAM',
+                 'DOB', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Missing / unparseable DOB',
+                youth_audits.get('missing_dob', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DATE',
+                 'COMPETITION', 'UNIQUE_ID', 'NATIONALITY', 'TEAM'],
+            ),
+            (
+                'Event-class mismatches',
+                youth_audits.get('class_mismatch', pd.DataFrame()),
+                ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS',
+                 'EVENT_CLASS_NORM', 'EXPECTED_EVENT_CLASS', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Illegal-wind exclusions',
+                youth_audits.get('illegal_wind', pd.DataFrame()),
+                ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
+                 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Unparseable result values',
+                youth_audits.get('unparseable_result', pd.DataFrame()),
+                ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS',
+                 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+        ]
+
+        for label, audit_df, desired_cols in audit_specs:
+            with st.expander(f'{label} ({len(audit_df):,} rows)', expanded=False):
+                if audit_df.empty:
+                    st.caption('No rows.')
+                    continue
+                audit_cols = [col for col in desired_cols if col in audit_df.columns]
+                audit_display = audit_df[audit_cols].copy()
+                st.dataframe(audit_display, use_container_width=True, hide_index=True)
+                safe_file_label = re.sub(r'[^a-z0-9]+', '_', label.casefold()).strip('_')
+                st.download_button(
+                    f'Download {label} CSV',
+                    data=audit_display.to_csv(index=False).encode('utf-8'),
+                    file_name=f'youth_2026_{safe_file_label}.csv',
+                    mime='text/csv',
+                    key=f'download_youth_2026_{safe_file_label}',
                 )
 
 
