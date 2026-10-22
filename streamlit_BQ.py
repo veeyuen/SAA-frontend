@@ -24,7 +24,7 @@ from mitosheet.streamlit.v1 import spreadsheet
 st.set_page_config(layout="wide")
 
 # OCTC_RAW_TIER_PATCH_VERSION: 2026-09-12-v1-rule-e-removed
-# YOUTH_QUALIFYING_REPORT_VERSION: 2026-10-18-v2-gcs-benchmarks
+# YOUTH_QUALIFYING_REPORT_VERSION: 2026-10-22-v10-nsg-dual-benchmark-checks
 
 
 # ============================================================
@@ -2702,7 +2702,7 @@ def format_road_race_duration(value):
 
 # ============================================================
 # 2026 U18 / U20 QUALIFYING REPORT
-# YOUTH_QUALIFYING_PATCH_VERSION: 2026-10-18-v2-published-mark-only
+# YOUTH_QUALIFYING_PATCH_VERSION: 2026-10-22-v10-nsg-dual-benchmark-checks
 # ------------------------------------------------------------
 # Fixed qualifying window requested by SAA:
 #   1 Oct 2025 through 1 Oct 2026, inclusive.
@@ -2803,6 +2803,36 @@ YOUTH_2026_EVENT_ORDER = {
         'Javelin Throw': 11,
     },
 }
+
+YOUTH_2026_NSG_EVENT_ORDER = {
+    '100m': 1,
+    '200m': 2,
+    '400m': 3,
+    '800m': 4,
+    '1500m': 5,
+    '3000m': 6,
+    '100m Hurdles': 7,
+    '110m Hurdles': 7,
+    '400m Hurdles': 8,
+    '2000m Steeplechase': 9,
+    '3000m Steeplechase': 10,
+    'Long Jump': 11,
+    'Triple Jump': 12,
+    'High Jump': 13,
+    'Pole Vault': 14,
+    'Shot Put': 15,
+    'Discus Throw': 16,
+    'Javelin Throw': 17,
+    'Hammer Throw': 18,
+}
+
+# NSG A/B results are deliberately ranked in their recorded school division.
+# The school division is NOT converted to U18/U20. This avoids treating an NSG
+# division as a birth-year proxy when the official NSG DOB ranges span more than
+# one SEA Youth age status.
+YOUTH_2026_NSG_RANKED_DIVISIONS = {'A', 'B'}
+YOUTH_2026_NSG_EXCLUDED_DIVISIONS = {'C', 'O'}
+
 
 YOUTH_2026_EXPECTED_EVENT_CLASS = {
     # U18 hurdles / steeplechase
@@ -3008,7 +3038,11 @@ def prepare_youth_2026_benchmarks(benchmarks_input):
     return prepared
 
 def _youth_2026_normalize_event_class(value):
-    """Canonicalise hurdle heights and implement weights used by this report."""
+    """Canonicalise barrier heights and implement weights used by this report.
+
+    Source values representing 0.84m are intentionally canonicalised to
+    0.838m for all events, including hurdles and steeplechase.
+    """
     if pd.isna(value):
         return ''
 
@@ -3021,7 +3055,10 @@ def _youth_2026_normalize_event_class(value):
     # Hurdle / steeple heights: accept common metre and centimetre variants.
     height_patterns = [
         ('0.762m', (r'0\.762', r'76\.2cm', r'^762(?:mm)?$', r'76\.2')),
-        ('0.838m', (r'0\.838', r'83\.8cm', r'^838(?:mm)?$', r'83\.8')),
+        ('0.838m', (
+            r'0\.838', r'83\.8cm', r'^838(?:mm)?$', r'83\.8',
+            r'^0\.84(?:0+)?m?$', r'^84(?:\.0+)?(?:cm)?$', r'^840(?:mm)?$',
+        )),
         ('0.914m', (r'0\.914', r'91\.4cm', r'^914(?:mm)?$', r'91\.4')),
         ('0.991m', (r'0\.991', r'99\.1cm', r'^991(?:mm)?$', r'99\.1')),
     ]
@@ -3112,47 +3149,659 @@ def _youth_2026_format_threshold(row):
     return f"{float(value):.2f}"
 
 
+def _youth_2026_parse_dob_series(series):
+    """Parse mixed DOB representations to timezone-naive midnight timestamps."""
+    parsed = pd.to_datetime(
+        series,
+        format='mixed',
+        dayfirst=True,
+        errors='coerce',
+        utc=True,
+    )
+    return parsed.dt.tz_localize(None).dt.normalize()
+
+
+def enrich_youth_2026_dob_from_name_variations(data_input, names_input):
+    """Resolve DOB using the name-variations file as the authoritative reference.
+
+    Identity is standardised before this helper is called. Where an unambiguous DOB
+    exists in the name-variations reference, that DOB is authoritative and is used
+    even when a populated PRODUCTION DOB disagrees. PRODUCTION DOB is used only as a
+    fallback when no trustworthy reference DOB is available.
+
+    Reference safeguards:
+    - multiple DOBs for one canonical name are treated as a reference conflict;
+    - multiple DOBs for one UNIQUE_ID are treated as a reference conflict;
+    - if UNIQUE_ID and canonical-name lookups are both available but disagree,
+      neither reference value is chosen automatically for that row;
+    - all reference conflicts are audited.
+
+    Returns
+    -------
+    tuple
+        (enriched_data, backfill_audit, value_conflict_audit,
+         reference_conflict_audit)
+    """
+    data = data_input.copy()
+    names_reference = names_input.copy()
+
+    if 'DOB' not in data.columns:
+        data['DOB'] = ''
+
+    data['DOB_ORIGINAL'] = data['DOB']
+    data['DOB_ORIGINAL_PARSED'] = _youth_2026_parse_dob_series(data['DOB'])
+    data['DOB_REFERENCE'] = ''
+    data['DOB_REFERENCE_PARSED'] = pd.NaT
+    data['DOB_REFERENCE_SOURCE'] = ''
+    data['DOB_SOURCE'] = 'UNRESOLVED'
+
+    empty_backfill = data.iloc[0:0].copy()
+    empty_conflict = data.iloc[0:0].copy()
+    empty_reference_conflict = pd.DataFrame()
+
+    required_cols = {'NAME', 'DOB'}
+    if not required_cols.issubset(names_reference.columns):
+        # With no usable reference schema, retain a valid PRODUCTION DOB only as fallback.
+        original_valid = data['DOB_ORIGINAL_PARSED'].notna()
+        data.loc[original_valid, 'DOB_SOURCE'] = 'PRODUCTION_FALLBACK'
+        data['DOB_PARSED'] = _youth_2026_parse_dob_series(data['DOB'])
+        return data, empty_backfill, empty_conflict, empty_reference_conflict
+
+    names_reference['CANONICAL_NAME_KEY'] = (
+        names_reference['NAME'].apply(_octc_name_match_key)
+    )
+    names_reference['DOB_REFERENCE_PARSED'] = _youth_2026_parse_dob_series(
+        names_reference['DOB']
+    )
+    names_reference['DOB_REFERENCE_DATE'] = (
+        names_reference['DOB_REFERENCE_PARSED'].dt.strftime('%Y-%m-%d')
+    )
+
+    valid_name_ref = names_reference.loc[
+        names_reference['CANONICAL_NAME_KEY'].fillna('').astype(str).str.strip().ne('')
+        & names_reference['DOB_REFERENCE_PARSED'].notna()
+    ].copy()
+
+    name_dob_counts = (
+        valid_name_ref.groupby('CANONICAL_NAME_KEY')['DOB_REFERENCE_DATE']
+        .nunique()
+    )
+    ambiguous_name_keys = set(name_dob_counts.loc[name_dob_counts > 1].index)
+
+    reference_conflict_parts = []
+    if ambiguous_name_keys:
+        conflict = valid_name_ref.loc[
+            valid_name_ref['CANONICAL_NAME_KEY'].isin(ambiguous_name_keys)
+        ].copy()
+        conflict['DOB_REFERENCE_CONFLICT_TYPE'] = 'CANONICAL_NAME_MULTIPLE_DOBS'
+        reference_conflict_parts.append(conflict)
+
+    name_map_df = valid_name_ref.loc[
+        ~valid_name_ref['CANONICAL_NAME_KEY'].isin(ambiguous_name_keys)
+    ].drop_duplicates(subset=['CANONICAL_NAME_KEY', 'DOB_REFERENCE_DATE'])
+    name_dob_map = (
+        name_map_df.drop_duplicates(subset=['CANONICAL_NAME_KEY'], keep='last')
+        .set_index('CANONICAL_NAME_KEY')['DOB_REFERENCE_PARSED']
+        .to_dict()
+    )
+
+    uid_dob_map = {}
+    ambiguous_uid_keys = set()
+    if 'UNIQUE_ID' in names_reference.columns:
+        names_reference['REFERENCE_UID_KEY'] = (
+            names_reference['UNIQUE_ID']
+            .fillna('')
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        valid_uid_ref = names_reference.loc[
+            names_reference['REFERENCE_UID_KEY'].ne('')
+            & names_reference['DOB_REFERENCE_PARSED'].notna()
+        ].copy()
+        uid_dob_counts = (
+            valid_uid_ref.groupby('REFERENCE_UID_KEY')['DOB_REFERENCE_DATE']
+            .nunique()
+        )
+        ambiguous_uid_keys = set(uid_dob_counts.loc[uid_dob_counts > 1].index)
+        if ambiguous_uid_keys:
+            conflict = valid_uid_ref.loc[
+                valid_uid_ref['REFERENCE_UID_KEY'].isin(ambiguous_uid_keys)
+            ].copy()
+            conflict['DOB_REFERENCE_CONFLICT_TYPE'] = 'UNIQUE_ID_MULTIPLE_DOBS'
+            reference_conflict_parts.append(conflict)
+        uid_map_df = valid_uid_ref.loc[
+            ~valid_uid_ref['REFERENCE_UID_KEY'].isin(ambiguous_uid_keys)
+        ].drop_duplicates(subset=['REFERENCE_UID_KEY', 'DOB_REFERENCE_DATE'])
+        uid_dob_map = (
+            uid_map_df.drop_duplicates(subset=['REFERENCE_UID_KEY'], keep='last')
+            .set_index('REFERENCE_UID_KEY')['DOB_REFERENCE_PARSED']
+            .to_dict()
+        )
+
+    data['_YOUTH_CANONICAL_NAME_KEY'] = data['NAME'].apply(_octc_name_match_key)
+    data['_YOUTH_UID_KEY'] = (
+        data['UNIQUE_ID']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        if 'UNIQUE_ID' in data.columns
+        else ''
+    )
+
+    reference_by_uid = (
+        data['_YOUTH_UID_KEY'].map(uid_dob_map)
+        if isinstance(data['_YOUTH_UID_KEY'], pd.Series)
+        else pd.Series(pd.NaT, index=data.index)
+    )
+    reference_by_name = data['_YOUTH_CANONICAL_NAME_KEY'].map(name_dob_map)
+
+    uid_valid = reference_by_uid.notna()
+    name_valid = reference_by_name.notna()
+    uid_name_agree = uid_valid & name_valid & reference_by_uid.eq(reference_by_name)
+    uid_name_conflict = uid_valid & name_valid & reference_by_uid.ne(reference_by_name)
+    uid_only = uid_valid & ~name_valid
+    name_only = ~uid_valid & name_valid
+
+    # Do not silently prefer one reference key over another when both keys exist
+    # and point to different DOBs. Such rows have no trustworthy reference DOB.
+    reference_dob = pd.Series(pd.NaT, index=data.index, dtype='datetime64[ns]')
+    reference_dob.loc[uid_name_agree | uid_only] = reference_by_uid.loc[
+        uid_name_agree | uid_only
+    ]
+    reference_dob.loc[name_only] = reference_by_name.loc[name_only]
+
+    data['DOB_REFERENCE_PARSED'] = pd.to_datetime(reference_dob, errors='coerce')
+    data['DOB_REFERENCE'] = data['DOB_REFERENCE_PARSED'].dt.strftime('%Y-%m-%d').fillna('')
+    data['DOB_REFERENCE_SOURCE'] = np.select(
+        [
+            uid_name_agree,
+            uid_only,
+            name_only,
+            uid_name_conflict,
+        ],
+        [
+            'NAME_VARIATIONS_UNIQUE_ID_AND_CANONICAL_NAME',
+            'NAME_VARIATIONS_UNIQUE_ID',
+            'NAME_VARIATIONS_CANONICAL_NAME',
+            'NAME_VARIATIONS_UID_NAME_CONFLICT',
+        ],
+        default='',
+    )
+
+    # Add row-level UNIQUE_ID-vs-name reference disagreements to the same audit.
+    if uid_name_conflict.any():
+        cross_key_conflict = data.loc[uid_name_conflict].copy()
+        cross_key_conflict['DOB_REFERENCE_UID'] = pd.to_datetime(
+            reference_by_uid.loc[uid_name_conflict], errors='coerce'
+        ).dt.strftime('%Y-%m-%d')
+        cross_key_conflict['DOB_REFERENCE_NAME'] = pd.to_datetime(
+            reference_by_name.loc[uid_name_conflict], errors='coerce'
+        ).dt.strftime('%Y-%m-%d')
+        cross_key_conflict['DOB_REFERENCE_CONFLICT_TYPE'] = (
+            'UNIQUE_ID_VS_CANONICAL_NAME'
+        )
+        reference_conflict_parts.append(cross_key_conflict)
+
+    if reference_conflict_parts:
+        reference_conflict_audit = pd.concat(
+            reference_conflict_parts,
+            ignore_index=True,
+            sort=False,
+        ).drop_duplicates()
+    else:
+        reference_conflict_audit = empty_reference_conflict
+
+    original_valid = data['DOB_ORIGINAL_PARSED'].notna()
+    reference_valid = data['DOB_REFERENCE_PARSED'].notna()
+
+    # The name-variations DOB is authoritative whenever a trustworthy reference exists.
+    value_conflict_mask = (
+        original_valid
+        & reference_valid
+        & data['DOB_ORIGINAL_PARSED'].ne(data['DOB_REFERENCE_PARSED'])
+    )
+
+    # Use the reference DOB for every row where it is available, including when it
+    # overrides a different populated PRODUCTION DOB.
+    data.loc[reference_valid, 'DOB'] = data.loc[reference_valid, 'DOB_REFERENCE']
+    data.loc[reference_valid, 'DOB_SOURCE'] = 'NAME_VARIATIONS_REFERENCE'
+    data.loc[value_conflict_mask, 'DOB_SOURCE'] = (
+        'NAME_VARIATIONS_OVERRIDE_PRODUCTION'
+    )
+
+    # PRODUCTION is only a fallback when no trustworthy name-variations DOB exists.
+    production_fallback_mask = ~reference_valid & original_valid
+    data.loc[production_fallback_mask, 'DOB_SOURCE'] = 'PRODUCTION_FALLBACK'
+
+    # Parse once after applying the reference-first precedence. This is the DOB
+    # used by the downstream U18/U20 age-group eligibility logic.
+    data['DOB_PARSED'] = _youth_2026_parse_dob_series(data['DOB'])
+
+    backfill_mask = ~original_valid & reference_valid
+    backfill_audit = data.loc[backfill_mask].copy()
+
+    value_conflict_audit = data.loc[value_conflict_mask].copy()
+    if not value_conflict_audit.empty:
+        value_conflict_audit['DOB_CONFLICT_TYPE'] = 'PRODUCTION_VS_NAME_VARIATIONS'
+        value_conflict_audit['DOB_CONFLICT_ACTION'] = (
+            'NAME_VARIATIONS_REFERENCE_USED'
+        )
+
+    return (
+        data.drop(columns=['_YOUTH_CANONICAL_NAME_KEY', '_YOUTH_UID_KEY'], errors='ignore'),
+        backfill_audit,
+        value_conflict_audit,
+        reference_conflict_audit,
+    )
+
+
+def _youth_2026_age_groups_from_text(value):
+    """Return explicit U18/U20 labels found in a DIVISION or competition string."""
+    text = '' if pd.isna(value) else str(value)
+    text = re.sub(r'[_/]+', ' ', text).upper()
+
+    groups = []
+    if re.search(r'(?<![A-Z0-9])(?:U\s*-?\s*18|UNDER\s*-?\s*18)(?!\d)', text):
+        groups.append('U18')
+    if re.search(r'(?<![A-Z0-9])(?:U\s*-?\s*20|UNDER\s*-?\s*20)(?!\d)', text):
+        groups.append('U20')
+    return groups
+
+
+def _youth_2026_competition_has_youth(value):
+    text = '' if pd.isna(value) else str(value)
+    return bool(re.search(r'(?<![A-Z0-9])YOUTH(?![A-Z0-9])', text.upper()))
+
+
+def _youth_2026_competition_is_nsg(value):
+    """Return True for NSG / National School Games competition names."""
+    text = '' if pd.isna(value) else str(value)
+    text = re.sub(r'[_/\-]+', ' ', text).upper()
+    return bool(
+        re.search(r'(?<![A-Z0-9])NSG(?![A-Z0-9])', text)
+        or re.search(r'(?<![A-Z0-9])NATIONAL\s+SCHOOL\s+GAMES?(?![A-Z0-9])', text)
+    )
+
+
+def _youth_2026_nsg_division_code(value):
+    """Extract an NSG school division code A/B/C/O when present as a token."""
+    text = '' if pd.isna(value) else str(value)
+    text = re.sub(r'[_/\-]+', ' ', text).upper().strip()
+
+    # Match the division letter as a standalone token. This intentionally avoids
+    # broad substring tests such as str.contains('A'), which can match unrelated text.
+    match = re.search(r'(?<![A-Z0-9])([ABCO])(?![A-Z0-9])', text)
+    return match.group(1) if match else ''
+
+
+def _youth_2026_assign_age_group_candidates(row):
+    """Resolve NON-NSG age-group candidates using the existing evidence hierarchy.
+
+    NSG / National School Games rows are intentionally handled in a separate
+    division-ranking stream and must not be converted to U18/U20 from A/B/C/O.
+
+    Non-NSG evidence hierarchy:
+    1. Resolved DOB is authoritative. Name-variations DOB has already taken
+       precedence over PRODUCTION DOB upstream.
+    2. If DOB is unresolved, explicit DIVISION U18/U20 evidence is used.
+    3. Otherwise explicit U18/U20 wording in COMPETITION is used.
+    4. Otherwise a generic 'Youth' competition is retained as ambiguous and
+       evaluated against both U18 and U20 benchmark streams.
+
+    A valid DOB outside the 2026 U18/U20 birth-year ranges is never overridden
+    by weaker DIVISION or competition wording.
+    """
+    if bool(row.get('COMPETITION_IS_NSG', False)):
+        return [], 'NSG_SEPARATE_DIVISION_RANKING'
+
+    birth_year = row.get('BIRTH_YEAR', np.nan)
+    dob_parsed = row.get('DOB_PARSED', pd.NaT)
+
+    if pd.notna(dob_parsed):
+        if birth_year in (2009, 2010):
+            return ['U18'], 'DOB'
+        if birth_year in (2007, 2008):
+            return ['U20'], 'DOB'
+        return [], 'DOB_INELIGIBLE'
+
+    division_groups = row.get('DIVISION_AGE_GROUPS', [])
+    competition_groups = row.get('COMPETITION_AGE_GROUPS', [])
+    competition_has_youth = bool(row.get('COMPETITION_HAS_YOUTH', False))
+
+    if division_groups:
+        if len(division_groups) == 1:
+            return list(division_groups), 'DIVISION'
+        return list(division_groups), 'DIVISION_AMBIGUOUS'
+
+    if competition_groups:
+        if len(competition_groups) == 1:
+            return list(competition_groups), 'COMPETITION_EXPLICIT'
+        return list(competition_groups), 'COMPETITION_EXPLICIT_AMBIGUOUS'
+
+    if competition_has_youth:
+        return ['U18', 'U20'], 'COMPETITION_YOUTH_AMBIGUOUS'
+
+    return [], 'UNRESOLVED'
+
+def _youth_2026_prepare_nsg_rankings(nsg_input, benchmark_df):
+    """Return NSG A/B rankings restricted to results meeting U18 and/or U20 benchmarks.
+
+    No NSG school division is converted to U18/U20. A resolved DOB is retained
+    only as an informational SEA_YOUTH_AGE_STATUS annotation. Every ranked NSG
+    performance is compared independently with the published U18 and U20 marks
+    where that gender/event benchmark exists. These benchmark checks do not imply
+    that the athlete is age-eligible for the corresponding SEA Youth age group.
+    """
+    nsg = nsg_input.copy()
+    empty = pd.DataFrame()
+    supported_events = set(
+        benchmark_df['MAPPED_EVENT']
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .tolist()
+    )
+    if nsg.empty:
+        return empty, {
+            'nsg_illegal_wind': empty,
+            'nsg_unparseable_result': empty,
+            'nsg_unsupported_event': empty,
+            'nsg_below_benchmark': empty,
+        }
+
+    nsg['SEA_YOUTH_AGE_STATUS'] = np.select(
+        [
+            nsg['DOB_AGE_GROUP'].eq('U18'),
+            nsg['DOB_AGE_GROUP'].eq('U20'),
+            nsg['DOB_PARSED'].notna(),
+        ],
+        ['U18', 'U20', 'OUTSIDE'],
+        default='UNKNOWN',
+    )
+
+    nsg_unsupported_event_audit = nsg.loc[
+        ~nsg['MAPPED_EVENT'].fillna('').astype(str).str.strip().isin(supported_events)
+    ].copy()
+    nsg = nsg.loc[
+        nsg['MAPPED_EVENT'].fillna('').astype(str).str.strip().isin(supported_events)
+    ].copy()
+    if nsg.empty:
+        return empty, {
+            'nsg_illegal_wind': empty,
+            'nsg_unparseable_result': empty,
+            'nsg_unsupported_event': nsg_unsupported_event_audit,
+            'nsg_below_benchmark': empty,
+        }
+
+    nsg['IS_TIMED'] = nsg['MAPPED_EVENT'].isin(YOUTH_2026_TIME_EVENTS)
+    nsg['RESULT_VALUE'] = nsg.apply(_youth_2026_convert_result, axis=1)
+    nsg_unparseable_result_audit = nsg.loc[nsg['RESULT_VALUE'].isna()].copy()
+
+    raw_result_text = nsg['RESULT'].fillna('').astype(str).str.strip()
+    result_has_w = raw_result_text.str.contains(
+        r'w\s*$', case=False, regex=True, na=False
+    )
+    wind_text = nsg['WIND'].fillna('').astype(str).str.strip()
+    wind_key = wind_text.str.casefold().str.replace(r'\s+', ' ', regex=True)
+    wind_num = pd.to_numeric(
+        wind_text.str.replace('+', '', regex=False), errors='coerce'
+    )
+    wind_sensitive = nsg['MAPPED_EVENT'].isin(YOUTH_2026_WIND_SENSITIVE_EVENTS)
+    illegal_wind_mask = (
+        wind_sensitive
+        & (
+            result_has_w
+            | wind_key.isin({'illegal', 'illegal wind'})
+            | (wind_num.notna() & (wind_num > 2.0))
+        )
+    )
+    nsg_illegal_wind_audit = nsg.loc[illegal_wind_mask].copy()
+
+    nsg = nsg.loc[nsg['RESULT_VALUE'].notna() & ~illegal_wind_mask].copy()
+    if nsg.empty:
+        return empty, {
+            'nsg_illegal_wind': nsg_illegal_wind_audit,
+            'nsg_unparseable_result': nsg_unparseable_result_audit,
+            'nsg_unsupported_event': nsg_unsupported_event_audit,
+            'nsg_below_benchmark': empty,
+        }
+
+    nsg['ATHLETE_KEY'] = (
+        nsg['NAME']
+        .apply(_octc_name_match_key)
+        .fillna('')
+        .astype(str)
+        .str.strip()
+    )
+    nsg['DATE_DT'] = pd.to_datetime(
+        nsg['DATE'], format='mixed', dayfirst=False, utc=True, errors='coerce'
+    ).dt.tz_localize(None)
+    nsg['EVENT_ORDER'] = nsg['MAPPED_EVENT'].map(YOUTH_2026_NSG_EVENT_ORDER).fillna(999)
+    nsg['PERF_SORT'] = np.where(
+        nsg['IS_TIMED'].astype(bool),
+        -nsg['RESULT_VALUE'],
+        nsg['RESULT_VALUE'],
+    )
+
+    # ------------------------------------------------------------
+    # Independent U18 / U20 benchmark checks for each ranked NSG result.
+    # These are performance checks only. They do NOT infer age eligibility.
+    # ------------------------------------------------------------
+    nsg['EVENT_CLASS_NORM'] = nsg['EVENT_CLASS'].apply(
+        _youth_2026_normalize_event_class
+    )
+
+    for benchmark_age_group in ['U18', 'U20']:
+        age_benchmarks = benchmark_df.loc[
+            benchmark_df['AGE_GROUP'].eq(benchmark_age_group),
+            [
+                'GENDER', 'MAPPED_EVENT', 'QUALIFYING_MARK', 'BENCHMARK_VALUE',
+                'IS_TIMED', 'EXPECTED_EVENT_CLASS',
+            ],
+        ].copy()
+        age_benchmarks = age_benchmarks.rename(columns={
+            'QUALIFYING_MARK': f'{benchmark_age_group}_BENCHMARK',
+            'BENCHMARK_VALUE': f'{benchmark_age_group}_BENCHMARK_VALUE',
+            'IS_TIMED': f'{benchmark_age_group}_IS_TIMED',
+            'EXPECTED_EVENT_CLASS': f'{benchmark_age_group}_EVENT_CLASS_REQUIRED',
+        })
+
+        nsg = nsg.merge(
+            age_benchmarks,
+            how='left',
+            on=['GENDER', 'MAPPED_EVENT'],
+            validate='many_to_one',
+        )
+
+        benchmark_value_col = f'{benchmark_age_group}_BENCHMARK_VALUE'
+        timed_col = f'{benchmark_age_group}_IS_TIMED'
+        required_class_col = f'{benchmark_age_group}_EVENT_CLASS_REQUIRED'
+        meets_col = f'MEETS_{benchmark_age_group}_BENCHMARK'
+        status_col = f'{benchmark_age_group}_BENCHMARK_STATUS'
+
+        nsg[required_class_col] = (
+            nsg[required_class_col]
+            .fillna('')
+            .astype(str)
+            .str.strip()
+        )
+        benchmark_available = nsg[benchmark_value_col].notna()
+        benchmark_display_col = f'{benchmark_age_group}_BENCHMARK'
+        nsg[benchmark_display_col] = (
+            nsg[benchmark_display_col]
+            .fillna('N/A')
+            .astype(str)
+            .str.strip()
+            .replace('', 'N/A')
+        )
+        class_required = nsg[required_class_col].ne('')
+        class_present = nsg['EVENT_CLASS_NORM'].ne('')
+        class_equivalent = nsg['EVENT_CLASS_NORM'].eq(nsg[required_class_col])
+        class_match = ~class_required | ~class_present | class_equivalent
+
+        benchmark_timed = nsg[timed_col].fillna(False).astype(bool)
+        performance_meets = np.where(
+            benchmark_timed,
+            nsg['RESULT_VALUE'] <= nsg[benchmark_value_col],
+            nsg['RESULT_VALUE'] >= nsg[benchmark_value_col],
+        )
+        performance_meets = pd.Series(
+            performance_meets,
+            index=nsg.index,
+        ).fillna(False).astype(bool)
+
+        nsg[meets_col] = np.select(
+            [
+                ~benchmark_available,
+                benchmark_available & class_match & performance_meets,
+            ],
+            ['N/A', 'YES'],
+            default='NO',
+        )
+        nsg[status_col] = np.select(
+            [
+                ~benchmark_available,
+                benchmark_available & ~class_match,
+                benchmark_available & class_match & performance_meets,
+            ],
+            [
+                'NO_PUBLISHED_BENCHMARK',
+                'EVENT_CLASS_MISMATCH',
+                'MEETS_PUBLISHED_MARK',
+            ],
+            default='DOES_NOT_MEET_PUBLISHED_MARK',
+        )
+
+    # ------------------------------------------------------------
+    # FINAL NSG REPORT FILTER
+    # Keep only performances that meet at least one published SEA Youth
+    # benchmark.  Apply this BEFORE selecting the athlete's best result so a
+    # faster performance with the wrong implement / hurdle class cannot hide a
+    # slightly slower performance that legitimately meets U18 or U20.
+    # ------------------------------------------------------------
+    meets_any_benchmark = (
+        nsg['MEETS_U18_BENCHMARK'].eq('YES')
+        | nsg['MEETS_U20_BENCHMARK'].eq('YES')
+    )
+    nsg_below_benchmark_audit = nsg.loc[~meets_any_benchmark].copy()
+    nsg = nsg.loc[meets_any_benchmark].copy()
+
+    if nsg.empty:
+        return empty, {
+            'nsg_illegal_wind': nsg_illegal_wind_audit,
+            'nsg_unparseable_result': nsg_unparseable_result_audit,
+            'nsg_unsupported_event': nsg_unsupported_event_audit,
+            'nsg_below_benchmark': nsg_below_benchmark_audit,
+        }
+
+    # One best benchmark-meeting result per athlete / recorded NSG division / event.
+    nsg = (
+        nsg
+        .sort_values(
+            [
+                'NSG_DIVISION_CODE', 'GENDER', 'EVENT_ORDER', 'ATHLETE_KEY',
+                'PERF_SORT', 'DATE_DT',
+            ],
+            ascending=[True, True, True, True, False, False],
+        )
+        .drop_duplicates(
+            subset=['NSG_DIVISION_CODE', 'GENDER', 'MAPPED_EVENT', 'ATHLETE_KEY'],
+            keep='first',
+        )
+        .reset_index(drop=True)
+    )
+
+    # Re-rank only the benchmark-meeting final population.
+    nsg = nsg.sort_values(
+        [
+            'NSG_DIVISION_CODE', 'GENDER', 'EVENT_ORDER', 'PERF_SORT',
+            'DATE_DT', 'ATHLETE_KEY',
+        ],
+        ascending=[True, True, True, False, False, True],
+    ).copy()
+    nsg['RANK'] = (
+        nsg
+        .groupby(['NSG_DIVISION_CODE', 'GENDER', 'MAPPED_EVENT'])
+        .cumcount()
+        + 1
+    )
+
+    nsg['RESULT_C'] = np.where(
+        nsg['IS_TIMED'].astype(bool),
+        nsg['RESULT_VALUE'].apply(format_seconds_no_leading_zeros),
+        nsg['RESULT_VALUE'].apply(format_numeric_two_dp),
+    )
+    nsg['DATE_C'] = nsg['DATE_DT'].dt.strftime('%Y-%m-%d')
+    nsg['DOB_C'] = nsg['DOB_PARSED'].dt.strftime('%Y-%m-%d')
+    return nsg.reset_index(drop=True), {
+        'nsg_illegal_wind': nsg_illegal_wind_audit,
+        'nsg_unparseable_result': nsg_unparseable_result_audit,
+        'nsg_unsupported_event': nsg_unsupported_event_audit,
+        'nsg_below_benchmark': nsg_below_benchmark_audit,
+    }
+
+
 def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
-    """Return qualifiers plus transparent audit tables for the 2026 youth report."""
+    """Return non-NSG qualifiers, NSG A/B rankings, and transparent audits."""
     data = data_input.copy()
 
     required_cols = [
         'NAME', 'RESULT', 'TEAM', 'EVENT', 'MAPPED_EVENT', 'EVENT_CLASS',
-        'UNIQUE_ID', 'DOB', 'NATIONALITY', 'WIND', 'GENDER', 'COMPETITION',
-        'DATE', 'STAGE', 'SOURCE',
+        'UNIQUE_ID', 'DOB', 'NATIONALITY', 'WIND', 'GENDER', 'DIVISION',
+        'COMPETITION', 'DATE', 'STAGE', 'SOURCE',
     ]
     for col in required_cols:
         if col not in data.columns:
             data[col] = ''
 
-    # Fixed requested competition-result qualifying window, inclusive.
     data = filter_report_date_range(
         data,
         YOUTH_2026_WINDOW_START,
         YOUTH_2026_WINDOW_END,
     )
 
+    empty = pd.DataFrame()
     if data.empty:
-        return pd.DataFrame(), {
-            'foreign_team': pd.DataFrame(),
-            'blank_nationality': pd.DataFrame(),
-            'missing_dob': pd.DataFrame(),
-            'class_mismatch': pd.DataFrame(),
-            'illegal_wind': pd.DataFrame(),
-            'unparseable_result': pd.DataFrame(),
+        return empty, empty, {
+            'foreign_team': empty,
+            'blank_nationality': empty,
+            'dob_backfill': empty,
+            'dob_value_conflict': empty,
+            'dob_reference_conflict': empty,
+            'missing_dob': empty,
+            'age_group_fallback': empty,
+            'age_group_ambiguous': empty,
+            'age_group_evidence_conflict': empty,
+            'nsg_excluded_division': empty,
+            'nsg_unresolved_division': empty,
+            'nsg_missing_dob': empty,
+            'nsg_illegal_wind': empty,
+            'nsg_unparseable_result': empty,
+            'nsg_unsupported_event': empty,
+            'nsg_below_benchmark': empty,
+            'unresolved_age_group': empty,
+            'class_not_recorded': empty,
+            'class_mismatch': empty,
+            'illegal_wind': empty,
+            'unparseable_result': empty,
         }
 
-    # Standardise names using the same authoritative name-variation source as OCTC.
     names_reference = name_variations().copy()
     try:
         data = standardize_octc_names_like_notebook(data, names_reference)
     except ValueError:
-        # Preserve report availability if the reference file itself has a conflict;
-        # the existing OCTC report remains the authoritative place that blocks on it.
         data['NAME'] = data['NAME'].fillna('').astype(str).str.strip().str.title()
 
-    # Singapore eligibility follows the existing OCTC convention, but SPEX
-    # exclusions are deliberately NOT applied to this age-group qualifying report.
+    (
+        data,
+        dob_backfill_audit,
+        dob_value_conflict_audit,
+        dob_reference_conflict_audit,
+    ) = enrich_youth_2026_dob_from_name_variations(data, names_reference)
+
+    # Singapore eligibility remains identical for both streams.
     nationality_key = (
         data['NATIONALITY']
         .fillna('')
@@ -3161,9 +3810,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         .str.upper()
     )
     data = data.loc[nationality_key.isin(['SGP', 'SIN', 'NONE', ''])].copy()
-
     data, foreign_team_audit = exclude_octc_blank_nationality_foreign_team(data)
-
     blank_nationality_audit = data.loc[
         data['NATIONALITY']
         .fillna('')
@@ -3173,23 +3820,40 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         .isin(['NONE', ''])
     ].copy()
 
-    # DOB-year eligibility is defined explicitly by the request, not by AGE.
-    dob_parsed = pd.to_datetime(
-        data['DOB'],
-        format='mixed',
-        dayfirst=True,
-        errors='coerce',
-        utc=True,
+    if 'DOB_PARSED' not in data.columns:
+        data['DOB_PARSED'] = _youth_2026_parse_dob_series(data['DOB'])
+    data['BIRTH_YEAR'] = data['DOB_PARSED'].dt.year
+    data['GENDER'] = (
+        data['GENDER'].fillna('').astype(str).str.strip().str.title()
     )
-    data['DOB_PARSED'] = dob_parsed.dt.tz_localize(None)
-    data['BIRTH_YEAR'] = dob_parsed.dt.year
-    data['AGE_GROUP'] = np.select(
+    data['DOB_AGE_GROUP'] = np.select(
         [
             data['BIRTH_YEAR'].isin([2009, 2010]),
             data['BIRTH_YEAR'].isin([2007, 2008]),
         ],
         ['U18', 'U20'],
         default='',
+    )
+    data['DIVISION_AGE_GROUPS'] = data['DIVISION'].apply(
+        _youth_2026_age_groups_from_text
+    )
+    data['COMPETITION_AGE_GROUPS'] = data['COMPETITION'].apply(
+        _youth_2026_age_groups_from_text
+    )
+    data['COMPETITION_HAS_YOUTH'] = data['COMPETITION'].apply(
+        _youth_2026_competition_has_youth
+    )
+    data['COMPETITION_IS_NSG'] = data['COMPETITION'].apply(
+        _youth_2026_competition_is_nsg
+    )
+    data['NSG_DIVISION_CODE'] = data['DIVISION'].apply(
+        _youth_2026_nsg_division_code
+    )
+    data['DIVISION_AGE_GROUP_EVIDENCE'] = data['DIVISION_AGE_GROUPS'].apply(
+        lambda values: '/'.join(values)
+    )
+    data['COMPETITION_AGE_GROUP_EVIDENCE'] = data['COMPETITION_AGE_GROUPS'].apply(
+        lambda values: '/'.join(values)
     )
 
     benchmark_df = prepare_youth_2026_benchmarks(benchmarks_input)
@@ -3207,23 +3871,117 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         .str.strip()
         .isin(supported_events)
     )
+
+    # ------------------------------------------------------------
+    # NSG stream: preserve school division and rank A/B separately.
+    # No A/B/C/O -> U18/U20 inference is performed.
+    # ------------------------------------------------------------
+    nsg_mask = data['COMPETITION_IS_NSG']
+    nsg_all = data.loc[nsg_mask].copy()
+    nsg_rank_source = nsg_all.loc[
+        nsg_all['NSG_DIVISION_CODE'].isin(YOUTH_2026_NSG_RANKED_DIVISIONS)
+    ].copy()
+    nsg_excluded_division_audit = nsg_all.loc[
+        nsg_all['NSG_DIVISION_CODE'].isin(YOUTH_2026_NSG_EXCLUDED_DIVISIONS)
+    ].copy()
+    nsg_unresolved_division_audit = nsg_all.loc[
+        ~nsg_all['NSG_DIVISION_CODE'].isin(
+            YOUTH_2026_NSG_RANKED_DIVISIONS | YOUTH_2026_NSG_EXCLUDED_DIVISIONS
+        )
+    ].copy()
+    nsg_missing_dob_audit = nsg_rank_source.loc[
+        nsg_rank_source['DOB_PARSED'].isna()
+    ].copy()
+    nsg_rankings, nsg_processing_audits = _youth_2026_prepare_nsg_rankings(
+        nsg_rank_source,
+        benchmark_df,
+    )
+
+    # ------------------------------------------------------------
+    # Non-NSG stream: retain the pre-existing U18/U20 evidence logic.
+    # ------------------------------------------------------------
+    data = data.loc[~nsg_mask].copy()
+    resolved_age = data.apply(_youth_2026_assign_age_group_candidates, axis=1)
+    data['AGE_GROUP_CANDIDATES'] = resolved_age.apply(lambda item: item[0])
+    data['AGE_GROUP_SOURCE'] = resolved_age.apply(lambda item: item[1])
+    data['AGE_GROUP_AMBIGUOUS'] = data['AGE_GROUP_CANDIDATES'].apply(
+        lambda values: len(values) > 1
+    )
+
+    def _age_evidence_conflict(row):
+        dob_group = row.get('DOB_AGE_GROUP', '')
+        div_groups = set(row.get('DIVISION_AGE_GROUPS', []))
+        comp_groups = set(row.get('COMPETITION_AGE_GROUPS', []))
+        if dob_group:
+            if div_groups and dob_group not in div_groups:
+                return True
+            if comp_groups and dob_group not in comp_groups:
+                return True
+            return False
+        if div_groups and comp_groups and div_groups.isdisjoint(comp_groups):
+            return True
+        return False
+
+    data['AGE_GROUP_EVIDENCE_CONFLICT'] = data.apply(
+        _age_evidence_conflict,
+        axis=1,
+    )
+
     missing_dob_audit = data.loc[
-        relevant_event_mask & data['BIRTH_YEAR'].isna()
+        relevant_event_mask.loc[data.index] & data['DOB_PARSED'].isna()
+    ].copy()
+    age_group_fallback_audit = data.loc[
+        relevant_event_mask.loc[data.index]
+        & data['DOB_PARSED'].isna()
+        & data['AGE_GROUP_CANDIDATES'].apply(len).gt(0)
+    ].copy()
+    age_group_ambiguous_audit = data.loc[
+        relevant_event_mask.loc[data.index] & data['AGE_GROUP_AMBIGUOUS']
+    ].copy()
+    age_group_evidence_conflict_audit = data.loc[
+        relevant_event_mask.loc[data.index] & data['AGE_GROUP_EVIDENCE_CONFLICT']
+    ].copy()
+    unresolved_age_group_audit = data.loc[
+        relevant_event_mask.loc[data.index]
+        & data['DOB_PARSED'].isna()
+        & data['AGE_GROUP_CANDIDATES'].apply(len).eq(0)
     ].copy()
 
     data = data.loc[
-        data['AGE_GROUP'].isin(['U18', 'U20'])
-        & relevant_event_mask
+        relevant_event_mask.loc[data.index]
+        & data['AGE_GROUP_CANDIDATES'].apply(len).gt(0)
     ].copy()
+    data = data.explode('AGE_GROUP_CANDIDATES', ignore_index=False)
+    data['AGE_GROUP'] = data['AGE_GROUP_CANDIDATES'].fillna('').astype(str)
+    data = data.loc[data['AGE_GROUP'].isin(['U18', 'U20'])].copy()
+
+    base_audits = {
+        'foreign_team': foreign_team_audit,
+        'blank_nationality': blank_nationality_audit,
+        'dob_backfill': dob_backfill_audit,
+        'dob_value_conflict': dob_value_conflict_audit,
+        'dob_reference_conflict': dob_reference_conflict_audit,
+        'missing_dob': missing_dob_audit,
+        'age_group_fallback': age_group_fallback_audit,
+        'age_group_ambiguous': age_group_ambiguous_audit,
+        'age_group_evidence_conflict': age_group_evidence_conflict_audit,
+        'nsg_excluded_division': nsg_excluded_division_audit,
+        'nsg_unresolved_division': nsg_unresolved_division_audit,
+        'nsg_missing_dob': nsg_missing_dob_audit,
+        'nsg_illegal_wind': nsg_processing_audits['nsg_illegal_wind'],
+        'nsg_unparseable_result': nsg_processing_audits['nsg_unparseable_result'],
+        'nsg_unsupported_event': nsg_processing_audits['nsg_unsupported_event'],
+        'nsg_below_benchmark': nsg_processing_audits['nsg_below_benchmark'],
+        'unresolved_age_group': unresolved_age_group_audit,
+    }
 
     if data.empty:
-        return pd.DataFrame(), {
-            'foreign_team': foreign_team_audit,
-            'blank_nationality': blank_nationality_audit,
-            'missing_dob': missing_dob_audit,
-            'class_mismatch': pd.DataFrame(),
-            'illegal_wind': pd.DataFrame(),
-            'unparseable_result': pd.DataFrame(),
+        return empty, nsg_rankings, {
+            **base_audits,
+            'class_not_recorded': empty,
+            'class_mismatch': empty,
+            'illegal_wind': empty,
+            'unparseable_result': empty,
         }
 
     candidates = data.merge(
@@ -3243,14 +4001,34 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     )
 
     class_required = candidates['EXPECTED_EVENT_CLASS'].ne('')
-    class_match = (
-        ~class_required
-        | candidates['EVENT_CLASS_NORM'].eq(candidates['EXPECTED_EVENT_CLASS'])
+    class_present = (
+        candidates['EVENT_CLASS_NORM']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .ne('')
     )
-    class_mismatch_audit = candidates.loc[class_required & ~class_match].copy()
+    class_equivalent = candidates['EVENT_CLASS_NORM'].eq(
+        candidates['EXPECTED_EVENT_CLASS']
+    )
+    class_match = ~class_required | ~class_present | class_equivalent
+    candidates['EVENT_CLASS_STATUS'] = np.select(
+        [
+            ~class_required,
+            class_required & ~class_present,
+            class_required & class_present & class_equivalent,
+        ],
+        ['NOT_REQUIRED', 'NOT_RECORDED_ASSUMED_MATCH', 'CONFIRMED_MATCH'],
+        default='MISMATCH',
+    )
+    class_not_recorded_audit = candidates.loc[
+        class_required & ~class_present
+    ].copy()
+    class_mismatch_audit = candidates.loc[
+        class_required & class_present & ~class_equivalent
+    ].copy()
     candidates = candidates.loc[class_match].copy()
 
-    # Explicit legal-wind rule. Unknown/NWI is retained; clearly illegal wind is not.
     raw_result_text = candidates['RESULT'].fillna('').astype(str).str.strip()
     result_has_w = raw_result_text.str.contains(
         r'w\s*$', case=False, regex=True, na=False
@@ -3258,8 +4036,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     wind_text = candidates['WIND'].fillna('').astype(str).str.strip()
     wind_key = wind_text.str.casefold().str.replace(r'\s+', ' ', regex=True)
     wind_num = pd.to_numeric(
-        wind_text.str.replace('+', '', regex=False),
-        errors='coerce',
+        wind_text.str.replace('+', '', regex=False), errors='coerce'
     )
     wind_sensitive = candidates['MAPPED_EVENT'].isin(
         YOUTH_2026_WIND_SENSITIVE_EVENTS
@@ -3284,15 +4061,12 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     ].copy()
     candidates = candidates.loc[candidates['RESULT_VALUE'].notna()].copy()
 
-    # Published mark is the eligibility threshold for both U18 and U20.
     timed_mask = candidates['IS_TIMED'].astype(bool)
     candidates['QUALIFIES'] = np.where(
         timed_mask,
         candidates['RESULT_VALUE'] <= candidates['ALLOWED_THRESHOLD'],
         candidates['RESULT_VALUE'] >= candidates['ALLOWED_THRESHOLD'],
     )
-
-    # Positive performance margin means better than the original qualifying mark.
     candidates['MARK_MARGIN_PCT'] = np.where(
         timed_mask,
         (candidates['BENCHMARK_VALUE'] - candidates['RESULT_VALUE'])
@@ -3303,10 +4077,9 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
 
     qualifiers = candidates.loc[candidates['QUALIFIES']].copy()
     if qualifiers.empty:
-        return qualifiers, {
-            'foreign_team': foreign_team_audit,
-            'blank_nationality': blank_nationality_audit,
-            'missing_dob': missing_dob_audit,
+        return qualifiers, nsg_rankings, {
+            **base_audits,
+            'class_not_recorded': class_not_recorded_audit,
             'class_mismatch': class_mismatch_audit,
             'illegal_wind': illegal_wind_audit,
             'unparseable_result': unparseable_result_audit,
@@ -3320,14 +4093,8 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         .str.strip()
     )
     qualifiers['DATE_DT'] = pd.to_datetime(
-        qualifiers['DATE'],
-        format='mixed',
-        dayfirst=False,
-        utc=True,
-        errors='coerce',
+        qualifiers['DATE'], format='mixed', dayfirst=False, utc=True, errors='coerce'
     ).dt.tz_localize(None)
-
-    # One best qualifying performance per athlete/event.
     qualifiers['PERF_SORT'] = np.where(
         qualifiers['IS_TIMED'].astype(bool),
         -qualifiers['RESULT_VALUE'],
@@ -3348,8 +4115,6 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         )
         .reset_index(drop=True)
     )
-
-    # Rank within each age-group / gender / event using performance direction.
     qualifiers = qualifiers.sort_values(
         ['AGE_GROUP', 'GENDER', 'EVENT_ORDER', 'PERF_SORT', 'DATE_DT', 'ATHLETE_KEY'],
         ascending=[True, True, True, False, False, True],
@@ -3360,7 +4125,6 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         .cumcount()
         + 1
     )
-
     qualifiers['RESULT_C'] = np.where(
         qualifiers['IS_TIMED'].astype(bool),
         qualifiers['RESULT_VALUE'].apply(format_seconds_no_leading_zeros),
@@ -3374,15 +4138,13 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     qualifiers['DOB_C'] = qualifiers['DOB_PARSED'].dt.strftime('%Y-%m-%d')
     qualifiers['QUALIFICATION_RULE'] = 'Meet qualifying mark'
 
-    return qualifiers.reset_index(drop=True), {
-        'foreign_team': foreign_team_audit,
-        'blank_nationality': blank_nationality_audit,
-        'missing_dob': missing_dob_audit,
+    return qualifiers.reset_index(drop=True), nsg_rankings, {
+        **base_audits,
+        'class_not_recorded': class_not_recorded_audit,
         'class_mismatch': class_mismatch_audit,
         'illegal_wind': illegal_wind_audit,
         'unparseable_result': unparseable_result_audit,
     }
-
 
 def _youth_2026_display_table(qualifiers, age_group):
     subset = qualifiers.loc[qualifiers['AGE_GROUP'] == age_group].copy()
@@ -3413,6 +4175,35 @@ def _youth_2026_display_table(qualifiers, age_group):
     ).round(2)
     return output.reset_index(drop=True)
 
+
+
+def _youth_2026_nsg_display_table(nsg_rankings, division_code):
+    subset = nsg_rankings.loc[
+        nsg_rankings['NSG_DIVISION_CODE'].eq(str(division_code).upper())
+    ].copy()
+    if subset.empty:
+        return pd.DataFrame()
+
+    display_cols = [
+        'RANK', 'NSG_DIVISION_CODE', 'NAME', 'GENDER', 'DOB_C',
+        'SEA_YOUTH_AGE_STATUS', 'MAPPED_EVENT', 'EVENT_CLASS', 'RESULT_C',
+        'WIND',
+        'U18_BENCHMARK', 'U18_EVENT_CLASS_REQUIRED', 'MEETS_U18_BENCHMARK',
+        'U20_BENCHMARK', 'U20_EVENT_CLASS_REQUIRED', 'MEETS_U20_BENCHMARK',
+        'DATE_C', 'COMPETITION', 'TEAM', 'UNIQUE_ID',
+        'NATIONALITY', 'SOURCE',
+    ]
+    for col in display_cols:
+        if col not in subset.columns:
+            subset[col] = ''
+
+    return subset[display_cols].rename(columns={
+        'NSG_DIVISION_CODE': 'NSG_DIVISION',
+        'DOB_C': 'DOB',
+        'MAPPED_EVENT': 'EVENT',
+        'RESULT_C': 'BEST_RESULT',
+        'DATE_C': 'DATE',
+    }).reset_index(drop=True)
 
 def format_results_like_search(df_input, include_result_conv=False, extra_cols=None):
     """
@@ -5995,75 +6786,133 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
     st.subheader('2026 U18 / U20 Qualifying Report')
     st.caption(
         'Qualifying window: 1 Oct 2025 to 1 Oct 2026, inclusive. '
-        'U18 = DOB 2009-2010 and must meet the stated mark. '
-        'U20 = DOB 2007-2008 and must also meet the stated mark. '
-        'Marks are loaded from GCS benchmark rows 18th SEA Youth U18 / U20; '
-        'percentage-band columns are not used for qualification.'
+        'Non-NSG results continue through the U18/U20 selection pipeline: DOB '
+        '2009-2010 maps to U18 and DOB 2007-2008 maps to U20, with the existing '
+        'non-NSG fallback evidence retained where DOB is unresolved. NSG / National '
+        'School Games results are now separated completely from U18/U20 age-group '
+        'inference: A and B Division candidates are ranked by recorded division, '
+        'gender, event and result. Known DOB is displayed only as an informational '
+        'SEA Youth age status and does not change the NSG division ranking. Each NSG '
+        'ranked performance is independently checked against both the published U18 '
+        'and U20 benchmark where that gender/event mark exists; this benchmark check '
+        'does not imply age eligibility. Marks are loaded from GCS benchmark rows '
+        '18th SEA Youth U18 / U20; percentage-band columns are not used.'
     )
 
-    with st.spinner('Preparing U18 / U20 qualifying report...'):
+    with st.spinner('Preparing U18 / U20 qualifying report and NSG rankings...'):
         youth_data = fetch_data().copy()
         youth_benchmarks = fetch_benchmarks().copy()
-        youth_qualifiers, youth_audits = prepare_youth_2026_qualifying_report(
-            youth_data,
-            youth_benchmarks,
+        youth_qualifiers, youth_nsg_rankings, youth_audits = (
+            prepare_youth_2026_qualifying_report(
+                youth_data,
+                youth_benchmarks,
+            )
         )
 
     u18_display = _youth_2026_display_table(youth_qualifiers, 'U18')
     u20_display = _youth_2026_display_table(youth_qualifiers, 'U20')
+    nsg_a_display = _youth_2026_nsg_display_table(youth_nsg_rankings, 'A')
+    nsg_b_display = _youth_2026_nsg_display_table(youth_nsg_rankings, 'B')
 
-    summary_col_1, summary_col_2 = st.columns(2)
+    summary_col_1, summary_col_2, summary_col_3, summary_col_4 = st.columns(4)
     with summary_col_1:
-        st.metric('U18 qualifying athlete/event entries', len(u18_display))
+        st.metric('U18 qualifying entries', len(u18_display))
     with summary_col_2:
-        st.metric('U20 qualifying athlete/event entries', len(u20_display))
+        st.metric('U20 qualifying entries', len(u20_display))
+    with summary_col_3:
+        st.metric('NSG A benchmark-meeting entries', len(nsg_a_display))
+    with summary_col_4:
+        st.metric('NSG B benchmark-meeting entries', len(nsg_b_display))
 
-    u18_tab, u20_tab, audit_tab = st.tabs([
-        'U18 (16-17 years)',
-        'U20 (18-19 years)',
+    u18_tab, u20_tab, nsg_a_tab, nsg_b_tab, audit_tab = st.tabs([
+        'U18 (non-NSG)',
+        'U20 (non-NSG)',
+        'NSG A Division',
+        'NSG B Division',
         'Audit',
     ])
 
     with u18_tab:
-        st.write('### U18 athletes - DOB 2009-2010')
+        st.write('### U18 athletes — non-NSG results')
         st.caption(
-            'Athletes must meet or better the stated qualifying mark. '
-            'The best qualifying performance per athlete/event is shown.'
+            'NSG results are excluded from this table. Non-NSG athletes must meet '
+            'or better the stated U18 mark under the existing event-class and wind rules.'
         )
         if u18_display.empty:
-            st.info('No U18 qualifying performances were found in the requested window.')
+            st.info('No non-NSG U18 qualifying performances were found in the requested window.')
         else:
             st.dataframe(u18_display, use_container_width=True, hide_index=True)
             st.download_button(
                 'Download U18 Qualifiers CSV',
                 data=u18_display.to_csv(index=False).encode('utf-8'),
-                file_name='u18_2026_qualifiers_20251001_to_20261001.csv',
+                file_name='u18_2026_non_nsg_qualifiers_20251001_to_20261001.csv',
                 mime='text/csv',
                 key='download_youth_2026_u18_qualifiers',
             )
 
     with u20_tab:
-        st.write('### U20 athletes - DOB 2007-2008')
+        st.write('### U20 athletes — non-NSG results')
         st.caption(
-            'Athletes must meet or better the stated qualifying mark. '
-            'The best qualifying performance per athlete/event is shown.'
+            'NSG results are excluded from this table. Non-NSG athletes must meet '
+            'or better the stated U20 mark under the existing event-class and wind rules.'
         )
         if u20_display.empty:
-            st.info('No U20 qualifying performances were found in the requested window.')
+            st.info('No non-NSG U20 qualifying performances were found in the requested window.')
         else:
             st.dataframe(u20_display, use_container_width=True, hide_index=True)
             st.download_button(
                 'Download U20 Qualifiers CSV',
                 data=u20_display.to_csv(index=False).encode('utf-8'),
-                file_name='u20_2026_qualifiers_20251001_to_20261001.csv',
+                file_name='u20_2026_non_nsg_qualifiers_20251001_to_20261001.csv',
                 mime='text/csv',
                 key='download_youth_2026_u20_qualifiers',
+            )
+
+    with nsg_a_tab:
+        st.write('### NSG A Division benchmark-meeting ranking')
+        st.caption(
+            'Final report contains only A Division performances that meet at least one '
+            'published U18/U20 benchmark, then re-ranks those athletes within division, '
+            'gender and event. No U18/U20 age group is inferred from A Division. '
+            'SEA_YOUTH_AGE_STATUS uses resolved DOB only and is informational.'
+        )
+        if nsg_a_display.empty:
+            st.info('No NSG A Division performances met either the U18 or U20 published benchmark in the requested window.')
+        else:
+            st.dataframe(nsg_a_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download NSG A Benchmark-Meeting Rankings CSV',
+                data=nsg_a_display.to_csv(index=False).encode('utf-8'),
+                file_name='nsg_a_2026_sea_youth_benchmark_meeting_rankings_20251001_to_20261001.csv',
+                mime='text/csv',
+                key='download_youth_2026_nsg_a_rankings',
+            )
+
+    with nsg_b_tab:
+        st.write('### NSG B Division benchmark-meeting ranking')
+        st.caption(
+            'Final report contains only B Division performances that meet at least one '
+            'published U18/U20 benchmark, then re-ranks those athletes within division, '
+            'gender and event. No U18/U20 age group is inferred from B Division. '
+            'SEA_YOUTH_AGE_STATUS uses resolved DOB only and is informational.'
+        )
+        if nsg_b_display.empty:
+            st.info('No NSG B Division performances met either the U18 or U20 published benchmark in the requested window.')
+        else:
+            st.dataframe(nsg_b_display, use_container_width=True, hide_index=True)
+            st.download_button(
+                'Download NSG B Benchmark-Meeting Rankings CSV',
+                data=nsg_b_display.to_csv(index=False).encode('utf-8'),
+                file_name='nsg_b_2026_sea_youth_benchmark_meeting_rankings_20251001_to_20261001.csv',
+                mime='text/csv',
+                key='download_youth_2026_nsg_b_rankings',
             )
 
     with audit_tab:
         st.write('### Youth Qualifying Report Audits')
         st.caption(
-            'Audit tables show rows excluded or requiring review before qualification.'
+            'Audit tables show rows enriched, excluded, or requiring review. NSG '
+            'C/O and unrecognised divisions are not promoted into the A/B ranking stream.'
         )
 
         audit_specs = [
@@ -6080,25 +6929,129 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
                  'DOB', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
             ),
             (
-                'Missing / unparseable DOB',
-                youth_audits.get('missing_dob', pd.DataFrame()),
-                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DATE',
-                 'COMPETITION', 'UNIQUE_ID', 'NATIONALITY', 'TEAM'],
+                'DOB backfilled from name variations',
+                youth_audits.get('dob_backfill', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB_ORIGINAL',
+                 'DOB_REFERENCE', 'DOB', 'DOB_SOURCE', 'DATE', 'COMPETITION',
+                 'UNIQUE_ID', 'NATIONALITY', 'TEAM'],
             ),
             (
-                'Event-class mismatches',
+                'DOB conflicts - name-variations reference overrides PRODUCTION',
+                youth_audits.get('dob_value_conflict', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB_ORIGINAL',
+                 'DOB_REFERENCE', 'DOB', 'DOB_SOURCE', 'DOB_CONFLICT_TYPE',
+                 'DOB_CONFLICT_ACTION', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Name-variation DOB reference conflicts - not used as authoritative DOB',
+                youth_audits.get('dob_reference_conflict', pd.DataFrame()),
+                ['NAME', 'VARIATION', 'UNIQUE_ID', 'DOB', 'DOB_REFERENCE_DATE',
+                 'DOB_REFERENCE_UID', 'DOB_REFERENCE_NAME',
+                 'DOB_REFERENCE_CONFLICT_TYPE'],
+            ),
+            (
+                'Missing / unparseable DOB after backfill - non-NSG age stream',
+                youth_audits.get('missing_dob', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB_ORIGINAL',
+                 'DOB_REFERENCE', 'DOB', 'DOB_SOURCE', 'DIVISION', 'AGE_GROUP_SOURCE',
+                 'COMPETITION_AGE_GROUP_EVIDENCE', 'COMPETITION_HAS_YOUTH',
+                 'DATE', 'COMPETITION', 'UNIQUE_ID', 'NATIONALITY', 'TEAM'],
+            ),
+            (
+                'Age-group fallback retained - non-NSG DOB unresolved',
+                youth_audits.get('age_group_fallback', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DIVISION', 'COMPETITION',
+                 'AGE_GROUP_SOURCE', 'DIVISION_AGE_GROUP_EVIDENCE',
+                 'COMPETITION_AGE_GROUP_EVIDENCE', 'COMPETITION_HAS_YOUTH',
+                 'AGE_GROUP_AMBIGUOUS', 'DOB', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'Ambiguous non-NSG age-group evidence retained in both streams',
+                youth_audits.get('age_group_ambiguous', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DIVISION', 'COMPETITION',
+                 'AGE_GROUP_SOURCE', 'DIVISION_AGE_GROUP_EVIDENCE',
+                 'COMPETITION_AGE_GROUP_EVIDENCE', 'DOB', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'Non-NSG age-group evidence conflicts - higher-priority evidence retained',
+                youth_audits.get('age_group_evidence_conflict', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DOB_AGE_GROUP',
+                 'DIVISION', 'DIVISION_AGE_GROUP_EVIDENCE', 'COMPETITION',
+                 'COMPETITION_AGE_GROUP_EVIDENCE', 'AGE_GROUP_SOURCE', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG A/B rows with missing DOB - ranking retained',
+                youth_audits.get('nsg_missing_dob', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG C/O divisions excluded from main candidate ranking',
+                youth_audits.get('nsg_excluded_division', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG rows with unrecognised / missing division',
+                youth_audits.get('nsg_unresolved_division', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG A/B legal performances below both U18/U20 benchmarks - excluded from final rankings',
+                youth_audits.get('nsg_below_benchmark', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS', 'WIND',
+                 'NSG_DIVISION_CODE', 'MEETS_U18_BENCHMARK', 'MEETS_U20_BENCHMARK',
+                 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG unsupported event rows',
+                youth_audits.get('nsg_unsupported_event', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'EVENT', 'RESULT', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG illegal-wind exclusions',
+                youth_audits.get('nsg_illegal_wind', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'NSG unparseable result values',
+                youth_audits.get('nsg_unparseable_result', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DIVISION',
+                 'NSG_DIVISION_CODE', 'COMPETITION', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'Unresolved / ineligible non-NSG age group',
+                youth_audits.get('unresolved_age_group', pd.DataFrame()),
+                ['NAME', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'DOB', 'DIVISION',
+                 'COMPETITION', 'DIVISION_AGE_GROUP_EVIDENCE',
+                 'COMPETITION_AGE_GROUP_EVIDENCE', 'COMPETITION_HAS_YOUTH',
+                 'AGE_GROUP_SOURCE', 'DATE', 'UNIQUE_ID'],
+            ),
+            (
+                'Blank event-class retained - assumed age-group match',
+                youth_audits.get('class_not_recorded', pd.DataFrame()),
+                ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS',
+                 'EVENT_CLASS_STATUS', 'EXPECTED_EVENT_CLASS', 'DOB', 'DATE',
+                 'COMPETITION', 'UNIQUE_ID'],
+            ),
+            (
+                'Event-class mismatches - populated contradictory class excluded',
                 youth_audits.get('class_mismatch', pd.DataFrame()),
                 ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS',
-                 'EVENT_CLASS_NORM', 'EXPECTED_EVENT_CLASS', 'DATE', 'COMPETITION', 'UNIQUE_ID'],
+                 'EVENT_CLASS_NORM', 'EVENT_CLASS_STATUS', 'EXPECTED_EVENT_CLASS',
+                 'DATE', 'COMPETITION', 'UNIQUE_ID'],
             ),
             (
-                'Illegal-wind exclusions',
+                'Illegal-wind exclusions - non-NSG qualifier stream',
                 youth_audits.get('illegal_wind', pd.DataFrame()),
                 ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'WIND',
                  'DATE', 'COMPETITION', 'UNIQUE_ID'],
             ),
             (
-                'Unparseable result values',
+                'Unparseable result values - non-NSG qualifier stream',
                 youth_audits.get('unparseable_result', pd.DataFrame()),
                 ['NAME', 'AGE_GROUP', 'GENDER', 'MAPPED_EVENT', 'RESULT', 'EVENT_CLASS',
                  'DATE', 'COMPETITION', 'UNIQUE_ID'],
@@ -6121,7 +7074,6 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
                     mime='text/csv',
                     key=f'download_youth_2026_{safe_file_label}',
                 )
-
 
 elif benchmark_option == 'Marathon Ranking Report':
 
