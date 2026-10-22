@@ -17,7 +17,7 @@ from streamlit_gsheets import GSheetsConnection
 from st_files_connection import FilesConnection
 from functions import convert_time, process_results, map_international_events, clean_columns, simple_map_events, normalize_text
 from functions import normalize_time_format, convert_time_refactored, convert_time_format, seconds_to_mmss, map_nwi
-from functions import strip_punctuation, name_match_key, clean_replacement_name
+from functions import strip_punctuation, name_match_key, clean_replacement_name, map_youth_event
 from google.cloud import storage
 from mitosheet.streamlit.v1 import spreadsheet
 
@@ -3812,6 +3812,12 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         dob_value_conflict_audit,
         dob_reference_conflict_audit,
     ) = enrich_youth_2026_dob_from_name_variations(data, names_reference)
+
+    # SEA Youth mapping is intentionally independent of the general
+    # international (adult/Open) mapping populated by fetch_data().
+    # Match the authoritative SEA_YOUTH_PRODUCTION_v12 notebook for both
+    # NSG and non-NSG rows, without modifying unrelated reports.
+    data['MAPPED_EVENT'] = data.apply(map_youth_event, axis=1)
 
     # Singapore eligibility remains identical for both streams.
     nationality_key = (
