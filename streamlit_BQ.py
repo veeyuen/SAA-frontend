@@ -3297,6 +3297,13 @@ def enrich_youth_2026_dob_from_name_variations(data_input, names_input):
     )
     reference_by_name = data['_YOUTH_CANONICAL_NAME_KEY'].map(name_dob_map)
 
+    # Pandas may infer Float64 for a mapped Series when every lookup is missing.
+    # Streamlit Cloud's pandas version rejects assigning that Float64 array into
+    # a datetime64[ns] Series, even when the selected mask is empty. Normalise
+    # both reference lookup Series to datetime before building any masks.
+    reference_by_uid = pd.to_datetime(reference_by_uid, errors='coerce')
+    reference_by_name = pd.to_datetime(reference_by_name, errors='coerce')
+
     uid_valid = reference_by_uid.notna()
     name_valid = reference_by_name.notna()
     uid_name_agree = uid_valid & name_valid & reference_by_uid.eq(reference_by_name)
@@ -3307,10 +3314,15 @@ def enrich_youth_2026_dob_from_name_variations(data_input, names_input):
     # Do not silently prefer one reference key over another when both keys exist
     # and point to different DOBs. Such rows have no trustworthy reference DOB.
     reference_dob = pd.Series(pd.NaT, index=data.index, dtype='datetime64[ns]')
-    reference_dob.loc[uid_name_agree | uid_only] = reference_by_uid.loc[
-        uid_name_agree | uid_only
-    ]
-    reference_dob.loc[name_only] = reference_by_name.loc[name_only]
+
+    uid_reference_mask = uid_name_agree | uid_only
+    if uid_reference_mask.any():
+        reference_dob.loc[uid_reference_mask] = reference_by_uid.loc[
+            uid_reference_mask
+        ]
+
+    if name_only.any():
+        reference_dob.loc[name_only] = reference_by_name.loc[name_only]
 
     data['DOB_REFERENCE_PARSED'] = pd.to_datetime(reference_dob, errors='coerce')
     data['DOB_REFERENCE'] = data['DOB_REFERENCE_PARSED'].dt.strftime('%Y-%m-%d').fillna('')
