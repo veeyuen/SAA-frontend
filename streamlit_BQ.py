@@ -3150,11 +3150,12 @@ def _youth_2026_format_threshold(row):
 
 
 def _youth_2026_parse_dob_series(series):
-    """Parse DOBs deterministically, preserving ISO YYYY-MM-DD semantics.
+    """Parse youth DOBs, preserving ISO dates and rejecting out-of-range years.
 
-    YYYY-MM-DD[ time/offset] is year-first regardless of locale. Other DOB
-    representations preserve the existing day-first parser behavior. This
-    function does not attempt to correct conflicting manually entered DOBs.
+    ISO YYYY-MM-DD[time] is year-first; all other supported values retain
+    the legacy day-first interpretation. An intermediate date-string conversion
+    ensures pandas never assigns out-of-bounds microsecond timestamps into
+    the nanosecond-resolution output. Invalid values become NaT.
     """
     values = pd.Series(series, copy=False)
     text = values.astype('string').str.strip()
@@ -3162,16 +3163,31 @@ def _youth_2026_parse_dob_series(series):
         r'^\d{4}-\d{2}-\d{2}(?:[Tt\s].*)?$', na=False
     )
     parsed = pd.Series(pd.NaT, index=values.index, dtype='datetime64[ns, UTC]')
+
     if iso_mask.any():
+        # Ignore the time portion: DOB is a calendar date, not an instant.
+        # Explicit format safely coerces dates outside pandas' supported range.
+        iso_date = text.loc[iso_mask].str.slice(0, 10)
         parsed.loc[iso_mask] = pd.to_datetime(
-            text.loc[iso_mask], format='mixed', dayfirst=False,
-            errors='coerce', utc=True,
+            iso_date, format='%Y-%m-%d', errors='coerce', utc=True,
         )
+
     if (~iso_mask).any():
-        parsed.loc[~iso_mask] = pd.to_datetime(
+        other = pd.to_datetime(
             values.loc[~iso_mask], format='mixed', dayfirst=True,
             errors='coerce', utc=True,
         )
+        # Mixed-format parsing may return datetime64[us] for a year like 7545.
+        # First convert to date strings, then coerce with a bounded format.
+        other_dates = other.dt.strftime('%Y-%m-%d')
+        parsed.loc[~iso_mask] = pd.to_datetime(
+            other_dates, format='%Y-%m-%d', errors='coerce', utc=True,
+        )
+
+    # DOB dates outside a plausible birth-year range are invalid, not evidence
+    # for eligibility. A future DOB likewise cannot be used for eligibility.
+    years = parsed.dt.year
+    parsed = parsed.mask(years.lt(1900) | years.gt(2026))
     return parsed.dt.tz_localize(None).dt.normalize()
 
 
