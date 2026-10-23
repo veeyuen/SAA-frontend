@@ -3150,44 +3150,55 @@ def _youth_2026_format_threshold(row):
 
 
 def _youth_2026_parse_dob_series(series):
-    """Parse youth DOBs, preserving ISO dates and rejecting out-of-range years.
+    """Parse DOB calendar dates with explicit bounds before datetime conversion.
 
-    ISO YYYY-MM-DD[time] is year-first; all other supported values retain
-    the legacy day-first interpretation. An intermediate date-string conversion
-    ensures pandas never assigns out-of-bounds microsecond timestamps into
-    the nanosecond-resolution output. Invalid values become NaT.
+    Year-first ISO dates are never day/month swapped. Other formats use the
+    existing day-first convention. Years outside 1900-2026 become NaT before
+    pandas attempts assignment to a nanosecond datetime column.
     """
     values = pd.Series(series, copy=False)
     text = values.astype('string').str.strip()
-    iso_mask = text.str.match(
-        r'^\d{4}-\d{2}-\d{2}(?:[Tt\s].*)?$', na=False
-    )
+    iso_mask = text.str.match(r'^\d{4}-\d{2}-\d{2}(?:[Tt\s].*)?$', na=False)
     parsed = pd.Series(pd.NaT, index=values.index, dtype='datetime64[ns, UTC]')
 
     if iso_mask.any():
-        # Ignore the time portion: DOB is a calendar date, not an instant.
-        # Explicit format safely coerces dates outside pandas' supported range.
-        iso_date = text.loc[iso_mask].str.slice(0, 10)
-        parsed.loc[iso_mask] = pd.to_datetime(
-            iso_date, format='%Y-%m-%d', errors='coerce', utc=True,
-        )
+        iso_dates = text.loc[iso_mask].str.slice(0, 10)
+        years = pd.to_numeric(iso_dates.str.slice(0, 4), errors='coerce')
+        eligible = years.between(1900, 2026).fillna(False)
+        if eligible.any():
+            idx = eligible.index[eligible]
+            result = pd.to_datetime(
+                iso_dates.loc[idx], format='%Y-%m-%d', errors='coerce', utc=True,
+            ).astype('datetime64[ns, UTC]')
+            parsed.loc[idx] = result
 
     if (~iso_mask).any():
-        other = pd.to_datetime(
-            values.loc[~iso_mask], format='mixed', dayfirst=True,
-            errors='coerce', utc=True,
-        )
-        # Mixed-format parsing may return datetime64[us] for a year like 7545.
-        # First convert to date strings, then coerce with a bounded format.
-        other_dates = other.dt.strftime('%Y-%m-%d')
-        parsed.loc[~iso_mask] = pd.to_datetime(
-            other_dates, format='%Y-%m-%d', errors='coerce', utc=True,
-        )
+        other_text = text.loc[~iso_mask]
+        # Reject explicit four-digit outlier years *before* mixed parsing.
+        # Recognise YYYY, DD/MM/YYYY, DD-MM-YYYY and their short-year variants.
+        year_first = other_text.str.extract(r'^(\d{4})$', expand=False)
+        year_last = other_text.str.extract(r'(?<!\d)(\d{4})\s*$', expand=False)
+        years = pd.to_numeric(year_first.fillna(year_last), errors='coerce')
+        allowed = (years.isna() | years.between(1900, 2026)).fillna(False)
+        if allowed.any():
+            idx = allowed.index[allowed]
+            converted = pd.to_datetime(
+                other_text.loc[idx], format='mixed', dayfirst=True,
+                errors='coerce', utc=True,
+            )
+            # Rebuild from calendar dates only; malformed wide-resolution
+            # dates cannot enter the nanosecond column.
+            date_text = converted.dt.strftime('%Y-%m-%d')
+            result_years = pd.to_numeric(date_text.str.slice(0, 4), errors='coerce')
+            valid = result_years.between(1900, 2026).fillna(False)
+            if valid.any():
+                ok_idx = valid.index[valid]
+                safe = pd.to_datetime(
+                    date_text.loc[ok_idx], format='%Y-%m-%d',
+                    errors='coerce', utc=True,
+                ).astype('datetime64[ns, UTC]')
+                parsed.loc[ok_idx] = safe
 
-    # DOB dates outside a plausible birth-year range are invalid, not evidence
-    # for eligibility. A future DOB likewise cannot be used for eligibility.
-    years = parsed.dt.year
-    parsed = parsed.mask(years.lt(1900) | years.gt(2026))
     return parsed.dt.tz_localize(None).dt.normalize()
 
 
