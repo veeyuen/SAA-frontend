@@ -3158,11 +3158,19 @@ def _youth_2026_parse_dob_series(series):
     """
     values = pd.Series(series, copy=False)
     text = values.astype('string').str.strip()
-    iso_mask = text.str.match(r'^\d{4}-\d{2}-\d{2}(?:[Tt\s].*)?$', na=False)
+    iso_mask = text.str.match(r'^\d{4}-\d{1,2}-\d{1,2}(?=$|[Tt\s])', na=False)
     parsed = pd.Series(pd.NaT, index=values.index, dtype='datetime64[ns, UTC]')
 
     if iso_mask.any():
-        iso_dates = text.loc[iso_mask].str.slice(0, 10)
+        # Normalize unpadded year-first dates without changing their field order.
+        iso_parts = text.loc[iso_mask].str.extract(
+            r'^(\d{4})-(\d{1,2})-(\d{1,2})(?=$|[Tt\s])',
+            expand=True,
+        )
+        iso_dates = (
+            iso_parts[0] + '-' + iso_parts[1].str.zfill(2)
+            + '-' + iso_parts[2].str.zfill(2)
+        )
         years = pd.to_numeric(iso_dates.str.slice(0, 4), errors='coerce')
         eligible = years.between(1900, 2026).fillna(False)
         if eligible.any():
