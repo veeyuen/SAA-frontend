@@ -3777,6 +3777,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     empty = pd.DataFrame()
     if data.empty:
         return empty, empty, {
+            'dob_provenance_four': empty,
             'foreign_team': empty,
             'blank_nationality': empty,
             'dob_backfill': empty,
@@ -3812,6 +3813,28 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
         dob_value_conflict_audit,
         dob_reference_conflict_audit,
     ) = enrich_youth_2026_dob_from_name_variations(data, names_reference)
+
+    # Read-only provenance audit for four unresolved DOB discrepancies.
+    # Capture *all* matching competition rows before subsequent filtering,
+    # benchmark selection, and best-performance ranking can discard them.
+    _dob_audit_targets = {
+        'FISH FINGERS', 'HO SHER ZHEN', 'KOO JIA JUN', 'LIU HAOYUE'
+    }
+    _dob_audit_name_key = (
+        data['NAME'].fillna('').astype(str)
+        .str.replace(r'[^A-Za-z0-9]+', ' ', regex=True)
+        .str.strip().str.upper()
+    )
+    _dob_audit_cols = [
+        'NAME', 'UNIQUE_ID', 'DOB_ORIGINAL', 'DOB_ORIGINAL_PARSED',
+        'DOB_REFERENCE', 'DOB_REFERENCE_PARSED', 'DOB_REFERENCE_SOURCE',
+        'DOB_SOURCE', 'DOB', 'DOB_PARSED', 'EVENT', 'DISTANCE',
+        'RESULT', 'DATE', 'COMPETITION', 'SOURCE',
+    ]
+    dob_provenance_four_audit = data.loc[
+        _dob_audit_name_key.isin(_dob_audit_targets),
+        [c for c in _dob_audit_cols if c in data.columns]
+    ].copy()
 
     # SEA Youth mapping is intentionally independent of the general
     # international (adult/Open) mapping populated by fetch_data().
@@ -3974,6 +3997,7 @@ def prepare_youth_2026_qualifying_report(data_input, benchmarks_input):
     data = data.loc[data['AGE_GROUP'].isin(['U18', 'U20'])].copy()
 
     base_audits = {
+        'dob_provenance_four': dob_provenance_four_audit,
         'foreign_team': foreign_team_audit,
         'blank_nationality': blank_nationality_audit,
         'dob_backfill': dob_backfill_audit,
@@ -6934,6 +6958,14 @@ elif benchmark_option == '2026 U18/U20 Qualifying Report':
         )
 
         audit_specs = [
+            (
+                'DOB provenance - four unresolved athletes (before eligibility/ranking)',
+                youth_audits.get('dob_provenance_four', pd.DataFrame()),
+                ['NAME', 'UNIQUE_ID', 'DOB_ORIGINAL', 'DOB_ORIGINAL_PARSED',
+                 'DOB_REFERENCE', 'DOB_REFERENCE_PARSED', 'DOB_REFERENCE_SOURCE',
+                 'DOB_SOURCE', 'DOB', 'DOB_PARSED', 'EVENT', 'DISTANCE',
+                 'RESULT', 'DATE', 'COMPETITION', 'SOURCE'],
+            ),
             (
                 'Foreign-team exclusions',
                 youth_audits.get('foreign_team', pd.DataFrame()),
