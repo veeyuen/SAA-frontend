@@ -3150,14 +3150,28 @@ def _youth_2026_format_threshold(row):
 
 
 def _youth_2026_parse_dob_series(series):
-    """Parse mixed DOB representations to timezone-naive midnight timestamps."""
-    parsed = pd.to_datetime(
-        series,
-        format='mixed',
-        dayfirst=True,
-        errors='coerce',
-        utc=True,
+    """Parse DOBs deterministically, preserving ISO YYYY-MM-DD semantics.
+
+    YYYY-MM-DD[ time/offset] is year-first regardless of locale. Other DOB
+    representations preserve the existing day-first parser behavior. This
+    function does not attempt to correct conflicting manually entered DOBs.
+    """
+    values = pd.Series(series, copy=False)
+    text = values.astype('string').str.strip()
+    iso_mask = text.str.match(
+        r'^\d{4}-\d{2}-\d{2}(?:[Tt\s].*)?$', na=False
     )
+    parsed = pd.Series(pd.NaT, index=values.index, dtype='datetime64[ns, UTC]')
+    if iso_mask.any():
+        parsed.loc[iso_mask] = pd.to_datetime(
+            text.loc[iso_mask], format='mixed', dayfirst=False,
+            errors='coerce', utc=True,
+        )
+    if (~iso_mask).any():
+        parsed.loc[~iso_mask] = pd.to_datetime(
+            values.loc[~iso_mask], format='mixed', dayfirst=True,
+            errors='coerce', utc=True,
+        )
     return parsed.dt.tz_localize(None).dt.normalize()
 
 
